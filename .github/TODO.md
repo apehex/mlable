@@ -71,52 +71,54 @@
 
 - [x] dense embeddings, rather than sparse "one-hot"
 - [x] guiding without fixing: no frozen dictionary, context agnostic
-- [ ] tokenization independant of the input partitioning / shift
-- [ ] dense encoding != one-hot vectors on the vocabulary
-- [ ] composite tokens have parent / child relation: "splitting" carries the information of "split" and "ing"
-- [ ] reduce token dimension: from several 100k to 256!
+- [x] tokenization independant of the input partitioning / shift
+- [x] dense encoding != one-hot vectors on the vocabulary
+- [x] composite tokens have parent / child relation: "splitting" carries the information of "split" and "ing"
+- [x] reduce token dimension: from several 100k to 256!
 
 ### Dataviz
 
 - [x] spatial repartition of tokens
 - [ ] embeddings of child <=> parent tokens
-- [ ] limit embedding size = when fidelity starts to drop = max compression
+- [x] limit embedding size = when fidelity starts to drop = max compression (64 UTF-32 bytes?)
 
 ### Curriculum
 
 - [ ] shift training data by 1, 2, ..., G - 1 ticks along the time / context axis
+- [ ] switch between equivalent formats:
+    - [x] byte shift
+    - [ ] abbreviations: "can't" <=> "cannot"
+    - [ ] change number format (while keeping the same value)
 - [ ] random perturbations on the inputs:
     - [ ] letter capitalization
-    - [ ] abbreviations: "can't" <=> "cannot"
-    - [ ] byte shift
     - [ ] byte replacement
     - [ ] byte insertion
-    - [ ] reversing order in groups
-    - [ ] change number format (while keeping the same value)
-    - [ ] equivalence 1 <=> 4 <=> 4 x 4:
-        - [ ] pad data with 0s to fill bigger tokens until they match their parts
+    - [ ] reversing order in groups?
+- [ ] equivalence 1 <=> 4 <=> 4 x 4:
+    - [ ] pad data with 0s to fill bigger tokens until they match their parts
 
 ### Issues
 
 Trying to solve:
 
 - [x] variable length encoding (UTF-8) that screws fixed size model shapes
-- [ ] part / global unrelated: knowledge about tokens doesn't transfer to their siblings
-- [ ] better support for eastern languages
+- [x] part / global unrelated: knowledge about tokens doesn't transfer to their siblings
+- [x] better support for eastern languages
 
 ### Blocks
 
-- [ ] tokenization:
-    - [ ] simplify: divide + position + merge = reshape + dense (position = dense bias on the merged vector)
-    - [ ] move data from axis 0 to axis -1 in the end: (B * G, E) => (B, G * E)
-- [ ] detokenization
-    - [ ] simplify: same as the tokenization block
-- [ ] head
+- [x] tokenization:
+    - [x] simplify: divide + position + merge = reshape + dense (position = dense bias on the merged vector)
+    - [x] move data from axis 0 to axis -1 in the end: (B * G, E) => (B, G * E)
+- [x] detokenization
+    - [x] simplify: same as the tokenization block
+- [x] head
 
 ### Models
 
 - [x] VAE
-- [ ] VAE + CNN
-- [ ] VAE + CNN + attention
-- [ ] VAE + hierarchical CNN
-- [ ] VAE + hierarchical CNN + attention
+- [x] VAE + CNN
+- [x] VAE + CNN + attention
+- [x] VAE + hierarchical CNN
+- [x] VAE + hierarchical CNN + attention
+- [x] VAE + hierarchical CNN + attention + normalization

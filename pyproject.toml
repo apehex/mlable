@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "mlable"
-version = "0.0.1"
-description = "Getting up to speed on ML with atomic projects."
+version = "0.1.0"
+description = "Tensorflow and pyTorch libs + atomic projects and drafts."
 authors = ["apehex <apehex@protonmail.com>"]
 readme = ".github/README.md"
 
@@ -12,7 +12,6 @@ tensorflow-datasets = ">=4.9"
 torch = ">=2.2"
 
 [tool.poetry.group.dev.dependencies]
-jupyterlab = "*"
 pytest = "*"
 
 [build-system]
