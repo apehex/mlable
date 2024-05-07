@@ -1,3 +1,4 @@
+import keras
 import numpy as np
 import tensorflow as tf
 
@@ -5,6 +6,7 @@ import mlable.tensorflow.initializers as _mti
 
 # NORMALIZATION ###############################################################
 
+@keras.saving.register_keras_serializable(package='layers')
 class BatchNormalization(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -27,10 +29,10 @@ class BatchNormalization(tf.keras.layers.Layer):
         __axis = self._axis % len(input_shape) # positive index even when the axis is specified negatively, like -2
         __shape = [1 if __i == __axis else __d for __i, __d in enumerate(input_shape)]
         # values
-        __mean_init = _mti.SmallNormal()
-        __stddev_init = _mti.SmallNormal()
-        __gain_init = _mti.SmallNormal()
-        __bias_init = _mti.SmallNormal()
+        __mean_init = tf.keras.initializers.GlorotNormal()
+        __stddev_init = tf.keras.initializers.GlorotNormal()
+        __gain_init = tf.keras.initializers.GlorotNormal()
+        __bias_init = tf.keras.initializers.Zeros()
         # tensors
         self._mean = self.add_weight("mean", shape=__shape, initializer=__mean_init)
         self._stddev = self.add_weight("stddev", shape=__shape, initializer=__stddev_init)
@@ -52,6 +54,19 @@ class BatchNormalization(tf.keras.layers.Layer):
         # scale
         return tf.math.multiply(self._gain, __normalized) + self._bias
 
+    def get_config(self) -> dict:
+        __parent_config = super(BatchNormalization, self).get_config()
+        __child_config = {
+            'axis': self._axis,
+            'momentum': self._momentum,
+            'epsilon': self._epsilon}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+@keras.saving.register_keras_serializable(package='layers')
 class LayerNormalization(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -69,8 +84,8 @@ class LayerNormalization(tf.keras.layers.Layer):
         # shape
         __shape = [1] + input_shape[1:]
         # values
-        __gain_init = _mti.SmallNormal()
-        __bias_init = _mti.SmallNormal()
+        __gain_init = tf.keras.initializers.GlorotNormal()
+        __bias_init = tf.keras.initializers.Zeros()
         # tensors
         self._gain = self.add_weight("gain", shape=__shape, initializer=__gain_init)
         self._bias = self.add_weight("bias", shape=__shape, initializer=__bias_init)
@@ -86,12 +101,24 @@ class LayerNormalization(tf.keras.layers.Layer):
         # scale
         return tf.math.add(tf.math.multiply(self._gain, __normalized), self._bias)
 
+    def get_config(self) -> dict:
+        __parent_config = super(LayerNormalization, self).get_config()
+        __child_config = {
+            'axis': self._axis,
+            'epsilon': self._epsilon}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
 # REGULARIZATION ##############################################################
 
 # dropout
 
 # LINEAR ######################################################################
 
+@keras.saving.register_keras_serializable(package='layers')
 class Dense(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -107,11 +134,11 @@ class Dense(tf.keras.layers.Layer):
 
     def build(self, input_shape: tuple):
         # kernel
-        __kernel_init = _mti.SmallNormal()
+        __kernel_init = tf.keras.initializers.GlorotNormal()
         self._kernel = self.add_weight("kernel", shape=[int(input_shape[-1]), self._units], initializer=__kernel_init)
         # bias
         if self._biased:
-            __bias_init = _mti.SmallNormal()
+            __bias_init = tf.keras.initializers.Zeros()
             self._bias = self.add_weight("bias", shape=[self._units], initializer=__bias_init)
         # notify the model
         self.built = True
@@ -119,8 +146,20 @@ class Dense(tf.keras.layers.Layer):
     def call(self, inputs: tf.Tensor, **kwargs):
         return tf.matmul(inputs, self._kernel) + self._bias if (self._biased and self._bias is not None) else tf.matmul(inputs, self._kernel)
 
+    def get_config(self) -> dict:
+        __parent_config = super(Dense, self).get_config()
+        __child_config = {
+            'units': self._units,
+            'use_bias': self._biased}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
 # QUADRATIC ###################################################################
 
+@keras.saving.register_keras_serializable(package='layers')
 class Attention(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -139,9 +178,9 @@ class Attention(tf.keras.layers.Layer):
     def build(self, input_shape: tuple) -> None:
         self._time_dim = list(input_shape)[-2]
         # init
-        __key_init = _mti.SmallNormal()
-        __query_init = _mti.SmallNormal()
-        __value_init = _mti.SmallNormal()
+        __key_init = tf.keras.initializers.GlorotNormal()
+        __query_init = tf.keras.initializers.GlorotNormal()
+        __value_init = tf.keras.initializers.GlorotNormal()
         # kernels
         self._key = self.add_weight("key", shape=[int(input_shape[-1]), self._head_dim], initializer=__key_init)
         self._query = self.add_weight("query", shape=[int(input_shape[-1]), self._head_dim], initializer=__query_init)
@@ -169,8 +208,20 @@ class Attention(tf.keras.layers.Layer):
         # value
         return tf.matmul(__w, self._value) # (B, T, T) * (T, H) = (B, T, H)
 
+    def get_config(self) -> dict:
+        __parent_config = super(Attention, self).get_config()
+        __child_config = {
+            'head_dim': self._head_dim,
+            'head_count': self._head_count}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
 # EMBEDDING ###################################################################
 
+@keras.saving.register_keras_serializable(package='layers')
 class Embedding(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -182,10 +233,9 @@ class Embedding(tf.keras.layers.Layer):
         self._input_dim = input_dim
         self._output_dim = output_dim
         self._kernel = None
-        self._position_kernel = None
 
     def build(self, input_shape: tuple):
-        __kernel_init = _mti.SmallNormal()
+        __kernel_init = tf.keras.initializers.GlorotNormal()
         # register the weights
         self._kernel = self.add_weight(name="kernel", shape=[self._input_dim, self._output_dim], initializer=__kernel_init)
         # notify the model
@@ -196,6 +246,18 @@ class Embedding(tf.keras.layers.Layer):
         __x = tf.one_hot(indices=inputs, depth=self._input_dim, dtype=tf.dtypes.float32)
         return tf.matmul(__x, self._kernel)
 
+    def get_config(self) -> dict:
+        __parent_config = super(Embedding, self).get_config()
+        __child_config = {
+            'input_dim': self._input_dim,
+            'output_dim': self._output_dim}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+@keras.saving.register_keras_serializable(package='layers')
 class PositionalEmbedding(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -213,7 +275,7 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         __axes = [self._input_axis % len(input_shape), self._output_axis % len(input_shape)]
         __shape = [(__d if __i in __axes else 1) for __i, __d in enumerate(list(input_shape))]
         # init values
-        __kernel_init = _mti.SmallNormal()
+        __kernel_init = tf.keras.initializers.GlorotNormal()
         # register the weights
         self._kernel = self.add_weight(name="kernel", shape=__shape, initializer=__kernel_init)
         # notify the model
@@ -222,10 +284,22 @@ class PositionalEmbedding(tf.keras.layers.Layer):
     def call(self, inputs: tf.Tensor):
         return inputs + self._kernel # each index in the sequence axis has a dedicated bias (different from dense bias)
 
+    def get_config(self) -> dict:
+        __parent_config = super(PositionalEmbedding, self).get_config()
+        __child_config = {
+            'input_axis': self._input_axis,
+            'output_axis': self._output_axis}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
 # RESIDUALS ###################################################################
 
 # ACTIVATION ##################################################################
 
+@keras.saving.register_keras_serializable(package='layers')
 class Activation(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -238,6 +312,18 @@ class Activation(tf.keras.layers.Layer):
     def call(self, inputs: tf.Tensor, **kwargs):
         return self._function(inputs)
 
+    def get_config(self) -> dict:
+        __parent_config = super(Activation, self).get_config()
+        __child_config = {'function': keras.saving.serialize_keras_object(self._function),}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        __fn_config = config.pop('function')
+        __fn = keras.saving.deserialize_keras_object(__fn_config)
+        return cls(function=__fn, **config)
+
+@keras.saving.register_keras_serializable(package='layers')
 class Softmax(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -249,6 +335,15 @@ class Softmax(tf.keras.layers.Layer):
 
     def call(self, inputs: tf.Tensor, **kwargs):
         return tf.nn.softmax(inputs, axis=self._axis)
+
+    def get_config(self) -> dict:
+        __parent_config = super(Softmax, self).get_config()
+        __child_config = {'axis': self._axis,}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
 
 # RESHAPING ###################################################################
 
@@ -264,6 +359,7 @@ def _multiply_dim(dim_l: int, dim_r: int) -> int:
 def _divide_dim(dim_l: int, dim_r: int) -> int:
     return -1 if (dim_l == -1 or dim_r == -1) else dim_l // dim_r
 
+@keras.saving.register_keras_serializable(package='layers')
 class Divide(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -294,6 +390,20 @@ class Divide(tf.keras.layers.Layer):
         __shape[__axis1] = _multiply_dim(__shape[__axis1], self._factor)
         return tf.reshape(tensor=inputs, shape=__shape)
 
+    def get_config(self) -> dict:
+        __parent_config = super(Divide, self).get_config()
+        __child_config = {
+            'input_axis': self._input_axis,
+            'output_axis': self._output_axis,
+            'factor': self._factor,
+            'insert': self._insert}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+@keras.saving.register_keras_serializable(package='layers')
 class Merge(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -324,6 +434,19 @@ class Merge(tf.keras.layers.Layer):
         # actually merge the two axes
         return tf.reshape(tensor=inputs, shape=__shape)
 
+    def get_config(self) -> dict:
+        __parent_config = super(Merge, self).get_config()
+        __child_config = {
+            'left_axis': self._left_axis,
+            'right_axis': self._right_axis,
+            'left': self._left}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+@keras.saving.register_keras_serializable(package='layers')
 class Reshape(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -335,3 +458,12 @@ class Reshape(tf.keras.layers.Layer):
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         return tf.reshape(inputs, self._shape)
+
+    def get_config(self) -> dict:
+        __parent_config = super(Reshape, self).get_config()
+        __child_config = {'target_shape': self._shape,}
+        return {**__parent_config, **__child_config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
