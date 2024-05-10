@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mlable"
-version = "0.1.2"
+version = "0.1.3"
 description = "Tensorflow and pyTorch libs + atomic projects and drafts."
 authors = ["apehex <apehex@protonmail.com>"]
 readme = ".github/README.md"
