@@ -270,7 +270,7 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         self._output_axis = output_axis
         self._kernel = None
 
-    def build(self, input_shape: tuple):
+    def build(self, input_shape: tuple) -> None:
         # shape
         __axes = [self._input_axis % len(input_shape), self._output_axis % len(input_shape)]
         __shape = [(__d if __i in __axes else 1) for __i, __d in enumerate(list(input_shape))]
@@ -281,7 +281,7 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         # notify the model
         self.built = True
 
-    def call(self, inputs: tf.Tensor):
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
         return inputs + self._kernel # each index in the sequence axis has a dedicated bias (different from dense bias)
 
     def get_config(self) -> dict:
