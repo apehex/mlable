@@ -1,15 +1,14 @@
 [tool.poetry]
 name = "mlable"
-version = "0.1.4"
-description = "Tensorflow and pyTorch libs + atomic projects and drafts."
+version = "0.2.1"
+description = "Tensorflow libs: layers, blocks, optimizers, etc."
 authors = ["apehex <apehex@protonmail.com>"]
 readme = ".github/README.md"
+packages = [{include = "mlable"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10, <3.12"
 tensorflow = ">=2.14"
-tensorflow-datasets = ">=4.9"
-torch = ">=2.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
