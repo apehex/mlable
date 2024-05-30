@@ -19,7 +19,7 @@ class Einsum(tf.keras.layers.Layer):
         self._w = self.add_weight(name='w', shape=self._config['shape'], initializer='glorot_normal', trainable=True)
 
     def call(self, inputs):
-        return tf.einsum(self.equation, inputs, self._w)
+        return tf.einsum(self._config['equation'], inputs, self._w)
 
     def get_config(self) -> dict:
         __parent_config = super(Dense, self).get_config()
