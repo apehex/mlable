@@ -8,16 +8,16 @@ class ResidualFeedForwardBlock(tf.keras.layers.Layer):
         hidden_dim: int,
         normalization_epsilon: float=0.001,
         **kwargs
-    ):
+    ) -> None:
         super(ResidualFeedForwardBlock, self).__init__(**kwargs)
-        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_uniform', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None,  **kwargs)
+        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_normal', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None,  **kwargs)
         self._hidden_dim = hidden_dim
-        self._hidden = tf.keras.layers.Dense(units=self._hidden_dim, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs)
+        self._hidden = tf.keras.layers.Dense(units=self._hidden_dim, activation='relu', use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs)
         self._projection = None
 
     def build(self, input_shape: tuple, **kwargs) -> None:
         # create the projection layer to match the input shape
-        self._projection = tf.keras.layers.Dense(units=input_shape[-1], activation=None, use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs)
+        self._projection = tf.keras.layers.Dense(units=input_shape[-1], activation=None, use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs)
         # no need to build the activation layer
         self._normalization.build(input_shape) # no weights
         self._hidden.build(input_shape) # (C, H)
@@ -25,7 +25,7 @@ class ResidualFeedForwardBlock(tf.keras.layers.Layer):
         # notify the model
         self.built = True
 
-    def call(self, inputs: tf.Tensor):
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
         __dx = inputs # (B, T, C)
         # normalize the features
         __dx = self._normalization(__dx) # (B, T, C)
@@ -46,10 +46,10 @@ class ResidualSelfAttentionBlock(tf.keras.layers.Layer):
         normalization_epsilon: float=0.001,
         dropout: float=0.0,
         **kwargs
-    ):
+    ) -> None:
         super(ResidualSelfAttentionBlock, self).__init__(**kwargs)
-        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_uniform', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None,  **kwargs)
-        self._attention = tf.keras.layers.MultiHeadAttention(num_heads=attention_head_count, key_dim=attention_head_dim, value_dim=attention_head_dim, dropout=dropout, use_bias=True, output_shape=None, attention_axes=None, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs)
+        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_normal', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None,  **kwargs)
+        self._attention = tf.keras.layers.MultiHeadAttention(num_heads=attention_head_count, key_dim=attention_head_dim, value_dim=attention_head_dim, dropout=dropout, use_bias=True, output_shape=None, attention_axes=None, kernel_initializer='glorot_normal', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs)
 
     def build(self, input_shape: tuple, **kwargs) -> None:
         # build
@@ -58,7 +58,7 @@ class ResidualSelfAttentionBlock(tf.keras.layers.Layer):
         # notify the model
         self.built = True
 
-    def call(self, inputs: tf.Tensor):
+    def call(self, inputs: tf.Tensor)  -> tf.Tensor:
         __dx = inputs # (B, T, C)
         # normalize the features
         __dx = self._normalization(__dx) # (B, T, C)
@@ -78,7 +78,7 @@ class ResidualSelfAttentionDecoderBlock(tf.keras.layers.Layer):
         normalization_epsilon: float=0.001,
         dropout: float=0.0,
         **kwargs
-    ):
+    ) -> None:
         super(ResidualSelfAttentionDecoderBlock, self).__init__(**kwargs)
         self._feedforward = ResidualFeedForwardBlock(hidden_dim=hidden_dim, normalization_epsilon=normalization_epsilon)
         self._attention = ResidualSelfAttentionBlock(attention_head_dim=attention_head_dim, attention_head_count=attention_head_count, normalization_epsilon=normalization_epsilon, dropout=dropout)
@@ -89,7 +89,7 @@ class ResidualSelfAttentionDecoderBlock(tf.keras.layers.Layer):
         # notify the model
         self.built = True
 
-    def call(self, inputs: tf.Tensor):
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
         __dx = inputs # (B, T, C)
         # residual self-attention
         __dx = self._attention(__dx) # (B, T, C)
