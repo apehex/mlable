@@ -2,8 +2,6 @@ import keras
 import numpy as np
 import tensorflow as tf
 
-import mlable.tensorflow.initializers as _mti
-
 # NORMALIZATION ###############################################################
 
 @keras.saving.register_keras_serializable(package='layers')
