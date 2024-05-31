@@ -10,7 +10,7 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         input_axis: int=1, # axis of the sequence
         output_axis: int=-1, # axis of the embedding
         **kwargs
-    ):
+    ) -> None:
         super(PositionalEmbedding, self).__init__(**kwargs)
         self._config = {
             'input_axis': input_axis,
@@ -40,3 +40,54 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         return cls(**config)
 
 # ROPE ########################################################################
+
+MAX_WAVELENGTH = 10_000
+
+def filter_shape(shape: list, axes: list) -> list:
+    return [__d if __i in axes else 1 for __i, __d in enumerate(shape)]
+
+@keras.saving.register_keras_serializable(package='layers')
+class RotaryPositionalEmbedding(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        head_dim: int,
+        sequence_axis: int=1,
+        max_wavelength: int=MAX_WAVELENGTH,
+        **kwargs
+    ) -> None:
+        super(RotaryPositionalEmbedding, self).__init__(**kwargs)
+        self._config = {
+            'head_dim': head_dim,
+            'sequence_axis': sequence_axis,
+            'max_wavelength': max_wavelength,}
+
+    def call(self, inputs: tf.Tensor, positions: tf.Tensor) -> tf.Tensor:
+        # # position shape
+        # __shape = filter_shape(shape=list(inputs.shape), axes=[self._config['sequence_axis'] % len(inputs.shape)])
+        # # position indices
+        # __positions = tf.reshape(tensor=tf.range(max(__shape), dtype=tf.float32), shape=__shape)
+        # timescale
+        __fraction = 2 * tf.range(self._config['head_dim'] // 2, dtype=tf.float32) / self._config['head_dim']
+        __timescale = self._config['max_wavelength'] ** __fraction
+        # angle inputs
+        __angles = tf.expand_dims(positions, axis=-1) / tf.reshape(__timescale, [1, 1, -1])
+        # actual sinusoids
+        __sin = tf.sin(__angles)
+        __cos = tf.cos(__angles)
+        # Split inputs into two halves
+        __left, __right = tf.split(inputs, 2, axis=-1)
+        # apply the rotation
+        __left_rot = __left * __cos - __right * __sin
+        __right_rot = __left * __sin + __right * __cos
+        # concatenate the rotated parts
+        __output = tf.concat([__left_rot, __right_rot], axis=-1)
+        # make sure the type is correct
+        return tf.cast(__output, inputs.dtype)
+
+    def get_config(self) -> dict:
+        __parent_config = super(PositionalEmbedding, self).get_config()
+        return {**__parent_config, **self._config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
