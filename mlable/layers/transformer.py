@@ -1,3 +1,4 @@
+import keras
 import tensorflow as tf
 
 # FEED FORWARD BLOCK ##########################################################
@@ -6,6 +7,7 @@ import tensorflow as tf
 class ResidualFeedForwardBlock(tf.keras.layers.Layer):
     def __init__(
         self,
+        input_dim: int,
         hidden_dim: int,
         normalization_epsilon: float=0.001,
         **kwargs
@@ -14,22 +16,13 @@ class ResidualFeedForwardBlock(tf.keras.layers.Layer):
         super(ResidualFeedForwardBlock, self).__init__(**kwargs)
         # config
         self._config = {
+            'input_dim': input_dim,
             'hidden_dim': hidden_dim,
             'normalization_epsilon': normalization_epsilon}
         # layers
         self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_normal')
         self._hidden = tf.keras.layers.Dense(units=hidden_dim, activation='relu', use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros')
-        self._projection = None
-
-    def build(self, input_shape: tuple, **kwargs) -> None:
-        # create the projection layer to match the input shape
-        self._projection = tf.keras.layers.Dense(units=input_shape[-1], activation='linear', use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros')
-        # no need to build the activation layer
-        self._normalization.build(input_shape) # no weights
-        self._hidden.build(input_shape) # (C, H)
-        self._projection.build(list(input_shape)[:-1] + [self._hidden_dim]) # (H, C), called on (x * W_h) => shape (B, T, H)
-        # notify the model
-        self.built = True
+        self._projection = tf.keras.layers.Dense(units=input_dim, activation='linear', use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros')
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         __dx = inputs # (B, T, C)
@@ -97,6 +90,7 @@ class ResidualSelfAttentionBlock(tf.keras.layers.Layer):
 class ResidualSelfAttentionDecoderBlock(tf.keras.layers.Layer):
     def __init__(
         self,
+        input_dim: int,
         hidden_dim: int,
         attention_head_dim: int,
         attention_head_count: int=1,
@@ -114,7 +108,7 @@ class ResidualSelfAttentionDecoderBlock(tf.keras.layers.Layer):
             'normalization_epsilon': normalization_epsilon,
             'dropout': dropout}
         # layers
-        self._feedforward = ResidualFeedForwardBlock(hidden_dim=hidden_dim, normalization_epsilon=normalization_epsilon)
+        self._feedforward = ResidualFeedForwardBlock(input_dim=input_dim,hidden_dim=hidden_dim, normalization_epsilon=normalization_epsilon)
         self._attention = ResidualSelfAttentionBlock(attention_head_dim=attention_head_dim, attention_head_count=attention_head_count, normalization_epsilon=normalization_epsilon, dropout=dropout)
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
