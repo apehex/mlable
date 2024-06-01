@@ -2,6 +2,7 @@ import tensorflow as tf
 
 # FEED FORWARD BLOCK ##########################################################
 
+@keras.saving.register_keras_serializable(package='layers')
 class ResidualFeedForwardBlock(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -9,15 +10,20 @@ class ResidualFeedForwardBlock(tf.keras.layers.Layer):
         normalization_epsilon: float=0.001,
         **kwargs
     ) -> None:
+        # init
         super(ResidualFeedForwardBlock, self).__init__(**kwargs)
-        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_normal', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None,  **kwargs)
-        self._hidden_dim = hidden_dim
-        self._hidden = tf.keras.layers.Dense(units=self._hidden_dim, activation='relu', use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs)
+        # config
+        self._config = {
+            'hidden_dim': hidden_dim,
+            'normalization_epsilon': normalization_epsilon}
+        # layers
+        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_normal')
+        self._hidden = tf.keras.layers.Dense(units=hidden_dim, activation='relu', use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros')
         self._projection = None
 
     def build(self, input_shape: tuple, **kwargs) -> None:
         # create the projection layer to match the input shape
-        self._projection = tf.keras.layers.Dense(units=input_shape[-1], activation=None, use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs)
+        self._projection = tf.keras.layers.Dense(units=input_shape[-1], activation='linear', use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros')
         # no need to build the activation layer
         self._normalization.build(input_shape) # no weights
         self._hidden.build(input_shape) # (C, H)
@@ -36,8 +42,17 @@ class ResidualFeedForwardBlock(tf.keras.layers.Layer):
         # residual
         return inputs + __dx # (B, T, C)
 
+    def get_config(self) -> dict:
+        __parent_config = super(ResidualFeedForwardBlock, self).get_config()
+        return {**__parent_config, **self._config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
 # ATTENTION BLOCK #############################################################
 
+@keras.saving.register_keras_serializable(package='layers')
 class ResidualSelfAttentionBlock(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -47,16 +62,17 @@ class ResidualSelfAttentionBlock(tf.keras.layers.Layer):
         dropout: float=0.0,
         **kwargs
     ) -> None:
+        # init
         super(ResidualSelfAttentionBlock, self).__init__(**kwargs)
-        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_normal', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None,  **kwargs)
-        self._attention = tf.keras.layers.MultiHeadAttention(num_heads=attention_head_count, key_dim=attention_head_dim, value_dim=attention_head_dim, dropout=dropout, use_bias=True, output_shape=None, attention_axes=None, kernel_initializer='glorot_normal', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs)
-
-    def build(self, input_shape: tuple, **kwargs) -> None:
-        # build
-        self._normalization.build(input_shape)
-        self._attention.build(input_shape, input_shape)
-        # notify the model
-        self.built = True
+        # config
+        self._config = {
+            'attention_head_dim': attention_head_dim,
+            'attention_head_count': attention_head_count,
+            'normalization_epsilon': normalization_epsilon,
+            'dropout': dropout}
+        # layers
+        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_normal')
+        self._attention = tf.keras.layers.MultiHeadAttention(num_heads=attention_head_count, key_dim=attention_head_dim, value_dim=attention_head_dim, dropout=dropout, use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros')
 
     def call(self, inputs: tf.Tensor)  -> tf.Tensor:
         __dx = inputs # (B, T, C)
@@ -67,8 +83,17 @@ class ResidualSelfAttentionBlock(tf.keras.layers.Layer):
         # residual
         return inputs + __dx # (B, T, C)
 
+    def get_config(self) -> dict:
+        __parent_config = super(ResidualSelfAttentionBlock, self).get_config()
+        return {**__parent_config, **self._config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
 # META BLOCK ##################################################################
 
+@keras.saving.register_keras_serializable(package='layers')
 class ResidualSelfAttentionDecoderBlock(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -79,15 +104,18 @@ class ResidualSelfAttentionDecoderBlock(tf.keras.layers.Layer):
         dropout: float=0.0,
         **kwargs
     ) -> None:
+        # init
         super(ResidualSelfAttentionDecoderBlock, self).__init__(**kwargs)
+        # config
+        self._config = {
+            'hidden_dim': hidden_dim,
+            'attention_head_dim': attention_head_dim,
+            'attention_head_count': attention_head_count,
+            'normalization_epsilon': normalization_epsilon,
+            'dropout': dropout}
+        # layers
         self._feedforward = ResidualFeedForwardBlock(hidden_dim=hidden_dim, normalization_epsilon=normalization_epsilon)
         self._attention = ResidualSelfAttentionBlock(attention_head_dim=attention_head_dim, attention_head_count=attention_head_count, normalization_epsilon=normalization_epsilon, dropout=dropout)
-
-    def build(self, input_shape: tuple, **kwargs) -> None:
-        self._feedforward.build(input_shape)
-        self._attention.build(input_shape)
-        # notify the model
-        self.built = True
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         __dx = inputs # (B, T, C)
@@ -97,3 +125,11 @@ class ResidualSelfAttentionDecoderBlock(tf.keras.layers.Layer):
         __dx = self._feedforward(__dx) # (B, T, C)
         # residual
         return __dx # (B, T, C)
+
+    def get_config(self) -> dict:
+        __parent_config = super(ResidualSelfAttentionDecoderBlock, self).get_config()
+        return {**__parent_config, **self._config}
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
