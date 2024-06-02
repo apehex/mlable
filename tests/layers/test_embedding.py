@@ -1,5 +1,3 @@
-"""Test the agent on a fork"""
-
 import numpy as np
 import tensorflow as tf
 

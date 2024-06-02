@@ -1,5 +1,3 @@
-"""Test the agent on a fork"""
-
 import tensorflow as tf
 
 import mlable.layers.linear
