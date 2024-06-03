@@ -1,129 +1,67 @@
+import math
+
 import keras
 import tensorflow as tf
 
-# FEED FORWARD BLOCK ##########################################################
+import mlable.utils
 
-@keras.saving.register_keras_serializable(package='layers')
-class ResidualFeedForwardBlock(tf.keras.layers.Layer):
-    def __init__(
+# ATTENTION ###################################################################
+
+@tf.keras.utils.register_keras_serializable(package="Text")
+class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
+    """
+    Arguments are the same as `tf.keras.layers.MultiHeadAttention` layer.
+    
+    Scalar dimensions referenced here:
+        B = batch_dim (number of sequences)
+        F = seq_dim `from_tensor`
+        T = seq_dim `to_tensor`
+        N = num_heads
+        H = head_dim
+    """
+    def call(
         self,
-        input_dim: int,
-        hidden_dim: int,
-        normalization_epsilon: float=0.001,
-        **kwargs
-    ) -> None:
+        query: tf.Tensor,
+        value: tf.Tensor,
+        key: tf.Tensor=None,
+        value_cache: tf.Tensor=None,
+        key_cache: tf.Tensor=None,
+        attention_mask: tf.Tensor=None,
+        decode_loop_step: int=None,
+        return_attention_scores: bool=False,
+        use_causal_mask: bool=True,
+    ) -> tf.Tensor:
+        if (hasattr(self, "_build_from_signature") and hasattr(self, "_built_from_signature") and not self._built_from_signature):
+            self._build_from_signature(query=query, value=value, key=key)
+        # attention mask
+        __mask = self._compute_attention_mask(query=query, value=value, attention_mask=attention_mask, use_causal_mask=use_causal_mask) # TODO here or after the cache update??
         # init
-        super(ResidualFeedForwardBlock, self).__init__(**kwargs)
-        # config
-        self._config = {
-            'input_dim': input_dim,
-            'hidden_dim': hidden_dim,
-            'normalization_epsilon': normalization_epsilon}
-        # layers
-        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_normal')
-        self._hidden = tf.keras.layers.Dense(units=hidden_dim, activation='relu', use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros')
-        self._projection = tf.keras.layers.Dense(units=input_dim, activation='linear', use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros')
-
-    def call(self, inputs: tf.Tensor) -> tf.Tensor:
-        __dx = inputs # (B, T, C)
-        # normalize the features
-        __dx = self._normalization(__dx) # (B, T, C)
-        # expand inside the hidden layer
-        __dx = self._hidden(__dx) # (B, T, C) * (C, H) = (B, T, H)
-        # projection: match the input shape
-        __dx = self._projection(__dx) # (B, T, H) * (H, C) = (B, T, C)
-        # residual
-        return inputs + __dx # (B, T, C)
-
-    def get_config(self) -> dict:
-        __parent_config = super(ResidualFeedForwardBlock, self).get_config()
-        return {**__parent_config, **self._config}
-
-    @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
-        return cls(**config)
-
-# ATTENTION BLOCK #############################################################
-
-@keras.saving.register_keras_serializable(package='layers')
-class ResidualSelfAttentionBlock(tf.keras.layers.Layer):
-    def __init__(
-        self,
-        attention_head_dim: int,
-        attention_head_count: int=1,
-        normalization_epsilon: float=0.001,
-        dropout: float=0.0,
-        **kwargs
-    ) -> None:
-        # init
-        super(ResidualSelfAttentionBlock, self).__init__(**kwargs)
-        # config
-        self._config = {
-            'attention_head_dim': attention_head_dim,
-            'attention_head_count': attention_head_count,
-            'normalization_epsilon': normalization_epsilon,
-            'dropout': dropout}
-        # layers
-        self._normalization = tf.keras.layers.LayerNormalization(axis=-1, epsilon=normalization_epsilon, center=True, scale=True, beta_initializer='zeros', gamma_initializer='glorot_normal')
-        self._attention = tf.keras.layers.MultiHeadAttention(num_heads=attention_head_count, key_dim=attention_head_dim, value_dim=attention_head_dim, dropout=dropout, use_bias=True, kernel_initializer='glorot_normal', bias_initializer='zeros')
-
-    def call(self, inputs: tf.Tensor)  -> tf.Tensor:
-        __dx = inputs # (B, T, C)
-        # normalize the features
-        __dx = self._normalization(__dx) # (B, T, C)
-        # self-attention
-        __dx = self._attention(key=__dx, query=__dx, value=__dx, return_attention_scores=False, use_causal_mask=True) # (B, T, H_d * H_c) = (B, T, C) use_causal_mask=True
-        # residual
-        return inputs + __dx # (B, T, C)
-
-    def get_config(self) -> dict:
-        __parent_config = super(ResidualSelfAttentionBlock, self).get_config()
-        return {**__parent_config, **self._config}
-
-    @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
-        return cls(**config)
-
-# META BLOCK ##################################################################
-
-@keras.saving.register_keras_serializable(package='layers')
-class ResidualSelfAttentionDecoderBlock(tf.keras.layers.Layer):
-    def __init__(
-        self,
-        input_dim: int,
-        hidden_dim: int,
-        attention_head_dim: int,
-        attention_head_count: int=1,
-        normalization_epsilon: float=0.001,
-        dropout: float=0.0,
-        **kwargs
-    ) -> None:
-        # init
-        super(ResidualSelfAttentionDecoderBlock, self).__init__(**kwargs)
-        # config
-        self._config = {
-            'hidden_dim': hidden_dim,
-            'attention_head_dim': attention_head_dim,
-            'attention_head_count': attention_head_count,
-            'normalization_epsilon': normalization_epsilon,
-            'dropout': dropout}
-        # layers
-        self._feedforward = ResidualFeedForwardBlock(input_dim=input_dim,hidden_dim=hidden_dim, normalization_epsilon=normalization_epsilon)
-        self._attention = ResidualSelfAttentionBlock(attention_head_dim=attention_head_dim, attention_head_count=attention_head_count, normalization_epsilon=normalization_epsilon, dropout=dropout)
-
-    def call(self, inputs: tf.Tensor) -> tf.Tensor:
-        __dx = inputs # (B, T, C)
-        # residual self-attention
-        __dx = self._attention(__dx) # (B, T, C)
-        # residual FF
-        __dx = self._feedforward(__dx) # (B, T, C)
-        # residual
-        return __dx # (B, T, C)
-
-    def get_config(self) -> dict:
-        __parent_config = super(ResidualSelfAttentionDecoderBlock, self).get_config()
-        return {**__parent_config, **self._config}
-
-    @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
-        return cls(**config)
+        __key = value if key is None else key
+        # [B, F, N ,H]
+        __query = self._query_dense(query)
+        # [B, T, N, H]
+        __key = self._key_dense(__key)
+        # [B, T, N, H]
+        __value = self._value_dense(value)
+        # update the key cache
+        if key_cache is not None:
+            __key = mlable.utils.update_cache(tensor=__key, cache=key_cache, step=decode_loop_step, axis=self._attention_axes[0]) # custom seq axis?
+        # update the key cache
+        if value_cache is not None:
+            __value = mlable.utils.update_cache(tensor=__value, cache=value_cache, step=decode_loop_step, axis=self._attention_axes[0]) # custom seq axis?
+        # rescale
+        __query = tf.multiply(__query, 1.0 / math.sqrt(float(self._key_dim)))
+        # attention scores
+        __scores = tf.einsum(self._dot_product_equation, __key, __query)
+        # [B, N, F, T]
+        __scores = self._masked_softmax(__scores, __mask)
+        # dropout
+        __scores = self._dropout_layer(__scores)
+        # [B, F, N, H]
+        __output = tf.einsum(self._combine_equation, __scores, __value)
+        # projection
+        __output = self._output_dense(__output)
+        # output
+        if return_attention_scores:
+            return __output, __scores, __key, __value
+        return __output, __key, __value
