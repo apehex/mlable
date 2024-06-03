@@ -1,6 +1,8 @@
 import keras
 import tensorflow as tf
 
+import mlable.utils
+
 # WITH SIMPLE BIAS ############################################################
 
 @keras.saving.register_keras_serializable(package='layers')
@@ -43,9 +45,6 @@ class PositionalEmbedding(tf.keras.layers.Layer):
 
 WAVELENGTH = 10_000
 
-def filter_shape(shape: list, axes: list) -> list:
-    return [__d if __i in axes else 1 for __i, __d in enumerate(shape)]
-
 def compute_positions(dim: int, offset: int=0, factor: float=1.0) -> tf.Tensor:
     __range = tf.range(dim, dtype=tf.dtypes.float32)
     __offset = tf.cast(offset, dtype=tf.dtypes.float32)
@@ -76,7 +75,7 @@ def compute_rotation_embedding(inputs: tf.Tensor, cos_emb: tf.Tensor, sin_emb: t
 def reshape_embedding(embeddings: tf.Tensor, shape: list, sequence_axis: int=1, feature_axis: int=-1) -> tf.Tensor:
     __rank = len(shape)
     __axes = [sequence_axis % __rank, feature_axis % __rank]
-    __shape = filter_shape(shape=shape, axes=__axes)
+    __shape = mlable.utils.filter_shape(shape=shape, axes=__axes)
     return tf.reshape(tensor=embeddings, shape=__shape)
 
 @keras.saving.register_keras_serializable(package='layers')
