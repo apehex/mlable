@@ -17,9 +17,9 @@ class Activation(tf.keras.layers.Layer):
         return self._function(inputs)
 
     def get_config(self) -> dict:
-        __parent_config = super(Activation, self).get_config()
-        __child_config = {'function': keras.saving.serialize_keras_object(self._function),}
-        return {**__parent_config, **__child_config}
+        __config = super(Activation, self).get_config()
+        __config.update({'function': keras.saving.serialize_keras_object(self._function),})
+        return __config
 
     @classmethod
     def from_config(cls, config) -> tf.keras.layers.Layer:
