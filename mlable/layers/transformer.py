@@ -25,8 +25,8 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
         value: tf.Tensor,
         key: tf.Tensor=None,
         cache: tf.Tensor=None,
+        step: int=None,
         attention_mask: tf.Tensor=None,
-        decode_loop_step: int=None,
         return_attention_scores: bool=False,
         use_causal_mask: bool=True,
     ) -> tf.Tensor:
@@ -44,8 +44,8 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
         __value = self._value_dense(value)
         # update the key + value caches
         if cache is not None:
-            __key = mlable.utils.update_cache(tensor=__key, cache=cache[0], step=decode_loop_step, axis=self._attention_axes[0]) # custom seq axis?
-            __value = mlable.utils.update_cache(tensor=__value, cache=cache[1], step=decode_loop_step, axis=self._attention_axes[0]) # custom seq axis?
+            __key = mlable.utils.update_cache(tensor=__key, cache=cache[0], step=step, axis=self._attention_axes[0]) # custom seq axis?
+            __value = mlable.utils.update_cache(tensor=__value, cache=cache[1], step=step, axis=self._attention_axes[0]) # custom seq axis?
         # if cache was none it contains only the current values
         __cache = tf.stack(values=(__key, __value), axis=0)
         # rescale

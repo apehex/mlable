@@ -7,6 +7,10 @@ def filter_shape(shape: list, axes: list) -> list:
 
 # CACHE #######################################################################
 
+def create_cache(batch_dim: int, cache_dim: int, head_dim: int, num_heads: int=None):
+    __shape = [2, batch_dim, cache_dim, num_heads, head_dim] if num_heads else [2, batch_dim, cache_dim, head_dim]
+    return tf.zeros(__shape, dtype=tf.float32)
+
 def update_cache(tensor: tf.Tensor, cache: tf.Tensor, axis: int=1, step: int=None):
     if step is not None:
     	# expand the sequence axis with 1-dim axes
