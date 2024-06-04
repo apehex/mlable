@@ -2,11 +2,9 @@ import numpy as np
 import tensorflow as tf
 
 import mlable.layers.transformer
+import mlable.utils
 
 # CACHED ATTENTION ############################################################
-
-def _create_cache(__batch_dim, __init_dim, __num_heads, __head_dim):
-        return tf.zeros([2, __batch_dim, __init_dim, __num_heads, __head_dim], dtype=tf.float32)
 
 class CachedAttentionTest(tf.test.TestCase):
 
@@ -16,7 +14,7 @@ class CachedAttentionTest(tf.test.TestCase):
         # GPU/CPU case.
         __init_dim = 0
         # Directly tests the keras layer.
-        __cache = _create_cache(__batch_dim, __init_dim, __num_heads, __head_dim)
+        __cache = mlable.utils.create_cache(__batch_dim, __init_dim, __num_heads, __head_dim)
         # basic attention
         __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim)
         # input data
@@ -39,7 +37,7 @@ class CachedAttentionTest(tf.test.TestCase):
         # GPU/CPU case.
         __init_dim = __seq_dim
         # Directly tests the keras layer.
-        __cache = _create_cache(__batch_dim, __init_dim, __num_heads, __head_dim)
+        __cache = mlable.utils.create_cache(__batch_dim, __init_dim, __num_heads, __head_dim)
         # basic attention
         __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim)
         # Generate data for the input (non-mask) tensors.
