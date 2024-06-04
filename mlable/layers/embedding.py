@@ -34,7 +34,7 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         return inputs + self._kernel # each index in the sequence axis has a dedicated bias (different from dense bias)
 
     def get_config(self) -> dict:
-        __config = super(FeedForwardBlock, self).get_config()
+        __config = super(PositionalEmbedding, self).get_config()
         __config.update(self._config)
         return __config
 
@@ -118,7 +118,7 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
         return tf.keras.ops.moveaxis(__outputs, (-1, 1), (self._config['feature_axis'], self._config['sequence_axis']))
 
     def get_config(self) -> dict:
-        __config = super(FeedForwardBlock, self).get_config()
+        __config = super(RotaryPositionalEmbedding, self).get_config()
         __config.update(self._config)
         return __config
 

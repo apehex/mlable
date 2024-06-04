@@ -23,7 +23,7 @@ class Einsum(tf.keras.layers.Layer):
         return tf.einsum(self._config['equation'], inputs, self._w)
 
     def get_config(self) -> dict:
-        __config = super(FeedForwardBlock, self).get_config()
+        __config = super(Einsum, self).get_config()
         __config.update(self._config)
         return __config
 
