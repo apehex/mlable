@@ -31,7 +31,7 @@ class Reshape(tf.keras.layers.Layer):
         return tf.reshape(inputs, self._config['target_shape'])
 
     def get_config(self) -> dict:
-        __config = super(FeedForwardBlock, self).get_config()
+        __config = super(Reshape, self).get_config()
         __config.update(self._config)
         return __config
 
@@ -74,7 +74,7 @@ class Divide(tf.keras.layers.Layer):
         return tf.reshape(tensor=inputs, shape=__shape)
 
     def get_config(self) -> dict:
-        __config = super(FeedForwardBlock, self).get_config()
+        __config = super(Divide, self).get_config()
         __config.update(self._config)
         return __config
 
@@ -117,7 +117,7 @@ class Merge(tf.keras.layers.Layer):
         return tf.reshape(tensor=inputs, shape=__shape)
 
     def get_config(self) -> dict:
-        __config = super(FeedForwardBlock, self).get_config()
+        __config = super(Merge, self).get_config()
         __config.update(self._config)
         return __config
 
