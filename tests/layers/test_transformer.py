@@ -52,7 +52,7 @@ class CachedAttentionTest(tf.test.TestCase):
                 value=__from_inputs,
                 attention_mask=__mask,
                 cache=__cache,
-                decode_loop_step=__step)
+                step=__step)
         # checks
         self.assertEqual(__output.shape, (3, 4, 8))
         self.assertEqual(__cache.shape, (2, 3, 4, 2, 2))
