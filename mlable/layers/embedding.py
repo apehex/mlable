@@ -86,6 +86,23 @@ def swap_axes(axes: tuple, left: int, right: int) -> tuple:
     __perm[__left], __perm[__right] = __perm[__right], __perm[__left]
     return __perm
 
+def swap_to_default(rank: int, sequence_axis: int, feature_axis: int) -> list:
+    __swaps = []
+    # current positions
+    __sequence_axis = sequence_axis % rank
+    __feature_axis = feature_axis % rank
+    # set sequence_axis to 1
+    if __sequence_axis != 1:
+        __swaps.append((__sequence_axis, 1))
+        # check whether the feature axis was moved
+        if __feature_axis == 1:
+            __feature_axis = __sequence_axis
+    # now the feature axis cannot be 1 (unless feature = sequence = 1 which is wrong)
+    if __feature_axis != rank - 1:
+        __swaps.append((__feature_axis, -1))
+    # conclude
+    return __swaps
+
 def transpose_axes(tensor: tf.Tensor, swaps: list) -> tf.Tensor:
     __rank = len(list(tensor.shape))
     __perm = list(range(__rank))
@@ -115,8 +132,10 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
         self.built = True
 
     def call(self, inputs: tf.Tensor, offset: int=0) -> tf.Tensor:
+        __rank = len(list(inputs.shape))
         # swap the seq and feat axes to their defaut positions
-        __inputs = transpose_axes(tensor=inputs, swaps=((self._config['feature_axis'], -1), (self._config['sequence_axis'], 1))) # TODO could cancel out if seq_axis == -1 or feature_axis=1
+        __swaps = swap_to_default(rank=__rank, sequence_axis=self._config['sequence_axis'], feature_axis=self._config['feature_axis'])
+        __inputs = transpose_axes(tensor=inputs, swaps=__swaps)
         # meta
         __shape = list(__inputs.shape)
         __sequence_dim = inputs.shape[1]
@@ -128,8 +147,8 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
         __sin = reshape_embedding(embeddings=__sin, shape=__shape, sequence_axis=1, feature_axis=-1)
         # actually rotate
         __outputs = compute_rotation_embedding(inputs=__inputs, cos_emb=__cos, sin_emb=__sin)
-        # swap the axes back
-        return transpose_axes(tensor=__outputs, swaps=((self._config['feature_axis'], -1), (self._config['sequence_axis'], 1))) # TODO could cancel out if seq_axis == -1 or feature_axis=1
+        # swap the axes back, in reverse order
+        return transpose_axes(tensor=__outputs, swaps=__swaps[::-1])
 
     def get_config(self) -> dict:
         __config = super(RotaryPositionalEmbedding, self).get_config()

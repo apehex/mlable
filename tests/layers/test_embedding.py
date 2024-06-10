@@ -5,6 +5,44 @@ import mlable.layers.embedding
 
 # ROPE ########################################################################
 
+class SwapTest(tf.test.TestCase):
+    def setUp(self):
+        super(SwapTest, self).setUp()
+        self._test_cases = [
+            {
+                'input': {
+                    'rank': 5,
+                    'sequence_axis': 1,
+                    'feature_axis': 2,},
+                'output': {
+                    'values': [(2, -1)],}},
+            {
+                'input': {
+                    'rank': 3,
+                    'sequence_axis': 1,
+                    'feature_axis': 2,},
+                'output': {
+                    'values': [],}},
+            {
+                'input': {
+                    'rank': 5,
+                    'sequence_axis': 3,
+                    'feature_axis': 1,},
+                'output': {
+                    'values': [(3, 1), (3, -1)],}},
+            {
+                'input': {
+                    'rank': 5,
+                    'sequence_axis': 3,
+                    'feature_axis': 2,},
+                'output': {
+                    'values': [(3, 1), (2, -1)],}},]
+
+    def test_swaps(self):
+        for __case in self._test_cases:
+            __outputs = mlable.layers.embedding.swap_to_default(**__case['input'])
+            self.assertEqual(__outputs, __case['output']['values'])
+
 class TranspositionTest(tf.test.TestCase):
     def setUp(self):
         super(TranspositionTest, self).setUp()
@@ -15,6 +53,12 @@ class TranspositionTest(tf.test.TestCase):
                     'swaps': [(1, 2)]},
                 'output': {
                     'shape': (1, 3, 2, 4),}},
+            {
+                'input': {
+                    'tensor': tf.random.uniform(shape=(1, 2, 3, 4), dtype=tf.dtypes.float32),
+                    'swaps': []},
+                'output': {
+                    'shape': (1, 2, 3, 4),}},
             {
                 'input': {
                     'tensor': tf.reshape(tf.range(24, dtype=tf.dtypes.float32), shape=(1, 2, 3, 4)),
@@ -66,6 +110,15 @@ class TranspositionTest(tf.test.TestCase):
                 self.assertEqual(tuple(__outputs.shape), __case['output']['shape'])
             if 'values' in __case['output']:
                 np.testing.assert_array_almost_equal(__outputs, __case['output']['values'])
+
+    def test_transposition_invariance(self):
+        for __case in self._test_cases:
+            __inputs = __case['input']['tensor']
+            __swaps = __case['input']['swaps']
+            # transpose of transpose
+            __outputs = mlable.layers.embedding.transpose_axes(tensor=mlable.layers.embedding.transpose_axes(tensor=__inputs, swaps=__swaps), swaps=__swaps[::-1])
+            # should be the identity
+            np.testing.assert_array_almost_equal(__outputs, __inputs)
 
 class RopeTest(tf.test.TestCase):
     def setUp(self):
