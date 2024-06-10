@@ -79,6 +79,20 @@ def reshape_embedding(embeddings: tf.Tensor, shape: list, sequence_axis: int=1, 
     __shape = mlable.utils.filter_shape(shape=shape, axes=__axes)
     return tf.reshape(tensor=embeddings, shape=__shape)
 
+def swap_axes(axes: tuple, left: int, right: int) -> tuple:
+    __rank = len(axes)
+    __perm = list(axes)
+    __left, __right = left % __rank, right % __rank
+    __perm[__left], __perm[__right] = __perm[__right], __perm[__left]
+    return __perm
+
+def transpose_axes(tensor: tf.Tensor, swaps: list) -> tf.Tensor:
+    __rank = len(list(tensor.shape))
+    __perm = list(range(__rank))
+    for __s in swaps:
+        __perm = swap_axes(axes=__perm, left=__s[0], right=__s[1])
+    return tf.transpose(tensor, perm=__perm)
+
 @keras.saving.register_keras_serializable(package='layers')
 class RotaryPositionalEmbedding(tf.keras.layers.Layer):
     def __init__(
@@ -102,7 +116,7 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
 
     def call(self, inputs: tf.Tensor, offset: int=0) -> tf.Tensor:
         # swap the seq and feat axes to their defaut positions
-        __inputs = tf.keras.ops.moveaxis(inputs, (self._config['feature_axis'], self._config['sequence_axis']), (-1, 1))
+        __inputs = transpose_axes(tensor=inputs, swaps=((self._config['feature_axis'], -1), (self._config['sequence_axis'], 1))) # TODO could cancel out if seq_axis == -1 or feature_axis=1
         # meta
         __shape = list(__inputs.shape)
         __sequence_dim = inputs.shape[1]
@@ -115,7 +129,7 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
         # actually rotate
         __outputs = compute_rotation_embedding(inputs=__inputs, cos_emb=__cos, sin_emb=__sin)
         # swap the axes back
-        return tf.keras.ops.moveaxis(__outputs, (-1, 1), (self._config['feature_axis'], self._config['sequence_axis']))
+        return transpose_axes(tensor=__outputs, swaps=((self._config['feature_axis'], -1), (self._config['sequence_axis'], 1))) # TODO could cancel out if seq_axis == -1 or feature_axis=1
 
     def get_config(self) -> dict:
         __config = super(RotaryPositionalEmbedding, self).get_config()
