@@ -75,6 +75,24 @@ class CachedAttentionTest(tf.test.TestCase):
         self.assertEqual(__scores.shape, (__batch_dim, __num_heads, __seq_dim, __seq_dim))
         self.assertEqual(__cache, None)
 
+    def test_cache_is_ignored_during_training(self):
+        __batch_dim, __seq_dim, __embed_dim, __num_heads, __head_dim = 2, 4, 6, 2, 3
+        # training mode
+        __training = True
+        __cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
+        __mask = None
+        __step = 0
+        # basic attention
+        __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim)
+        # input data
+        __inputs = tf.zeros((__batch_dim, __seq_dim, __embed_dim), dtype=np.float32)
+        # call
+        __outputs, __scores, __cache = __layer(query=__inputs, value=__inputs, cache=__cache, attention_mask=__mask, step=__step, return_attention_scores=True, training=__training)
+        # check
+        self.assertEqual(__outputs.shape, __inputs.shape)
+        self.assertEqual(__scores.shape, (__batch_dim, __num_heads, __seq_dim, __seq_dim))
+        self.assertEqual(__cache, None)
+
     def test_sequential_decode_update(self):
         __batch_dim, __seq_dim, __embed_dim, __num_heads, __head_dim = 1, 4, 6, 2, 3
         # sampling mode

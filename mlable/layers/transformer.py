@@ -59,10 +59,10 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
         key: tf.Tensor=None,
         cache: tf.Tensor=None,
         step: int=None,
+        training: bool=False,
         attention_mask: tf.Tensor=None,
         return_attention_scores: bool=False,
         use_causal_mask: bool=True,
-        training: bool=None,
     ) -> tf.Tensor:
         if (hasattr(self, "_build_from_signature") and hasattr(self, "_built_from_signature") and not self._built_from_signature):
             self._build_from_signature(query=query, value=value, key=key)
@@ -78,7 +78,7 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
         # [B, T, N, H]
         __value = self._value_dense(value)
         # update the key + value caches
-        if cache is not None:
+        if not training and cache is not None:
             __key = mlable.utils.update_cache(tensor=__key, cache=cache[0], step=step, axis=self._attention_axes[0]) # custom seq axis?
             __value = mlable.utils.update_cache(tensor=__value, cache=cache[1], step=step, axis=self._attention_axes[0]) # custom seq axis?
             __cache = tf.stack(values=(__key, __value), axis=0)
