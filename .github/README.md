@@ -1,6 +1,6 @@
 # MLable
 
-Atomic ML projects to get started.
+Tensorflow libs, mostly layers.
 
 ## TODO
 
