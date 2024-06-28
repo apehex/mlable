@@ -6,8 +6,6 @@ import tensorflow as tf
 
 import mlable.utils
 
-# LOSS ########################################################################
-
 # ACCURACY ####################################################################
 
 def token_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
@@ -59,3 +57,5 @@ class TokenAccuracy(tf.keras.metrics.Metric):
 
     def get_config(self) -> dict:
         return {"token_dim": self._token, "name": self.name,}
+
+# LOSS ########################################################################
