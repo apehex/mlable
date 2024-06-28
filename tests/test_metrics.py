@@ -7,7 +7,7 @@ import mlable.metrics
 class TokenAccuracyTest(tf.test.TestCase):
 
     def test_special_cases(self):
-        __batch_dim, __seq_dim, __embed_dim, __token_dim = 3, 16, 256, 4
+        __batch_dim, __seq_dim, __embed_dim, __token_dim, __iterations = 3, 16, 16, 4, 128
         # no match
         __yt = tf.one_hot(indices=tf.zeros(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__embed_dim)
         __yp = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__embed_dim)
@@ -20,6 +20,12 @@ class TokenAccuracyTest(tf.test.TestCase):
         __total, __correct = mlable.metrics.token_accuracy(y_true=__yt, y_pred=__yp, group=__token_dim)
         self.assertEqual(__total.numpy(), __batch_dim * __seq_dim // __token_dim)
         self.assertEqual(__correct.numpy(), __total.numpy())
+        # iterating
+        __acc = mlable.metrics.TokenAccuracy(token_dim=__token_dim)
+        for _ in range(__iterations):
+            __acc.update_state(y_true=__yt, y_pred=__yp) # both ones
+        self.assertEqual(__acc._total.numpy(), __iterations * __batch_dim * __seq_dim // __token_dim)
+        self.assertEqual(__acc._correct.numpy(), __acc._total.numpy())
 
     def test_bounds(self):
         # 0. <= a <= 1.
