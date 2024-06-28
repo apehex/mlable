@@ -2,8 +2,20 @@ import tensorflow as tf
 
 # SHAPES ######################################################################
 
+def normalize_dim(dim: int) -> int:
+    return -1 if (dim is None or dim < 0) else dim
+
+def multiply_dim(dim_l: int, dim_r: int) -> int:
+    return -1 if (dim_l == -1 or dim_r == -1) else dim_l * dim_r
+
+def divide_dim(dim_l: int, dim_r: int) -> int:
+    return -1 if (dim_l == -1 or dim_r == -1) else dim_l // dim_r
+
 def filter_shape(shape: list, axes: list) -> list:
     return [__d if __i in axes else 1 for __i, __d in enumerate(shape)]
+
+def normalize_shape(shape: list) -> list:
+    return [-1 if __d is None else __d for __d in shape]
 
 # CACHE #######################################################################
 
