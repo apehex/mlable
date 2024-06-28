@@ -144,7 +144,7 @@ class CachedAttentionTest(tf.test.TestCase):
         # input data
         __input_x = tf.random.uniform(shape=(__batch_dim, __seq_dim, __embed_dim), dtype=np.float32)
         # batch call
-        __output_values, __output_scores, __output_cache = __layer(query=__input_x, value=__input_x, cache=None, attention_mask=__input_mask, step=None, return_attention_scores=True, use_causal_mask=True)
+        __output_values, __output_scores, __output_cache = __layer(query=__input_x, value=__input_x, cache=__input_cache, attention_mask=__input_mask, step=0, return_attention_scores=True, use_causal_mask=True, training=True)
         # loop decode
         __loop_values = tf.zeros(shape=(__batch_dim, __seq_dim, __embed_dim), dtype=np.float32)
         __iteration_cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
