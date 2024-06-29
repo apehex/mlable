@@ -1,7 +1,5 @@
-import math
-import random
+import functools
 
-import keras
 import tensorflow as tf
 
 import mlable.utils
@@ -24,38 +22,23 @@ def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
         __match = tf.reshape(__match, shape=__shape)
         # the token prediction is right if ALL its byte predictions are right
         __match = tf.reduce_all(__match, axis=-1)
-    # count
-    __total = math.prod([1 if not __d or __d < 0 else __d for __d in list(__match.shape)])
     # cast
-    __total = tf.convert_to_tensor(__total, dtype=tf.dtypes.int32)
-    __match = tf.cast(__match, dtype=tf.dtypes.int32)
-    # sum
-    return (__total, tf.reduce_sum(__match))
+    return tf.cast(__match, dtype=tf.dtypes.float32)
 
-class GroupAccuracy(tf.keras.metrics.Metric):
-    def __init__(self, group: int=4, name: str='group_accuracy', **kwargs):
+class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
+    def __init__(self, group: int=4, name: str='categorical_group_accuracy', dtype: tf.dtypes.DType=tf.dtypes.float32, **kwargs):
+        # adapt the measure
+        __fn = functools.partial(group_accuracy, group=group)
         # init
-        super(GroupAccuracy, self).__init__(name=name, **kwargs)
-        # token size
+        super(CategoricalGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
+        # group predictions
         self._group = group
-        # state
-        self._total = self.add_weight(shape=(), dtype=tf.dtypes.int32, name='total', initializer='zeros')
-        self._correct = self.add_weight(shape=(), dtype=tf.dtypes.int32, name='correct', initializer='zeros')
-
-    def reset_state(self) -> None:
-        self._total.assign(0)
-        self._correct.assign(0)
-
-    def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor=None) -> None:
-        __total, __correct = group_accuracy(y_true=y_true, y_pred=y_pred, group=self._group)
-        # actually update
-        self._total.assign_add(__total)
-        self._correct.assign_add(__correct)
-
-    def result(self) -> tf.Tensor:
-        return tf.cast(self._correct, dtype=tf.dtypes.float32) / tf.cast(self._total, dtype=tf.dtypes.float32)
+        # sould be maximized
+        self._direction = 'up'
 
     def get_config(self) -> dict:
-        return {"group": self._group, "name": self.name,}
+        __config = super(CategoricalGroupAccuracy, self).get_config()
+        __config.update({'group': self._group})
+        return __config
 
 # LOSS ########################################################################
