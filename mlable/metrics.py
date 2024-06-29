@@ -8,7 +8,7 @@ import mlable.utils
 
 # ACCURACY ####################################################################
 
-def token_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
+def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
     # category indexes
     __yt = tf.argmax(y_true, axis=-1)
     __yp = tf.argmax(y_pred, axis=-1)
@@ -25,19 +25,19 @@ def token_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
         # the token prediction is right if ALL its byte predictions are right
         __match = tf.reduce_all(__match, axis=-1)
     # count
-    __total = math.prod([1 if not __d else __d for __d in list(__match.shape)])
+    __total = math.prod([1 if not __d or __d < 0 else __d for __d in list(__match.shape)])
     # cast
     __total = tf.convert_to_tensor(__total, dtype=tf.dtypes.int32)
     __match = tf.cast(__match, dtype=tf.dtypes.int32)
     # sum
     return (__total, tf.reduce_sum(__match))
 
-class TokenAccuracy(tf.keras.metrics.Metric):
-    def __init__(self, token_dim: int=4, name: str='token_accuracy', **kwargs):
+class GroupAccuracy(tf.keras.metrics.Metric):
+    def __init__(self, group: int=4, name: str='group_accuracy', **kwargs):
         # init
-        super(TokenAccuracy, self).__init__(name=name, **kwargs)
+        super(GroupAccuracy, self).__init__(name=name, **kwargs)
         # token size
-        self._token = token_dim
+        self._group = group
         # state
         self._total = self.add_weight(shape=(), dtype=tf.dtypes.int32, name='total', initializer='zeros')
         self._correct = self.add_weight(shape=(), dtype=tf.dtypes.int32, name='correct', initializer='zeros')
@@ -47,7 +47,7 @@ class TokenAccuracy(tf.keras.metrics.Metric):
         self._correct.assign(0)
 
     def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor=None) -> None:
-        __total, __correct = token_accuracy(y_true=y_true, y_pred=y_pred, group=self._token)
+        __total, __correct = group_accuracy(y_true=y_true, y_pred=y_pred, group=self._group)
         # actually update
         self._total.assign_add(__total)
         self._correct.assign_add(__correct)
@@ -56,6 +56,17 @@ class TokenAccuracy(tf.keras.metrics.Metric):
         return tf.cast(self._correct, dtype=tf.dtypes.float32) / tf.cast(self._total, dtype=tf.dtypes.float32)
 
     def get_config(self) -> dict:
-        return {"token_dim": self._token, "name": self.name,}
+        return {"group": self._group, "name": self.name,}
 
 # LOSS ########################################################################
+
+class WeightedCategoricalCrossentropy(tf.keras.losses.CategoricalCrossentropy):
+    def __init__(
+        axis=-1,
+        from_logits=False,
+        label_smoothing=0.0,
+        reduction='sum_over_batch_size',
+        name='byte_crossentropy'
+    ) -> None:
+        # init
+        super(WeightedCategoricalCrossentropy, self).__init__(axis=axis, from_logits=from_logits, label_smoothing=label_smoothing, reduction=reduction, name=name, **kwargs)
