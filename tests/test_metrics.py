@@ -115,9 +115,4 @@ class GroupAccuracyTest(tf.test.TestCase):
         self.assertNotEqual(__byte_acc.result(), __character_acc.result())
         self.assertGreaterEqual(__byte_acc.result(), __character_acc.result())
 
-# ACCURACY ####################################################################
-
-class ByteLevelCrossentropyTest(tf.test.TestCase):
-
-    def test_special_cases(self):
-        pass
+# LOSS ########################################################################

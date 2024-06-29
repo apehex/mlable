@@ -59,14 +59,3 @@ class GroupAccuracy(tf.keras.metrics.Metric):
         return {"group": self._group, "name": self.name,}
 
 # LOSS ########################################################################
-
-class WeightedCategoricalCrossentropy(tf.keras.losses.CategoricalCrossentropy):
-    def __init__(
-        axis=-1,
-        from_logits=False,
-        label_smoothing=0.0,
-        reduction='sum_over_batch_size',
-        name='byte_crossentropy'
-    ) -> None:
-        # init
-        super(WeightedCategoricalCrossentropy, self).__init__(axis=axis, from_logits=from_logits, label_smoothing=label_smoothing, reduction=reduction, name=name, **kwargs)
