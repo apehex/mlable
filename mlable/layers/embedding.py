@@ -46,21 +46,21 @@ class PositionalEmbedding(tf.keras.layers.Layer):
 
 WAVELENGTH = 10_000
 
-def compute_positions(dim: int, offset: int=0, factor: float=1.0) -> tf.Tensor:
-    __range = tf.range(dim, dtype=tf.dtypes.float32)
-    __offset = tf.cast(offset, dtype=tf.dtypes.float32)
-    __factor = tf.cast(1. / factor, dtype=tf.dtypes.float32)
+def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
+    __range = tf.range(dim, dtype=dtype)
+    __offset = tf.cast(offset, dtype=dtype)
+    __factor = tf.cast(1. / factor, dtype=dtype)
     return __factor * (__range + __offset)
 
-def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH) -> tf.Tensor:
-    __freq = tf.divide(tf.range(0, limit=dim, delta=2, dtype=tf.dtypes.float32), tf.cast(dim, dtype=tf.dtypes.float32))
+def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
+    __freq = tf.divide(tf.range(0, limit=dim, delta=2, dtype=dtype), tf.cast(dim, dtype=dtype))
     return 1.0 / (wavelength ** __freq)
 
-def compute_cos_sin_embedding(sequence_dim: int, feature_dim: int, offset: int=0, factor: float=1.0, wavelength: float=WAVELENGTH) -> tuple:
+def compute_cos_sin_embedding(sequence_dim: int, feature_dim: int, offset: int=0, factor: float=1.0, wavelength: float=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tuple:
     # inverse frequencies
-    __freq = compute_inverse_freq(dim=feature_dim, wavelength=wavelength)
+    __freq = compute_inverse_freq(dim=feature_dim, wavelength=wavelength, dtype=dtype)
     # positions
-    __pos = compute_positions(dim=sequence_dim, offset=offset, factor=factor)
+    __pos = compute_positions(dim=sequence_dim, offset=offset, factor=factor, dtype=dtype)
     # (S, E / 2)
     __angles = tf.einsum("i,j->ij", __pos, __freq)
     # (S, E)
@@ -132,6 +132,7 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
         self.built = True
 
     def call(self, inputs: tf.Tensor, offset: int=0) -> tf.Tensor:
+        __dtype = inputs.dtype
         __rank = len(list(inputs.shape))
         # swap the seq and feat axes to their defaut positions
         __swaps = swap_to_default(rank=__rank, sequence_axis=self._config['sequence_axis'], feature_axis=self._config['feature_axis'])
@@ -141,7 +142,7 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
         __sequence_dim = inputs.shape[1]
         __feature_dim = inputs.shape[-1]
         # compute the trigo embeddings
-        __cos, __sin = compute_cos_sin_embedding(sequence_dim=__sequence_dim, feature_dim=__feature_dim, offset=offset, factor=self._config['scaling_factor'], wavelength=self._config['max_wavelength'])
+        __cos, __sin = compute_cos_sin_embedding(sequence_dim=__sequence_dim, feature_dim=__feature_dim, offset=offset, factor=self._config['scaling_factor'], wavelength=self._config['max_wavelength'], dtype=__dtype)
         # add placeholder axes to match the input shape
         __cos = reshape_embedding(embeddings=__cos, shape=__shape, sequence_axis=1, feature_axis=-1)
         __sin = reshape_embedding(embeddings=__sin, shape=__shape, sequence_axis=1, feature_axis=-1)
