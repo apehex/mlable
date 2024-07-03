@@ -1,4 +1,10 @@
+import functools
+
 import tensorflow as tf
+
+# FUNCTIONS ###################################################################
+
+compose = lambda __l: (lambda __x: functools.reduce(lambda __e, __f: __f(__e), __l, __x))
 
 # SHAPES ######################################################################
 
