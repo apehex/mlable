@@ -47,13 +47,13 @@ class PositionalEmbedding(tf.keras.layers.Layer):
 WAVELENGTH = 10_000
 
 def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
-    __range = tf.range(dim, dtype=dtype)
+    __range = tf.cast(tf.range(dim, dtype=tf.dtypes.float32), dtype=dtype)
     __offset = tf.cast(offset, dtype=dtype)
     __factor = tf.cast(1. / factor, dtype=dtype)
     return __factor * (__range + __offset)
 
 def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
-    __freq = tf.divide(tf.range(0, limit=dim, delta=2, dtype=dtype), tf.cast(dim, dtype=dtype))
+    __freq = tf.divide(tf.cast(tf.range(0, limit=dim, delta=2, dtype=tf.dtypes.float32), dtype=dtype), tf.cast(dim, dtype=dtype))
     return 1.0 / (wavelength ** __freq)
 
 def compute_cos_sin_embedding(sequence_dim: int, feature_dim: int, offset: int=0, factor: float=1.0, wavelength: float=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tuple:
