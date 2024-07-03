@@ -1,8 +1,29 @@
-import numpy as np
+import random
+
 import tensorflow as tf
 
 import mlable.layers.transformer
 import mlable.utils
+
+# FN COMPOSITION ##############################################################
+
+class ComposeTest(tf.test.TestCase):
+    def setUp(self):
+        super(ComposeTest, self).setUp()
+        self._random = [random.uniform(-8., 8.) for _ in range(32)]
+
+    def test_identity(self):
+        __f = lambda __x: __x
+        __g = lambda __x: -__x
+        __h = lambda __x: (__x, -__x)
+        __i = lambda __t: tuple(reversed(__t))
+        __f4 = mlable.utils.compose([__f, __f, __f, __f])
+        __g2 = mlable.utils.compose([__g, __g])
+        __hi2 = mlable.utils.compose([__h, __i, __i])
+        self.assertEqual(self._random, [__f4(__e) for __e in self._random])
+        self.assertEqual(self._random, [__g2(__e) for __e in self._random])
+        self.assertEqual([__h(__e) for __e in self._random], [__hi2(__e) for __e in self._random])
+        self.assertEqual(self._random, __f4(self._random))
 
 # CACHE #######################################################################
 
@@ -24,5 +45,5 @@ class CacheToolingTest(tf.test.TestCase):
         self.assertEqual(__output_1.shape, (__batch_dim, __seq_dim + 1, __num_heads, __head_dim))
         self.assertEqual(__output_s.shape, (__batch_dim, __seq_dim, __num_heads, __head_dim))
         # check values
-        np.testing.assert_array_almost_equal(__output_1[:, __seq_dim, :, :], tf.ones((__batch_dim, __num_heads, __head_dim))) # appended
-        np.testing.assert_array_almost_equal(__output_s[:, __step, :, :], tf.ones((__batch_dim, __num_heads, __head_dim))) # updated at index `__step`
+        self.assertAllClose(__output_1[:, __seq_dim, :, :], tf.ones((__batch_dim, __num_heads, __head_dim))) # appended
+        self.assertAllClose(__output_s[:, __step, :, :], tf.ones((__batch_dim, __num_heads, __head_dim))) # updated at index `__step`
