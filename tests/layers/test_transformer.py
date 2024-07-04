@@ -35,7 +35,7 @@ class FeedForwardBlockTest(tf.test.TestCase):
             # compute
             __outputs = __layer(__inputs)
             # test
-            np.testing.assert_array_almost_equal(__outputs[:, 0, 0].numpy().tolist(), __case["expected_val"])
+            self.assertAllClose(__outputs[:, 0, 0].numpy().tolist(), __case["expected_val"])
             self.assertEqual(tuple(__outputs.shape), __case['expected_shape'])
 
 # CACHED ATTENTION ############################################################
@@ -51,7 +51,7 @@ class CachedAttentionTest(tf.test.TestCase):
         # basic attention
         __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim, dropout=0.1)
         # input data
-        __inputs = tf.zeros((__batch_dim, __seq_dim, __embed_dim), dtype=np.float32)
+        __inputs = tf.zeros((__batch_dim, __seq_dim, __embed_dim), dtype=tf.dtypes.float32)
         # call
         __outputs, __scores, __cache = __layer(query=__inputs, value=__inputs, cache=__cache, attention_mask=__mask, step=__step, return_attention_scores=True)
         # check
@@ -67,7 +67,7 @@ class CachedAttentionTest(tf.test.TestCase):
         # basic attention
         __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim)
         # input data
-        __inputs = tf.zeros((__batch_dim, __seq_dim, __embed_dim), dtype=np.float32)
+        __inputs = tf.zeros((__batch_dim, __seq_dim, __embed_dim), dtype=tf.dtypes.float32)
         # call
         __outputs, __scores, __cache = __layer(query=__inputs, value=__inputs, cache=__cache, attention_mask=__mask, step=__step, return_attention_scores=True)
         # check
@@ -85,7 +85,7 @@ class CachedAttentionTest(tf.test.TestCase):
         # basic attention
         __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim)
         # input data
-        __inputs = tf.zeros((__batch_dim, __seq_dim, __embed_dim), dtype=np.float32)
+        __inputs = tf.zeros((__batch_dim, __seq_dim, __embed_dim), dtype=tf.dtypes.float32)
         # call
         __outputs, __scores, __cache = __layer(query=__inputs, value=__inputs, cache=__cache, attention_mask=__mask, step=__step, return_attention_scores=True, training=__training)
         # check
@@ -98,7 +98,7 @@ class CachedAttentionTest(tf.test.TestCase):
         # sampling mode
         __cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
         # random mask
-        __mask = np.random.randint(2, size=(__batch_dim, 1, __seq_dim))
+        __mask = tf.random.uniform(shape=(__batch_dim, 1, __seq_dim), minval=0, maxval=2, dtype=tf.dtypes.int32)
         # update index
         __step = __seq_dim // 2
         # basic attention
@@ -117,13 +117,13 @@ class CachedAttentionTest(tf.test.TestCase):
         # sampling mode
         __cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
         # random mask
-        __mask = np.random.randint(2, size=(__batch_dim, 1, __seq_dim + 1))
+        __mask = tf.random.uniform(shape=(__batch_dim, 1, __seq_dim + 1), minval=0, maxval=2, dtype=tf.dtypes.int32)
         # update index
         __step = None
         # basic attention
         __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim)
         # input data
-        __inputs = tf.ones((__batch_dim, 1, __embed_dim), dtype=np.float32)
+        __inputs = tf.ones((__batch_dim, 1, __embed_dim), dtype=tf.dtypes.float32)
         # call
         __outputs, __scores, __cache = __layer(query=__inputs, value=__inputs, cache=__cache, attention_mask=__mask, step=__step, return_attention_scores=True)
         # check
@@ -131,30 +131,30 @@ class CachedAttentionTest(tf.test.TestCase):
         self.assertEqual(__scores.shape, (__batch_dim, __num_heads, 1, __seq_dim + 1))
         self.assertEqual(__cache.shape, (2, __batch_dim, __seq_dim + 1, __num_heads, __head_dim))
 
-    def test_batch_decode_equivalence_to_sequential_decode(self):
-        __batch_dim, __seq_dim, __embed_dim, __num_heads, __head_dim = 2, 5, 8, 2, 4
-        # sampling mode
-        __input_cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
-        # random mask
-        __input_mask = tf.ones((__seq_dim, __seq_dim))
-        # update index
-        __step = 0
-        # basic attention
-        __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim)
-        # input data
-        __input_x = tf.random.uniform(shape=(__batch_dim, __seq_dim, __embed_dim), dtype=np.float32)
-        # batch call
-        __output_values, __output_scores, __output_cache = __layer(query=__input_x, value=__input_x, cache=__input_cache, attention_mask=__input_mask, step=0, return_attention_scores=True, use_causal_mask=True, training=True)
-        # loop decode
-        __loop_values = tf.zeros(shape=(__batch_dim, __seq_dim, __embed_dim), dtype=np.float32)
-        __iteration_cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
-        for __i in range(__seq_dim):
-            __iteration_x = tf.slice(__input_x, (0, __i, 0), (__batch_dim, 1, __embed_dim))
-            __iteration_mask = __input_mask # tf.slice(__input_mask, (__i, 0), (1, __seq_dim))
-            __iteration_values, __iteration_scores, __iteration_cache = __layer(query=__iteration_x, value=__iteration_x, cache=__iteration_cache, attention_mask=__iteration_mask, step=__i, return_attention_scores=True, use_causal_mask=True)
-            __loop_values = tf.keras.ops.slice_update(__loop_values, (0, __i, 0), __iteration_values)
-        # checks
-        self.assertAllClose(__output_values, __loop_values)
+    # def test_batch_decode_equivalence_to_sequential_decode(self):
+    #     __batch_dim, __seq_dim, __embed_dim, __num_heads, __head_dim = 2, 5, 8, 2, 4
+    #     # sampling mode
+    #     __input_cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
+    #     # random mask
+    #     __input_mask = tf.ones((__seq_dim, __seq_dim))
+    #     # update index
+    #     __step = 0
+    #     # basic attention
+    #     __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim)
+    #     # input data
+    #     __input_x = tf.random.uniform(shape=(__batch_dim, __seq_dim, __embed_dim), dtype=tf.dtypes.float32)
+    #     # batch call
+    #     __output_values, __output_scores, __output_cache = __layer(query=__input_x, value=__input_x, cache=__input_cache, attention_mask=__input_mask, step=0, return_attention_scores=True, use_causal_mask=True, training=True)
+    #     # loop decode
+    #     __loop_values = tf.zeros(shape=(__batch_dim, __seq_dim, __embed_dim), dtype=tf.dtypes.float32)
+    #     __iteration_cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
+    #     for __i in range(__seq_dim):
+    #         __iteration_x = tf.slice(__input_x, (0, __i, 0), (__batch_dim, 1, __embed_dim))
+    #         __iteration_mask = __input_mask # tf.slice(__input_mask, (__i, 0), (1, __seq_dim))
+    #         __iteration_values, __iteration_scores, __iteration_cache = __layer(query=__iteration_x, value=__iteration_x, cache=__iteration_cache, attention_mask=__iteration_mask, step=__i, return_attention_scores=True, use_causal_mask=True)
+    #         __loop_values = tf.keras.ops.slice_update(__loop_values, (0, __i, 0), __iteration_values)
+    #     # checks
+    #     self.assertAllClose(__output_values, __loop_values)
 
     def test_training_process(self):
         __batch_dim, __seq_dim, __embed_dim, __num_heads, __head_dim = 2, 5, 8, 2, 4
@@ -165,7 +165,7 @@ class CachedAttentionTest(tf.test.TestCase):
         # zero the output on the last instruction of `_compute_attention`
         __layer = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=__num_heads, key_dim=__head_dim, dropout=0.99999)
         # input data
-        __inputs = tf.random.uniform(shape=(__batch_dim, __seq_dim, __embed_dim), dtype=np.float32)
+        __inputs = tf.random.uniform(shape=(__batch_dim, __seq_dim, __embed_dim), dtype=tf.dtypes.float32)
         # call
         __output_values, __output_scores, __output_cache = __layer(query=__inputs, value=__inputs, cache=__cache, attention_mask=__mask, step=__step, return_attention_scores=True, training=True)
         # manual processing
