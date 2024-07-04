@@ -6,6 +6,8 @@ import tensorflow as tf
 
 compose = lambda __l: (lambda __x: functools.reduce(lambda __e, __f: __f(__e), __l, __x))
 
+distribute = lambda __f: (lambda *__t: tuple(map(__f, __t)))
+
 # SHAPES ######################################################################
 
 def normalize_dim(dim: int) -> int:
