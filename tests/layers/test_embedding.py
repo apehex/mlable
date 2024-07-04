@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 
 import mlable.layers.embedding
@@ -109,7 +108,7 @@ class TranspositionTest(tf.test.TestCase):
             if 'shape' in __case['output']:
                 self.assertEqual(tuple(__outputs.shape), __case['output']['shape'])
             if 'values' in __case['output']:
-                np.testing.assert_array_almost_equal(__outputs, __case['output']['values'])
+                self.assertAllClose(__outputs, __case['output']['values'])
 
     def test_transposition_invariance(self):
         for __case in self._test_cases:
@@ -118,7 +117,7 @@ class TranspositionTest(tf.test.TestCase):
             # transpose of transpose
             __outputs = mlable.layers.embedding.transpose_axes(tensor=mlable.layers.embedding.transpose_axes(tensor=__inputs, swaps=__swaps), swaps=__swaps[::-1])
             # should be the identity
-            np.testing.assert_array_almost_equal(__outputs, __inputs)
+            self.assertAllClose(__outputs, __inputs)
 
 class RopeTest(tf.test.TestCase):
     def setUp(self):
@@ -182,4 +181,4 @@ class RopeTest(tf.test.TestCase):
             if 'shape' in __case['output']:
                 self.assertEqual(tuple(__outputs.shape), __case['output']['shape'])
             if 'values' in __case['output']:
-                np.testing.assert_array_almost_equal(__outputs, __case['output']['values'])
+                self.assertAllClose(__outputs, __case['output']['values'])
