@@ -15,7 +15,7 @@ def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
     # group all the predictions for a given token
     if group and group > 1:
         # repeat values so that the reduced tensor has the same shape as the original
-        __match = mlable.masking.group_all_mask(mask=__match, group=group, axis=-1, keepdims=True)
+        __match = mlable.masking.reduce_all(mask=__match, group=group, axis=-1, keepdims=True)
     # cast
     return tf.cast(__match, dtype=tf.dtypes.float32)
 
