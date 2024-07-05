@@ -2,7 +2,7 @@ import functools
 
 import tensorflow as tf
 
-import mlable.utils
+import mlable.masking
 
 # ACCURACY ####################################################################
 
@@ -14,14 +14,8 @@ def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
     if group and group > 1:
-        __shape = mlable.utils.normalize_shape(list(__match.shape))
-        # split
-        __shape[-1] = mlable.utils.divide_dim(dim_l=__shape[-1], dim_r=group)
-        __shape.append(group)
-        # reshape
-        __match = tf.reshape(__match, shape=__shape)
-        # the token prediction is right if ALL its byte predictions are right
-        __match = tf.reduce_all(__match, axis=-1)
+        # repeat values so that the reduced tensor has the same shape as the original
+        __match = mlable.masking.group_all_mask(mask=__match, group=group, axis=-1, keepdims=True)
     # cast
     return tf.cast(__match, dtype=tf.dtypes.float32)
 
