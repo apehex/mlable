@@ -20,10 +20,44 @@ def divide_dim(dim_l: int, dim_r: int) -> int:
     return -1 if (dim_l == -1 or dim_r == -1) else dim_l // dim_r
 
 def filter_shape(shape: list, axes: list) -> list:
-    return [__d if __i in axes else 1 for __i, __d in enumerate(shape)]
+    return [__d if __i in axes else 1 for __i, __d in enumerate(list(shape))]
 
 def normalize_shape(shape: list) -> list:
-    return [-1 if __d is None else __d for __d in shape]
+    return [normalize_dim(dim=__d) for __d in list(shape)]
+
+def divide_shape(shape: list, input_axis: int, output_axis: int, factor: int, insert: bool=False) -> list:
+    # copy
+    __shape = normalize_shape(shape)
+    # rank, according to the new shape
+    __rank = len(__shape) + int(insert)
+    # axes, taken from the new shape
+    __axis0 = input_axis % __rank
+    __axis1 = output_axis % __rank
+    # option to group data on a new axis
+    if insert: __shape.insert(__axis1, 1)
+    # move data from axis 0 to axis 1
+    __shape[__axis0] = divide_dim(__shape[__axis0], factor)
+    __shape[__axis1] = multiply_dim(__shape[__axis1], factor)
+    # return
+    return __shape
+
+def merge_shape(shape: list, left_axis: int, right_axis: int, left: bool=True) -> list:
+    # copy
+    __shape = normalize_shape(shape)
+    __rank = len(__shape)
+    # normalize (negative indexes)
+    __axis_l = left_axis % __rank
+    __axis_r = right_axis % __rank
+    # new dimension
+    __dim = multiply_dim(__shape[__axis_l], __shape[__axis_r])
+    # select axes
+    __axis_k = __axis_l if left else __axis_r # kept axis
+    __axis_d = __axis_r if left else __axis_l # deleted axis
+    # new shape
+    __shape[__axis_k] = __dim
+    __shape.pop(__axis_d)
+    # return
+    return __shape
 
 # CACHE #######################################################################
 
