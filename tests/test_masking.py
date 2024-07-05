@@ -15,7 +15,7 @@ class MaskingTest(tf.test.TestCase):
         # each sample has null groups
         self._padded = tf.convert_to_tensor([
             '11111111111111\x00\x00',
-            '\x00\x00\x00\x00222222222222'])
+            '\x00\x00\x00\x002222222222\x002'])
         # encode
         self._ascii = tf.strings.unicode_transcode(input=self._ascii, input_encoding='UTF-8', output_encoding='UTF-32-BE')
         self._ascii = tf.io.decode_raw(self._ascii, out_type=tf.int8, fixed_length=64)
@@ -102,7 +102,7 @@ class MaskingTest(tf.test.TestCase):
         self.assertEqual(list(__m_1_all_keep.shape), list(self._ascii.shape))
 
     def test_group_on_ascii_values(self):
-        # reduced along a single axis
+        # reduce 4 by 4
         __m_1_any = mlable.masking._reduce_group_by_group_any(mask=self._ascii, group=4, axis=-1, keepdims=False)
         __m_1_all = mlable.masking._reduce_group_by_group_all(mask=self._ascii, group=4, axis=-1, keepdims=False)
         self.assertAllEqual(__m_1_any, tf.ones(shape=(2, 16), dtype=tf.dtypes.bool))
@@ -111,4 +111,16 @@ class MaskingTest(tf.test.TestCase):
         __m_1_any_keep = mlable.masking._reduce_group_by_group_any(mask=self._ascii, group=4, axis=-1, keepdims=True)
         __m_1_all_keep = mlable.masking._reduce_group_by_group_all(mask=self._ascii, group=4, axis=-1, keepdims=True)
         self.assertAllEqual(__m_1_any_keep, tf.ones(shape=(2, 64), dtype=tf.dtypes.bool))
+        self.assertAllEqual(__m_1_all_keep, tf.zeros(shape=(2, 64), dtype=tf.dtypes.bool))
+
+    def test_group_on_padded_values(self):
+        # reduce 4 by 4
+        __m_1_any = mlable.masking.reduce_any(mask=self._padded, group=4, axis=-1, keepdims=False)
+        __m_1_all = mlable.masking.reduce_all(mask=self._padded, group=4, axis=-1, keepdims=False)
+        self.assertAllEqual(__m_1_any, tf.convert_to_tensor([14 * [True] + [False, False], 4 * [False] + 10 * [True] + [False, True]], dtype=tf.dtypes.bool))
+        self.assertAllEqual(__m_1_all, tf.zeros(shape=(2, 16), dtype=tf.dtypes.bool))
+        # same shape as input
+        __m_1_any_keep = mlable.masking.reduce_any(mask=self._padded, group=4, axis=-1, keepdims=True)
+        __m_1_all_keep = mlable.masking.reduce_all(mask=self._padded, group=4, axis=-1, keepdims=True)
+        self.assertAllEqual(__m_1_any_keep, tf.convert_to_tensor([14 * 4 * [True] + 2 * 4 * [False], 4 * 4 * [False] + 10 * 4 * [True] + 4 * [False] + 4 * [True]], dtype=tf.dtypes.bool))
         self.assertAllEqual(__m_1_all_keep, tf.zeros(shape=(2, 64), dtype=tf.dtypes.bool))
