@@ -5,6 +5,30 @@ import tensorflow as tf
 # ACTIVATIONS #################################################################
 
 @keras.saving.register_keras_serializable(package='layers')
+class Activation(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        function: callable,
+        **kwargs
+    ):
+        super(Activation, self).__init__(**kwargs)
+        self._function = function
+
+    def call(self, inputs: tf.Tensor, **kwargs):
+        return self._function(inputs)
+
+    def get_config(self) -> dict:
+        __config = super(Activation, self).get_config()
+        __config.update({'function': keras.saving.serialize_keras_object(self._function),})
+        return __config
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        __fn_config = config.pop('function')
+        __fn = keras.saving.deserialize_keras_object(__fn_config)
+        return cls(function=__fn, **config)
+
+@keras.saving.register_keras_serializable(package='layers')
 class Softmax(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -202,6 +226,46 @@ class Embedding(tf.keras.layers.Layer):
     @classmethod
     def from_config(cls, config) -> tf.keras.layers.Layer:
         return cls(**config)
+
+# POSITION EMBEDDING ##########################################################
+
+@keras.saving.register_keras_serializable(package='layers')
+class PositionalEmbedding(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        input_axis: int=1, # axis of the sequence
+        output_axis: int=-1, # axis of the embedding
+        **kwargs
+    ) -> None:
+        super(PositionalEmbedding, self).__init__(**kwargs)
+        self._config = {
+            'input_axis': input_axis,
+            'output_axis': output_axis,}
+        self._kernel = None
+
+    def build(self, input_shape: tuple) -> None:
+        # shape
+        __axes = [self._config['input_axis'] % len(input_shape), self._config['output_axis'] % len(input_shape)]
+        __shape = [(__d if __i in __axes else 1) for __i, __d in enumerate(list(input_shape))]
+        # init values
+        __kernel_init = tf.keras.initializers.GlorotNormal()
+        # register the weights
+        self._kernel = self.add_weight(name="kernel", shape=__shape, initializer=__kernel_init)
+        # notify the model
+        self.built = True
+
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+        return inputs + self._kernel # each index in the sequence axis has a dedicated bias (different from dense bias)
+
+    def get_config(self) -> dict:
+        __config = super(PositionalEmbedding, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
 # QUADRATIC ###################################################################
 
 @keras.saving.register_keras_serializable(package='layers')
