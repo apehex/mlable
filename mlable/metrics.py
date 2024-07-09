@@ -1,11 +1,13 @@
 import functools
 
+import keras as ks
 import tensorflow as tf
 
 import mlable.masking
 
 # ACCURACY ####################################################################
 
+@ks.saving.register_keras_serializable(package='metrics')
 def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
     # category indexes
     __yt = tf.argmax(y_true, axis=-1)
@@ -19,6 +21,7 @@ def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
     # cast
     return tf.cast(__match, dtype=tf.dtypes.float32)
 
+@ks.saving.register_keras_serializable(package='metrics')
 class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
     def __init__(self, group: int=4, name: str='categorical_group_accuracy', dtype: tf.dtypes.DType=tf.dtypes.float32, **kwargs):
         # adapt the measure
