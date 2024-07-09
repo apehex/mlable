@@ -7,7 +7,7 @@ import mlable.masking
 
 # ACCURACY ####################################################################
 
-@ks.saving.register_keras_serializable(package='metrics')
+@ks.saving.register_keras_serializable(package='metrics', name='group_accuracy')
 def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
     # category indexes
     __yt = tf.argmax(y_true, axis=-1)
@@ -25,7 +25,7 @@ def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
 class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
     def __init__(self, group: int=4, name: str='categorical_group_accuracy', dtype: tf.dtypes.DType=tf.dtypes.float32, **kwargs):
         # serialization wrapper
-        __wrap = ks.saving.register_keras_serializable(package='metrics')
+        __wrap = ks.saving.register_keras_serializable(package='metrics', name='group_accuracy')
         # adapt the measure
         __fn = __wrap(functools.partial(group_accuracy, group=group))
         # init
