@@ -1,3 +1,5 @@
+import itertools
+
 import tensorflow as tf
 
 # METADATA ####################################################################
@@ -15,6 +17,27 @@ def write(data: any, path: str, tsv: bool=True) -> None:
         for __row in data:
             __line = '\t'.join(str(__v) for __v in __row) if tsv else repr(__row)[1:-1]
             __f.write(__line + '\n') # escape special characters
+
+# STATS #######################################################################
+
+def stats(dataset: tf.data.Dataset, count: int=None, features: list=[]) -> dict:
+    # init
+    __min, __avg, __max, __cnt = 0, 0, 0, 0
+    __iter = iter(dataset)
+    # scan the whole dataset
+    for __sample in itertools.islice(dataset, 0, count):
+        # preprocess
+        __s = tf.strings.join(inputs=[__sample[__f] for __f in features], separator='\x1d').numpy() if features else __sample.numpy()
+        __l = len(__s)
+        # compute
+        __min = min(__min, __l)
+        __max = max(__max, __l)
+        __avg = __avg + __l
+        __cnt = __cnt + 1
+    # average
+    __avg = __avg // __cnt
+    # format
+    return {'min': __min, 'avg': __avg, 'max': __max}
 
 # PIPELINE ####################################################################
 
