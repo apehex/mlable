@@ -1,5 +1,6 @@
 import functools
 
+import keras as ks
 import tensorflow as tf
 
 # FUNCTIONS ###################################################################
@@ -63,17 +64,17 @@ def merge_shape(shape: list, left_axis: int, right_axis: int, left: bool=True) -
 
 def create_cache(batch_dim: int, cache_dim: int, head_dim: int, num_heads: int=None) -> tf.Tensor:
     __shape = [2, batch_dim, cache_dim, num_heads, head_dim] if num_heads else [2, batch_dim, cache_dim, head_dim]
-    return tf.zeros(__shape, dtype=tf.float32)
+    return ks.ops.zeros(__shape, dtype='float32')
 
 def update_cache(tensor: tf.Tensor, cache: tf.Tensor, axis: int=1, step: int=None) -> tf.Tensor:
     if step is not None:
     	# expand the sequence axis with 1-dim axes
         __shape = filter_shape(shape=list(cache.shape), axes=[axis])
         # index of the updated row
-        __indices = tf.reshape(tf.one_hot(indices=step, depth=__shape[axis], dtype=tensor.dtype), shape=__shape)
+        __indices = ks.ops.reshape(ks.utils.to_categorical(x=step, num_classes=__shape[axis]), newshape=__shape)
         # updated cache
-        __tensor = cache + tensor * __indices
+        __tensor = ks.ops.cast(x=cache, dtype=tensor.dtype) + tensor * ks.ops.cast(x=__indices, dtype=tensor.dtype)
     else:
-        __tensor = tf.concat(values=[tf.cast(cache, tensor.dtype), tensor], axis=axis)
+        __tensor = ks.ops.concatenate(xs=[ks.ops.cast(x=cache, dtype=tensor.dtype), tensor], axis=axis)
     # past + current values
     return __tensor

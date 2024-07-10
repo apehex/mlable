@@ -1,14 +1,14 @@
 import math
 
-import keras
+import keras as ks
 import tensorflow as tf
 
 import mlable.utils
 
 # FEED FORWARD ################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
-class FeedForwardGate(tf.keras.layers.Layer):
+@ks.saving.register_keras_serializable(package='layers')
+class FeedForwardGate(ks.layers.Layer):
     def __init__(
         self,
         input_dim: int,
@@ -21,9 +21,9 @@ class FeedForwardGate(tf.keras.layers.Layer):
             'input_dim': input_dim,
             'hidden_dim': hidden_dim,}
         # layers
-        self._gelu = tf.keras.layers.Dense(units=self._config['hidden_dim'], activation='gelu', use_bias=False, kernel_initializer='glorot_uniform', name='gate')
-        self._linear = tf.keras.layers.Dense(units=self._config['hidden_dim'], activation='linear', use_bias=False, kernel_initializer='glorot_uniform', name='linear')
-        self._output = tf.keras.layers.Dense(units=self._config['input_dim'], activation='linear', use_bias=False, kernel_initializer='glorot_uniform', name='output')
+        self._gelu = ks.layers.Dense(units=self._config['hidden_dim'], activation='gelu', use_bias=False, kernel_initializer='glorot_uniform', name='gate')
+        self._linear = ks.layers.Dense(units=self._config['hidden_dim'], activation='linear', use_bias=False, kernel_initializer='glorot_uniform', name='linear')
+        self._output = ks.layers.Dense(units=self._config['input_dim'], activation='linear', use_bias=False, kernel_initializer='glorot_uniform', name='output')
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         # gating mechanism
@@ -35,15 +35,15 @@ class FeedForwardGate(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config) -> ks.layers.Layer:
         return cls(**config)
 
 # ATTENTION ###################################################################
 
-@tf.keras.utils.register_keras_serializable(package="Text")
-class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
+@ks.utils.register_keras_serializable(package="Text")
+class CachedMultiHeadAttention(ks.layers.MultiHeadAttention):
     """
-    Arguments are the same as `tf.keras.layers.MultiHeadAttention` layer.
+    Arguments are the same as `ks.layers.MultiHeadAttention` layer.
     
     Scalar dimensions referenced here:
         B = batch_dim (number of sequences)
@@ -81,7 +81,7 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
         if not training and cache is not None:
             __key = mlable.utils.update_cache(tensor=__key, cache=cache[0], step=step, axis=self._attention_axes[0]) # custom seq axis?
             __value = mlable.utils.update_cache(tensor=__value, cache=cache[1], step=step, axis=self._attention_axes[0]) # custom seq axis?
-            __cache = tf.stack(values=(__key, __value), axis=0)
+            __cache = ks.ops.stack(x=(__key, __value), axis=0)
         # use the parent functionalities
         __output, __scores = self._compute_attention(query=__query, key=__key, value=__value, attention_mask=__mask, training=training)
         # projection

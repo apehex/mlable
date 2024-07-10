@@ -1,10 +1,10 @@
-import keras
+import keras as ks
 import tensorflow as tf
 
 # EINSUM ######################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
-class Einsum(tf.keras.layers.Layer):
+@ks.saving.register_keras_serializable(package='layers')
+class Einsum(ks.layers.Layer):
     def __init__(
         self,
         equation: str,
@@ -19,8 +19,8 @@ class Einsum(tf.keras.layers.Layer):
         self._w = self.add_weight(name='w', shape=self._config['shape'], initializer='glorot_normal', trainable=True)
         self.built = True
 
-    def call(self, inputs):
-        return tf.einsum(self._config['equation'], inputs, self._w)
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+        return ks.ops.einsum(self._config['equation'], inputs, self._w)
 
     def get_config(self) -> dict:
         __config = super(Einsum, self).get_config()
@@ -28,5 +28,5 @@ class Einsum(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config) -> ks.layers.Layer:
         return cls(**config)

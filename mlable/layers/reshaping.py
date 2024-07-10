@@ -1,12 +1,12 @@
-import keras
+import keras as ks
 import tensorflow as tf
 
 import mlable.utils
 
 # GENERIC #####################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
-class Reshape(tf.keras.layers.Layer):
+@ks.saving.register_keras_serializable(package='layers')
+class Reshape(ks.layers.Layer):
     def __init__(
         self,
         target_shape: tuple,
@@ -16,7 +16,7 @@ class Reshape(tf.keras.layers.Layer):
         self._config = {'target_shape': target_shape}
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        return tf.reshape(inputs, self._config['target_shape'])
+        return ks.ops.reshape(x=inputs, newshape=self._config['target_shape'])
 
     def get_config(self) -> dict:
         __config = super(Reshape, self).get_config()
@@ -24,13 +24,13 @@ class Reshape(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config) -> ks.layers.Layer:
         return cls(**config)
 
 # DIVIDE ######################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
-class Divide(tf.keras.layers.Layer):
+@ks.saving.register_keras_serializable(package='layers')
+class Divide(ks.layers.Layer):
     def __init__(
         self,
         input_axis: int, # relative to the NEW shape / rank
@@ -52,7 +52,7 @@ class Divide(tf.keras.layers.Layer):
         # move data from axis 0 to axis 1
         __shape = mlable.utils.divide_shape(shape=__shape, **self._config)
         # actually reshape
-        return tf.reshape(tensor=inputs, shape=__shape)
+        return ks.ops.reshape(x=inputs, newshape=__shape)
 
     def get_config(self) -> dict:
         __config = super(Divide, self).get_config()
@@ -60,13 +60,13 @@ class Divide(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config) -> ks.layers.Layer:
         return cls(**config)
 
 # MERGE #######################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
-class Merge(tf.keras.layers.Layer):
+@ks.saving.register_keras_serializable(package='layers')
+class Merge(ks.layers.Layer):
     def __init__(
         self,
         left_axis: int=-2,
@@ -86,7 +86,7 @@ class Merge(tf.keras.layers.Layer):
         # new shape
         __shape = mlable.utils.merge_shape(shape=__shape, **self._config)
         # actually merge the two axes
-        return tf.reshape(tensor=inputs, shape=__shape)
+        return ks.ops.reshape(x=inputs, newshape=__shape)
 
     def get_config(self) -> dict:
         __config = super(Merge, self).get_config()
@@ -94,5 +94,5 @@ class Merge(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config) -> ks.layers.Layer:
         return cls(**config)

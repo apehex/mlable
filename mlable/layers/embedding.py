@@ -1,4 +1,4 @@
-import keras
+import keras as ks
 import tensorflow as tf
 
 import mlable.utils
@@ -7,38 +7,38 @@ import mlable.utils
 
 WAVELENGTH = 10_000
 
-def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
-    __range = tf.cast(tf.range(dim, dtype=tf.dtypes.float32), dtype=dtype)
-    __offset = tf.cast(offset, dtype=dtype)
-    __factor = tf.cast(1. / factor, dtype=dtype)
+def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtypes.DType='float32') -> tf.Tensor:
+    __range = ks.ops.cast(ks.ops.arange(dim, dtype='float32'), dtype=dtype)
+    __offset = ks.ops.cast(offset, dtype=dtype)
+    __factor = ks.ops.cast(1. / factor, dtype=dtype)
     return __factor * (__range + __offset)
 
-def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
-    __freq = tf.divide(tf.cast(tf.range(0, limit=dim, delta=2, dtype=tf.dtypes.float32), dtype=dtype), tf.cast(dim, dtype=dtype))
+def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, dtype: tf.dtypes.DType='float32') -> tf.Tensor:
+    __freq = ks.ops.divide(ks.ops.cast(ks.ops.arange(0, stop=dim, step=2, dtype='float32'), dtype=dtype), ks.ops.cast(dim, dtype=dtype))
     return 1.0 / (wavelength ** __freq)
 
-def compute_cos_sin_embedding(sequence_dim: int, feature_dim: int, offset: int=0, factor: float=1.0, wavelength: float=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tuple:
+def compute_cos_sin_embedding(sequence_dim: int, feature_dim: int, offset: int=0, factor: float=1.0, wavelength: float=WAVELENGTH, dtype: tf.dtypes.DType='float32') -> tuple:
     # inverse frequencies
     __freq = compute_inverse_freq(dim=feature_dim, wavelength=wavelength, dtype=dtype)
     # positions
     __pos = compute_positions(dim=sequence_dim, offset=offset, factor=factor, dtype=dtype)
     # (S, E / 2)
-    __angles = tf.einsum("i,j->ij", __pos, __freq)
+    __angles = ks.ops.einsum("i,j->ij", __pos, __freq)
     # (S, E)
-    __angles = tf.concat(values=(__angles, __angles), axis=-1)
+    __angles = ks.ops.concatenate(xs=(__angles, __angles), axis=-1)
     # trigonometric embeddings
-    return tf.cos(__angles), tf.sin(__angles)
+    return ks.ops.cos(__angles), ks.ops.sin(__angles)
 
 def compute_rotation_embedding(inputs: tf.Tensor, cos_emb: tf.Tensor, sin_emb: tf.Tensor) -> tf.Tensor:
-    __x1, __x2 = tf.split(inputs, 2, axis=-1)
-    __orthogonal = tf.concat(values=(-__x2, __x1), axis=-1)
+    __x1, __x2 = ks.ops.split(inputs, 2, axis=-1)
+    __orthogonal = ks.ops.concatenate(xs=(-__x2, __x1), axis=-1)
     return (inputs * cos_emb) + (__orthogonal * sin_emb)
 
 def reshape_embedding(embeddings: tf.Tensor, shape: list, sequence_axis: int=1, feature_axis: int=-1) -> tf.Tensor:
     __rank = len(shape)
     __axes = [sequence_axis % __rank, feature_axis % __rank]
     __shape = mlable.utils.filter_shape(shape=shape, axes=__axes)
-    return tf.reshape(tensor=embeddings, shape=__shape)
+    return ks.ops.reshape(x=embeddings, newshape=__shape)
 
 def swap_axes(axes: tuple, left: int, right: int) -> tuple:
     __rank = len(axes)
@@ -69,10 +69,10 @@ def transpose_axes(tensor: tf.Tensor, swaps: list) -> tf.Tensor:
     __perm = list(range(__rank))
     for __s in swaps:
         __perm = swap_axes(axes=__perm, left=__s[0], right=__s[1])
-    return tf.transpose(tensor, perm=__perm)
+    return ks.ops.transpose(tensor, axes=__perm)
 
-@keras.saving.register_keras_serializable(package='layers')
-class RotaryPositionalEmbedding(tf.keras.layers.Layer):
+@ks.saving.register_keras_serializable(package='layers')
+class RotaryPositionalEmbedding(ks.layers.Layer):
     def __init__(
         self,
         sequence_axis: int=1,
@@ -118,5 +118,5 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config) -> ks.layers.Layer:
         return cls(**config)
