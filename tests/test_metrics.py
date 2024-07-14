@@ -2,7 +2,7 @@ import tensorflow as tf
 
 import mlable.metrics
 
-# ACCURACY ####################################################################
+# CATEGORICAL #################################################################
 
 class CategoricalGroupAccuracyTest(tf.test.TestCase):
 
@@ -69,7 +69,7 @@ class CategoricalGroupAccuracyTest(tf.test.TestCase):
         __yt = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__embed_dim, dtype=tf.dtypes.int32), depth=__embed_dim)
         __yp = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__embed_dim, dtype=tf.dtypes.int32), depth=__embed_dim)
         __accuracy.update_state(y_true=__yt, y_pred=__yp)
-        self.assertGreaterEqual(0., __accuracy.result().numpy())
+        self.assertLessEqual(0., __accuracy.result().numpy())
         self.assertLessEqual(__accuracy.result().numpy(), 1.)
         # iterative updates
         __accuracy.reset_state()
@@ -77,7 +77,7 @@ class CategoricalGroupAccuracyTest(tf.test.TestCase):
             __yt = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__embed_dim, dtype=tf.dtypes.int32), depth=__embed_dim)
             __yp = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__embed_dim, dtype=tf.dtypes.int32), depth=__embed_dim)
             __accuracy.update_state(y_true=__yt, y_pred=__yp)
-        self.assertGreaterEqual(0., __accuracy.result().numpy())
+        self.assertLessEqual(0., __accuracy.result().numpy())
         self.assertLessEqual(__accuracy.result().numpy(), 1.)
         # all match
         __accuracy.reset_state()
