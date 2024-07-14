@@ -5,10 +5,11 @@ import tensorflow as tf
 
 import mlable.masking
 
-# ACCURACY ####################################################################
+# CATEGORICAL #################################################################
 
-@ks.saving.register_keras_serializable(package='metrics', name='group_accuracy')
-def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
+@ks.saving.register_keras_serializable(package='metrics', name='categorical_group_accuracy')
+def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, dtype: tf.dtypes.DType=None) -> tf.Tensor:
+    __dtype = dtype or y_true.dtype
     # category indexes
     __yt = tf.argmax(y_true, axis=-1)
     __yp = tf.argmax(y_pred, axis=-1)
@@ -19,25 +20,25 @@ def group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4) -> tuple:
         # repeat values so that the reduced tensor has the same shape as the original
         __match = mlable.masking.reduce_all(mask=__match, group=group, axis=-1, keepdims=True)
     # cast
-    return tf.cast(__match, dtype=tf.dtypes.float32)
+    return tf.cast(__match, dtype=__dtype)
 
 @ks.saving.register_keras_serializable(package='metrics')
 class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, group: int=4, name: str='categorical_group_accuracy', dtype: tf.dtypes.DType=tf.dtypes.float32, **kwargs):
+    def __init__(self, group: int=4, name: str='categorical_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
         # serialization wrapper
-        __wrap = ks.saving.register_keras_serializable(package='metrics', name='group_accuracy')
+        __wrap = ks.saving.register_keras_serializable(package='metrics', name='categorical_group_accuracy')
         # adapt the measure
-        __fn = __wrap(functools.partial(group_accuracy, group=group))
+        __fn = __wrap(functools.partial(categorical_group_accuracy, group=group, dtype=dtype))
         # init
         super(CategoricalGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
-        # group predictions
-        self._group = group
+        # config
+        self._config = {'group': group}
         # sould be maximized
         self._direction = 'up'
 
     def get_config(self) -> dict:
         __config = super(CategoricalGroupAccuracy, self).get_config()
-        __config.update({'group': self._group})
+        __config.update(self._config)
         return __config
 
 # LOSS ########################################################################
