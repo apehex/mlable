@@ -8,7 +8,7 @@ compose = lambda __l: (lambda __x: functools.reduce(lambda __e, __f: __f(__e), _
 
 distribute = lambda __f: (lambda *__t: tuple(map(__f, __t)))
 
-# SHAPES ######################################################################
+# AXES ########################################################################
 
 def normalize_dim(dim: int) -> int:
     return -1 if (dim is None or dim < 0) else dim
@@ -19,11 +19,15 @@ def multiply_dim(dim_l: int, dim_r: int) -> int:
 def divide_dim(dim_l: int, dim_r: int) -> int:
     return -1 if (dim_l == -1 or dim_r == -1) else dim_l // dim_r
 
-def filter_shape(shape: list, axes: list) -> list:
-    return [__d if __i in axes else 1 for __i, __d in enumerate(list(shape))]
+# SHAPES ######################################################################
 
 def normalize_shape(shape: list) -> list:
     return [normalize_dim(dim=__d) for __d in list(shape)]
+
+def filter_shape(shape: list, axes: list) -> list:
+    __shape = normalize_shape(shape)
+    __axes = [__a % len(__shape) for __a in axes] # interpret negative indexes
+    return [__d if __i in __axes else 1 for __i, __d in enumerate(__shape)]
 
 def divide_shape(shape: list, input_axis: int, output_axis: int, factor: int, insert: bool=False) -> list:
     # copy

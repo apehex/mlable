@@ -21,7 +21,7 @@ class ReshapingTests(tf.test.TestCase):
         for __s in self._shapes:
             self.assertEqual(len(__s), len(mlable.utils.filter_shape(shape=__s, axes=[])))
             self.assertEqual(len(__s) * [1], mlable.utils.filter_shape(shape=__s, axes=[]))
-            self.assertEqual(list(__s)[0], mlable.utils.filter_shape(shape=__s, axes=[0])[0])
+            self.assertEqual(list(__s)[1], mlable.utils.filter_shape(shape=__s, axes=[1])[1])
             self.assertEqual((len(__s) - 1) * [1], mlable.utils.filter_shape(shape=__s, axes=[0])[1:])
 
     def test_normalize(self):
