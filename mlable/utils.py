@@ -59,6 +59,22 @@ def merge_shape(shape: list, left_axis: int, right_axis: int, left: bool=True) -
     # return
     return __shape
 
+def merge_to_same_rank(x1: tf.Tensor, x2: tf.Tensor) -> tuple:
+    # init
+    __x1, __x2 = x1, x2
+    __s1, __s2 = list(__x1.shape), list(__x2.shape)
+    __r1, __r2 = len(__s1), len(__s2)
+    # x1 has one more axis
+    if __r1 == __r2 + 1:
+        __s1 = merge_shape(shape=__s1, left_axis=-2, right_axis=-1, left=True)
+        __x1 = tf.reshape(__x1, shape=__s1)
+    # x2 has one more axis
+    if __r2 == __r1 + 1:
+        __s2 = merge_shape(shape=__s2, left_axis=-2, right_axis=-1, left=True)
+        __x2 = tf.reshape(__x2, shape=__s2)
+    # return both
+    return __x1, __x2
+
 # CACHE #######################################################################
 
 def create_cache(batch_dim: int, cache_dim: int, head_dim: int, num_heads: int=None) -> tf.Tensor:

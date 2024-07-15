@@ -4,6 +4,7 @@ import keras as ks
 import tensorflow as tf
 
 import mlable.masking
+import mlable.utils
 
 # CATEGORICAL #################################################################
 
@@ -47,8 +48,7 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=8, threshold: float=0.5, dtype: tf.dtypes.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
     # format
-    __yt = tf.squeeze(y_true)
-    __yp = tf.squeeze(y_pred)
+    __yt, __yp = mlable.utils.merge_to_same_rank(x1=y_true, x2=y_pred)
     __tt = tf.cast(threshold, __yt.dtype)
     __tp = tf.cast(threshold, __yp.dtype)
     # binary predictions
