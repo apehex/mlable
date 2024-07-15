@@ -47,6 +47,20 @@ def _reduce_group_by_group_any(tensor: tf.Tensor, group: int, axis: int=-1, keep
 def _reduce_group_by_group_all(tensor: tf.Tensor, group: int, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
     return _reduce_group_by_group(tensor=tensor, operation=tf.reduce_all, group=group, axis=axis, keepdims=keepdims)
 
+# BASE ########################################################################
+
+def _reduce_base(tensor: tf.Tensor, base: int, axis: int=-1, keepdims: bool=False) -> tf.Tensor:
+    # select the dimension of the given axis
+    __shape = mlable.utils.filter_shape(shape=tensor.shape, axes=[axis])
+    # exponents
+    __exp = range(__shape[axis])
+    # base, in big endian
+    __base = tf.convert_to_tensor([base ** __e for __e in __exp[::-1]], dtype=tensor.dtype)
+    # match the input shape
+    __base = tf.reshape(__base, shape=__shape)
+    # recompose the number
+    return tf.reduce_sum(tensor * __base, axis=axis, keepdims=keepdims)
+
 # API #########################################################################
 
 def reduce(tensor: tf.Tensor, operation: callable, group: int=0, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
@@ -60,3 +74,7 @@ def reduce_any(tensor: tf.Tensor, group: int=0, axis: int=-1, keepdims: bool=Tru
 
 def reduce_all(tensor: tf.Tensor, group: int=0, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
     return reduce(tensor=tensor, operation=tf.reduce_all, group=group, axis=axis, keepdims=keepdims)
+
+def reduce_base(tensor: tf.Tensor, base: int, group: int=0, axis: int=-1, keepdims: bool=False) -> tf.Tensor:
+    __operation = functools.partial(_reduce_base, base=base)
+    return reduce(tensor=tensor, operation=__operation, group=group, axis=axis, keepdims=keepdims)
