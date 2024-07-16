@@ -19,7 +19,7 @@ def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=
     # group all the predictions for a given token
     if group and group > 1:
         # repeat values so that the reduced tensor has the same shape as the original
-        __match = mlable.ops.reduce_all(tensor=__match, group=group, axis=-1, keepdims=True)
+        __match = mlable.ops.reduce_all(data=__match, group=group, axis=-1, keepdims=True)
     # cast
     return tf.cast(__match, dtype=__dtype)
 
@@ -59,7 +59,7 @@ def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=8, th
     # group all the predictions for a given token
     if group and group > 1:
         # repeat values so that the reduced tensor has the same shape as the original
-        __match = mlable.ops.reduce_all(tensor=__match, group=group, axis=-1, keepdims=True)
+        __match = mlable.ops.reduce_all(data=__match, group=group, axis=-1, keepdims=True)
     # mean over sequence axis
     return tf.math.reduce_mean(tf.cast(__match, dtype=__dtype), axis=-1)
 
