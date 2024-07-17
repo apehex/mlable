@@ -61,6 +61,21 @@ def _reduce_base(data: tf.Tensor, base: int, axis: int=-1, keepdims: bool=False)
     # recompose the number
     return tf.reduce_sum(data * __base, axis=axis, keepdims=keepdims)
 
+def expand_base(data: tf.Tensor, base: int, depth: int) -> tf.Tensor:
+    __shape = len(list(data.shape)) * [1] + [depth]
+    # base indexes, in big endian
+    __idx = range(depth)[::-1]
+    # base divisor and modulus
+    __div = tf.convert_to_tensor([base ** __e for __e in __idx], dtype=data.dtype)
+    __mod = tf.convert_to_tensor([base ** (__e + 1) for __e in __idx], dtype=data.dtype)
+    # match the input shape
+    __div = tf.reshape(__div, shape=__shape)
+    __mod = tf.reshape(__mod, shape=__shape)
+    # Euclidean algorithm
+    __digits = tf.math.floordiv(x=tf.math.floormod(x=tf.expand_dims(data, axis=-1), y=__mod), y=__div)
+    # format
+    return tf.cast(__digits, dtype=data.dtype)
+
 # API #########################################################################
 
 def reduce(data: tf.Tensor, operation: callable, group: int=0, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
