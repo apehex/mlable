@@ -58,7 +58,7 @@ def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, th
         # repeat values so that the reduced tensor has the same shape as the original
         __match = mlable.ops.reduce_all(data=__match, group=group, axis=-1, keepdims=True)
     # mean over sequence axis
-    return tf.math.reduce_mean(tf.cast(__match, dtype=__dtype), axis=-1)
+    return tf.cast(__match, dtype=__dtype)
 
 @ks.saving.register_keras_serializable(package='metrics')
 class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
