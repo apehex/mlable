@@ -4,6 +4,7 @@ import keras as ks
 import tensorflow as tf
 
 import mlable.ops
+import mlable.sampling
 import mlable.utils
 
 # CATEGORICAL #################################################################
@@ -12,8 +13,8 @@ import mlable.utils
 def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, dtype: tf.dtypes.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
     # category indexes
-    __yt = tf.argmax(y_true, axis=-1)
-    __yp = tf.argmax(y_pred, axis=-1)
+    __yt = mlable.sampling.categorical(prediction=y_true, random=False)
+    __yp = mlable.sampling.categorical(prediction=y_pred, random=False)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -45,15 +46,11 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 # BINARY ######################################################################
 
 @ks.saving.register_keras_serializable(package='metrics', name='binary_group_accuracy')
-def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=8, threshold: float=0.5, dtype: tf.dtypes.DType=None) -> tf.Tensor:
+def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, threshold: float=0.5, dtype: tf.dtypes.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
-    # format
-    __yt, __yp = mlable.utils.merge_to_same_rank(x1=y_true, x2=y_pred)
-    __tt = tf.cast(threshold, __yt.dtype)
-    __tp = tf.cast(threshold, __yp.dtype)
-    # binary predictions
-    __yt = tf.cast(__yt > __tt, dtype=__yt.dtype)
-    __yp = tf.cast(__yp > __tp, dtype=__yt.dtype)
+    # category indexes
+    __yt = mlable.sampling.binary(prediction=y_true, threshold=threshold, random=False)
+    __yp = mlable.sampling.binary(prediction=y_pred, threshold=threshold, random=False)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token

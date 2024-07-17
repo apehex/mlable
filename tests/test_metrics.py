@@ -7,18 +7,18 @@ import mlable.metrics
 class CategoricalGroupAccuracyTest(tf.test.TestCase):
 
     def test_special_cases(self):
-        __batch_dim, __seq_dim, __embed_dim, __group_dim, __iterations = 3, 16, 16, 4, 128
+        __batch_dim, __seq_dim, __encoding_dim, __group_dim, __iterations = 3, 16, 16, 4, 128
         # init
         __accuracy = mlable.metrics.CategoricalGroupAccuracy(group=__group_dim)
         # no match
         __accuracy.reset_state()
-        __yt = tf.one_hot(indices=tf.zeros(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__embed_dim)
-        __yp = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__embed_dim)
+        __yt = tf.one_hot(indices=tf.zeros(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__encoding_dim)
+        __yp = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__encoding_dim)
         self.assertEqual(__accuracy(y_true=__yt, y_pred=__yp).numpy(), 0.)
         # all match
         __accuracy.reset_state()
-        __yt = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__embed_dim)
-        __yp = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__embed_dim)
+        __yt = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__encoding_dim)
+        __yp = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__encoding_dim)
         self.assertEqual(__accuracy(y_true=__yt, y_pred=__yp).numpy(), 1.)
         # iterating
         __accuracy.reset_state()
@@ -61,28 +61,28 @@ class CategoricalGroupAccuracyTest(tf.test.TestCase):
 
     def test_bounds(self):
         # 0. <= a <= 1.
-        __batch_dim, __seq_dim, __embed_dim, __group_dim, __iterations = 3, 16, 16, 4, 128
+        __batch_dim, __seq_dim, __encoding_dim, __group_dim, __iterations = 3, 16, 16, 4, 128
         # init
         __accuracy = mlable.metrics.CategoricalGroupAccuracy(group=__group_dim)
         # single evaluation
         __accuracy.reset_state()
-        __yt = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__embed_dim, dtype=tf.dtypes.int32), depth=__embed_dim)
-        __yp = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__embed_dim, dtype=tf.dtypes.int32), depth=__embed_dim)
+        __yt = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__encoding_dim, dtype=tf.dtypes.int32), depth=__encoding_dim)
+        __yp = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__encoding_dim, dtype=tf.dtypes.int32), depth=__encoding_dim)
         __accuracy.update_state(y_true=__yt, y_pred=__yp)
         self.assertLessEqual(0., __accuracy.result().numpy())
         self.assertLessEqual(__accuracy.result().numpy(), 1.)
         # iterative updates
         __accuracy.reset_state()
         for _ in range(__iterations):
-            __yt = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__embed_dim, dtype=tf.dtypes.int32), depth=__embed_dim)
-            __yp = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__embed_dim, dtype=tf.dtypes.int32), depth=__embed_dim)
+            __yt = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__encoding_dim, dtype=tf.dtypes.int32), depth=__encoding_dim)
+            __yp = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__encoding_dim, dtype=tf.dtypes.int32), depth=__encoding_dim)
             __accuracy.update_state(y_true=__yt, y_pred=__yp)
         self.assertLessEqual(0., __accuracy.result().numpy())
         self.assertLessEqual(__accuracy.result().numpy(), 1.)
         # all match
         __accuracy.reset_state()
-        __yt = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__embed_dim)
-        __yp = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__embed_dim)
+        __yt = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__encoding_dim)
+        __yp = tf.one_hot(indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.int32), depth=__encoding_dim)
         for _ in range(__iterations):
             __accuracy.update_state(y_true=__yt, y_pred=__yp)
         self.assertEqual(__accuracy.result().numpy(), 1.)
@@ -117,18 +117,18 @@ class CategoricalGroupAccuracyTest(tf.test.TestCase):
 class BinaryGroupAccuracyTest(tf.test.TestCase):
 
     def test_special_cases(self):
-        __batch_dim, __seq_dim, __group_dim, __iterations = 3, 32, 8, 128
+        __batch_dim, __seq_dim, __encoding_dim, __group_dim, __iterations = 3, 32, 8, 4, 128
         # init
         __accuracy = mlable.metrics.BinaryGroupAccuracy(group=__group_dim)
         # no match
         __accuracy.reset_state()
-        __yt = tf.zeros(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.float32)
-        __yp = tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.float32)
+        __yt = tf.zeros(shape=(__batch_dim, __seq_dim, __encoding_dim), dtype=tf.dtypes.float32)
+        __yp = tf.ones(shape=(__batch_dim, __seq_dim, __encoding_dim), dtype=tf.dtypes.float32)
         self.assertEqual(__accuracy(y_true=__yt, y_pred=__yp).numpy(), 0.)
         # all match
         __accuracy.reset_state()
-        __yt = tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.float32)
-        __yp = tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.float32)
+        __yt = tf.ones(shape=(__batch_dim, __seq_dim, __encoding_dim), dtype=tf.dtypes.float32)
+        __yp = tf.ones(shape=(__batch_dim, __seq_dim, __encoding_dim), dtype=tf.dtypes.float32)
         self.assertEqual(__accuracy(y_true=__yt, y_pred=__yp).numpy(), 1.)
         # iterating
         __accuracy.reset_state()
@@ -139,71 +139,74 @@ class BinaryGroupAccuracyTest(tf.test.TestCase):
     def test_specific_values(self):
         __iterations = 16
         # init
-        __bit_acc = mlable.metrics.BinaryGroupAccuracy(group=1)
-        __byte_acc = mlable.metrics.BinaryGroupAccuracy(group=8)
+        __byte_acc = mlable.metrics.BinaryGroupAccuracy(group=1)
+        __char_acc = mlable.metrics.BinaryGroupAccuracy(group=4)
         # test on ascii => leading zeroes match but not the characters
         __yt = tf.convert_to_tensor([
-            [float(__b) for __b in '11111111' + '11111111'],
-            [float(__b) for __b in '11111111' + '11111111']], dtype=tf.dtypes.float32)
+            [float(__b) for __b in '11111111' + '11111111'+ '11111111'+ '11111111'],
+            [float(__b) for __b in '11111111' + '11111111'+ '11111111'+ '11111111']], dtype=tf.dtypes.float32)
         __yp = tf.convert_to_tensor([
-            [float(__b) for __b in '10111110' + '11111111'],
-            [float(__b) for __b in '11111011' + '11111101']], dtype=tf.dtypes.float32)
+            [float(__b) for __b in '10111110' + '11111111'+ '11111111'+ '11111100'],
+            [float(__b) for __b in '11111111' + '11111111'+ '11111111'+ '11111111']], dtype=tf.dtypes.float32)
+        # reshape
+        __yt = tf.reshape(__yt, shape=(2, 4, 8))
+        __yp = tf.reshape(__yp, shape=(2, 4, 8))
         # one-shot
-        __bit_acc.update_state(y_true=__yt, y_pred=__yp)
         __byte_acc.update_state(y_true=__yt, y_pred=__yp)
-        self.assertEqual(__bit_acc.result().numpy(), (16 - 2) / 16)
-        self.assertEqual(__byte_acc.result().numpy(), (0.5 + 0.) / 2.)
+        __char_acc.update_state(y_true=__yt, y_pred=__yp)
+        self.assertEqual(__byte_acc.result().numpy(), 6 / 8)
+        self.assertEqual(__char_acc.result().numpy(), 0.5)
         # unchanged when iterating
-        __bit_acc.reset_state()
         __byte_acc.reset_state()
+        __char_acc.reset_state()
         for _ in range(__iterations):
-            __bit_acc.update_state(y_true=__yt, y_pred=__yp)
             __byte_acc.update_state(y_true=__yt, y_pred=__yp)
-        self.assertEqual(__bit_acc.result().numpy(), (16 - 2) / 16)
-        self.assertEqual(__byte_acc.result().numpy(), (0.5 + 0.) / 2.)
+            __char_acc.update_state(y_true=__yt, y_pred=__yp)
+        self.assertEqual(__byte_acc.result().numpy(), 6 / 8)
+        self.assertEqual(__char_acc.result().numpy(), 0.5)
 
     def test_bounds(self):
         # 0. <= a <= 1.
-        __batch_dim, __seq_dim, __group_dim, __iterations = 3, 32, 8, 128
+        __batch_dim, __seq_dim, __encoding_dim, __group_dim, __iterations = 3, 32, 8, 2, 128
         # init
         __accuracy = mlable.metrics.BinaryGroupAccuracy(group=__group_dim)
         # single evaluation
         __accuracy.reset_state()
-        __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
-        __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
+        __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
+        __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
         __accuracy.update_state(y_true=__yt, y_pred=__yp)
         self.assertLessEqual(0., __accuracy.result().numpy())
         self.assertLessEqual(__accuracy.result().numpy(), 1.)
         # iterative updates
         __accuracy.reset_state()
         for _ in range(__iterations):
-            __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
-            __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
+            __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
+            __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
             __accuracy.update_state(y_true=__yt, y_pred=__yp)
         self.assertLessEqual(0., __accuracy.result().numpy())
         self.assertLessEqual(__accuracy.result().numpy(), 1.)
         # all match
         __accuracy.reset_state()
-        __yt = indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.float32)
-        __yp = indices=tf.ones(shape=(__batch_dim, __seq_dim), dtype=tf.dtypes.float32)
+        __yt = indices=tf.ones(shape=(__batch_dim, __seq_dim, __encoding_dim), dtype=tf.dtypes.float32)
+        __yp = indices=tf.ones(shape=(__batch_dim, __seq_dim, __encoding_dim), dtype=tf.dtypes.float32)
         for _ in range(__iterations):
             __accuracy.update_state(y_true=__yt, y_pred=__yp)
         self.assertEqual(__accuracy.result().numpy(), 1.)
 
-    def test_byte_accuracy_different_from_group_accuracy(self):
+    def test_byte_accuracy_different_from_character_accuracy(self):
         # init
-        __batch_dim, __seq_dim, __group_dim, __iterations = 3, 32, 8, 128
+        __batch_dim, __seq_dim, __encoding_dim, __iterations = 3, 32, 8, 128
         # init
-        __bit_acc = mlable.metrics.BinaryGroupAccuracy(group=1)
-        __byte_acc = mlable.metrics.BinaryGroupAccuracy(group=8)
+        __byte_acc = mlable.metrics.BinaryGroupAccuracy(group=1)
+        __char_acc = mlable.metrics.BinaryGroupAccuracy(group=4)
         # single evaluation
-        __bit_acc.reset_state()
         __byte_acc.reset_state()
-        __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
-        __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
+        __char_acc.reset_state()
+        __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
+        __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
         # evaluate
-        __bit_acc.update_state(y_true=__yt, y_pred=__yp)
         __byte_acc.update_state(y_true=__yt, y_pred=__yp)
+        __char_acc.update_state(y_true=__yt, y_pred=__yp)
         # check
-        self.assertNotEqual(__bit_acc.result().numpy(), __byte_acc.result().numpy())
-        self.assertGreaterEqual(__bit_acc.result().numpy(), __byte_acc.result().numpy())
+        self.assertNotEqual(__byte_acc.result().numpy(), __char_acc.result().numpy())
+        self.assertGreaterEqual(__byte_acc.result().numpy(), __char_acc.result().numpy())
