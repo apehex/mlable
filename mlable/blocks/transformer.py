@@ -56,7 +56,7 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
         **kwargs
     ) -> None:
         # init
-        super(BaseAttention, self).__init__(**kwargs)
+        super(BaseAttentionBlock, self).__init__(**kwargs)
         # config
         self._config = {
             'num_heads': num_heads,
@@ -69,7 +69,7 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
         self._attention = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
 
     def get_config(self) -> dict:
-        __config = super(BaseAttention, self).get_config()
+        __config = super(BaseAttentionBlock, self).get_config()
         __config.update(self._config)
         return __config
 
