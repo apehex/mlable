@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "mlable"
-version = "0.7.4"
+version = "0.7.5"
 description = "Tensorflow libs: layers, metrics, ops, etc."
 authors = ["apehex <apehex@protonmail.com>"]
 readme = ".github/README.md"
 packages = [{include = "mlable"}]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <3.12"
+python = ">=3.10, <4"
 tensorflow = ">=2.15"
 
 [tool.poetry.group.dev.dependencies]
