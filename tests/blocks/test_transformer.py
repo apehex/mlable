@@ -86,6 +86,16 @@ class CrossAttentionBlockTest(tf.test.TestCase):
                     'sequence_axis': 1,},
                 'outputs': {
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
+                },},
+            {
+                'inputs': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
+                'contexts': tf.stack(2 * [tf.stack(4 * [tf.range(16)], axis=1)], axis=0),
+                'args': {
+                    'num_heads': 2,
+                    'head_dim': 4,
+                    'sequence_axis': 1,},
+                'outputs': {
+                    'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},]
 
     def test_null_on_constant_inputs(self): # because of the layer norm
