@@ -5,6 +5,10 @@ import tensorflow as tf
 
 import mlable.utils
 
+# CONSTANTS ###################################################################
+
+EPSILON = 1e-6
+
 # FEED FORWARD ################################################################
 
 @keras.saving.register_keras_serializable(package='layers')
@@ -40,7 +44,7 @@ class FeedForwardGate(tf.keras.layers.Layer):
 
 # ATTENTION ###################################################################
 
-@tf.keras.utils.register_keras_serializable(package="Text")
+@tf.keras.utils.register_keras_serializable(package="layers")
 class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
     """
     Arguments are the same as `tf.keras.layers.MultiHeadAttention` layer.
