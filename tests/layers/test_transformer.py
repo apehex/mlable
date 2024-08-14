@@ -6,9 +6,9 @@ import mlable.utils
 
 # FF ##########################################################################
 
-class FeedForwardBlockTest(tf.test.TestCase):
+class FeedForwardGateTest(tf.test.TestCase):
     def setUp(self):
-        super(FeedForwardBlockTest, self).setUp()
+        super(FeedForwardGateTest, self).setUp()
         self._test_cases = [
             {
                 'input_dim': 2,
