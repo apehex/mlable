@@ -3,6 +3,7 @@ import math
 import keras
 import tensorflow as tf
 
+import mlable.layers.embedding
 import mlable.layers.transformer
 
 # CONSTANTS ###################################################################
@@ -64,7 +65,8 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
             'sequence_axis': sequence_axis,
             'epsilon': epsilon,}
         # layers
-        self._norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, beta_initializer='zeros', gamma_initializer='ones') # rms_scaling=True
+        self._input_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, beta_initializer='zeros', gamma_initializer='ones') # rms_scaling=True
+        self._context_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, beta_initializer='zeros', gamma_initializer='ones') # rms_scaling=True
         self._position = mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=sequence_axis, feature_axis=-1)
         self._attention = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
 
@@ -87,7 +89,7 @@ class SelfAttentionBlock(BaseAttentionBlock):
         training: bool=False,
     ) -> tf.Tensor:
         # normalize
-        __y = self._norm(inputs)
+        __y = self._input_norm(inputs)
         # position embedding
         __yp = self._position(inputs=__y, offset=0)
         # attention
@@ -104,8 +106,8 @@ class CrossAttentionBlock(BaseAttentionBlock):
         training: bool=False,
     ) -> tf.Tensor:
         # normalize
-        __x = self._norm(inputs)
-        __y = self._norm(contexts) # may need a dedicated norm layer
+        __x = self._input_norm(inputs)
+        __y = self._context_norm(contexts) # may need a dedicated norm layer
         # position embedding
         __xp = self._position(inputs=__x, offset=0)
         __yp = self._position(inputs=__y, offset=0)
