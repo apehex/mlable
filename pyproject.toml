@@ -13,6 +13,9 @@ tensorflow = ">=2.15"
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
 
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
