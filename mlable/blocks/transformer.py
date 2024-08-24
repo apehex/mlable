@@ -18,6 +18,8 @@ class FeedForwardBlock(tf.keras.layers.Layer):
         self,
         embed_dim: int,
         hidden_dim: int,
+        center: bool=False,
+        scale: bool=False,
         epsilon: float=EPSILON,
         **kwargs
     ) -> None:
@@ -27,9 +29,11 @@ class FeedForwardBlock(tf.keras.layers.Layer):
         self._config = {
             'embed_dim': embed_dim,
             'hidden_dim': hidden_dim,
+            'center': center,
+            'scale': scale,
             'epsilon': epsilon,}
         # layers
-        self._norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, beta_initializer='zeros', gamma_initializer='ones') # rms_scaling=True
+        self._norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._ffn = mlable.layers.transformer.FeedForwardGate(input_dim=embed_dim, hidden_dim=hidden_dim)
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
@@ -53,6 +57,8 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
         num_heads: int,
         head_dim: int,
         sequence_axis: int=1,
+        center: bool=False,
+        scale: bool=False,
         epsilon: float=EPSILON,
         **kwargs
     ) -> None:
@@ -63,10 +69,12 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
             'num_heads': num_heads,
             'head_dim': head_dim,
             'sequence_axis': sequence_axis,
+            'center': center,
+            'scale': scale,
             'epsilon': epsilon,}
         # layers
-        self._input_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, beta_initializer='zeros', gamma_initializer='ones') # rms_scaling=True
-        self._context_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, beta_initializer='zeros', gamma_initializer='ones') # rms_scaling=True
+        self._input_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
+        self._context_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._position = mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=sequence_axis, feature_axis=-1)
         self._attention = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
 
