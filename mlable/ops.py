@@ -93,3 +93,17 @@ def reduce_all(data: tf.Tensor, group: int=0, axis: int=-1, keepdims: bool=True)
 def reduce_base(data: tf.Tensor, base: int, group: int=0, axis: int=-1, keepdims: bool=False) -> tf.Tensor:
     __operation = functools.partial(_reduce_base, base=base)
     return reduce(data=data, operation=__operation, group=group, axis=axis, keepdims=keepdims)
+
+# RESHAPING ###################################################################
+
+def divide(data: tf.Tensor, input_axis: int, output_axis: int, factor: int, insert: bool=False) -> tf.Tensor:
+    # move data from input axis to output axis
+    __shape = mlable.utils.divide_shape(shape=list(data.shape), input_axis=input_axis, output_axis=output_axis, factor=factor, insert=insert)
+    # actually reshape
+    return tf.reshape(tensor=data, shape=__shape)
+
+def merge(data: tf.Tensor, left_axis: int, right_axis: int, left: bool=True) -> tf.Tensor:
+    # new shape
+    __shape = mlable.utils.merge_shape(shape=list(data.shape), left_axis=left_axis, right_axis=right_axis, left=left)
+    # actually merge the two axes
+    return tf.reshape(tensor=data, shape=__shape)
