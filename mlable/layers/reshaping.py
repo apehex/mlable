@@ -1,7 +1,7 @@
 import keras
 import tensorflow as tf
 
-import mlable.utils
+import mlable.ops
 
 # GENERIC #####################################################################
 
@@ -47,12 +47,8 @@ class Divide(tf.keras.layers.Layer):
             'insert': insert,}
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
-        # infer the dimension of the symbolic axis
-        __shape = mlable.utils.normalize_shape(list(inputs.shape))
         # move data from axis 0 to axis 1
-        __shape = mlable.utils.divide_shape(shape=__shape, **self._config)
-        # actually reshape
-        return tf.reshape(tensor=inputs, shape=__shape)
+        return mlable.ops.divide(data=inputs, **self._config)
 
     def get_config(self) -> dict:
         __config = super(Divide, self).get_config()
@@ -81,12 +77,8 @@ class Merge(tf.keras.layers.Layer):
             'left': left,}
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
-        # infer the dimension of the symbolic axis
-        __shape = mlable.utils.normalize_shape(list(inputs.shape))
-        # new shape
-        __shape = mlable.utils.merge_shape(shape=__shape, **self._config)
-        # actually merge the two axes
-        return tf.reshape(tensor=inputs, shape=__shape)
+        # merge the two axes
+        return mlable.ops.merge(data=inputs, **self._config)
 
     def get_config(self) -> dict:
         __config = super(Merge, self).get_config()
