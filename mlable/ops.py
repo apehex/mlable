@@ -28,18 +28,14 @@ def _reduce_all(data: tf.Tensor, axis: int=-1, keepdims: bool=True) -> tf.Tensor
 def _reduce_group_by_group(data: tf.Tensor, operation: callable, group: int, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
     # original shape
     __shape = mlable.utils.normalize_shape(data.shape)
-    # normalize axis / orginal shape
+    # interpret negative axis index / orginal shape
     __axis = axis % len(__shape)
-    # axes are indexed according to the new shape
-    __shape = mlable.utils.divide_shape(shape=__shape, input_axis=__axis, output_axis=-1, factor=group, insert=True)
     # split the last axis
-    __data = tf.reshape(data, shape=__shape)
+    __data = divide(data=data, input_axis=__axis, output_axis=-1, factor=group, insert=True)
     # repeat values to keep the same shape as the original tensor
     __data = _reduce(data=__data, operation=operation, axis=-1, keepdims=keepdims)
-    # match the original shape
-    __shape = mlable.utils.merge_shape(shape=__shape, left_axis=__axis, right_axis=-1, left=True)
     # merge the new axis back
-    return tf.reshape(__data, shape=__shape) if keepdims else __data
+    return merge(data=__data, left_axis=__axis, right_axis=-1, left=True) if keepdims else __data
 
 def _reduce_group_by_group_any(data: tf.Tensor, group: int, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
     return _reduce_group_by_group(data=data, operation=tf.reduce_any, group=group, axis=axis, keepdims=keepdims)
