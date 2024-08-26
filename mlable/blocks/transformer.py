@@ -121,3 +121,60 @@ class CrossAttentionBlock(BaseAttentionBlock):
         __yp = self._position(inputs=__y, offset=0)
         # attention
         return self._attention(key=__yp, query=__xp, value=__y, training=training, attention_mask=attention_mask, use_causal_mask=use_causal_mask, return_attention_scores=False)
+
+# ATTENTION WITH CACHE ########################################################
+
+@keras.saving.register_keras_serializable(package='blocks')
+class CachedBaseAttentionBlock(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        num_heads: int,
+        head_dim: int,
+        sequence_axis: int=1,
+        center: bool=False,
+        scale: bool=False,
+        epsilon: float=EPSILON,
+        **kwargs
+    ) -> None:
+        # init
+        super(CachedBaseAttentionBlock, self).__init__(**kwargs)
+        # config
+        self._config = {
+            'num_heads': num_heads,
+            'head_dim': head_dim,
+            'sequence_axis': sequence_axis,
+            'center': center,
+            'scale': scale,
+            'epsilon': epsilon,}
+        # layers
+        self._input_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
+        self._context_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
+        self._position = mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=sequence_axis, feature_axis=-1)
+        self._attention = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=num_heads, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
+
+    def get_config(self) -> dict:
+        __config = super(CachedBaseAttentionBlock, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+@keras.saving.register_keras_serializable(package='blocks')
+class CachedSelfAttentionBlock(CachedBaseAttentionBlock):
+    def call(
+        self,
+        inputs: tf.Tensor,
+        cache: tf.Tensor=None,
+        position: int=None,
+        attention_mask: tf.Tensor=None,
+        use_causal_mask: bool=True,
+        training: bool=False,
+    ) -> tf.Tensor:
+        # normalize
+        __y = self._input_norm(inputs)
+        # position embedding
+        __yp = self._position(inputs=__y, offset=0)
+        # attention
+        return self._attention(key=__yp, query=__yp, value=__y, cache=cache, step=position, training=training, attention_mask=attention_mask, use_causal_mask=use_causal_mask, return_attention_scores=False)
