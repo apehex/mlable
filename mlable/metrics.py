@@ -12,12 +12,9 @@ import mlable.utils
 @ks.saving.register_keras_serializable(package='metrics', name='categorical_group_accuracy')
 def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, depth: int=-1, dtype: tf.dtypes.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
-    # isolate each one-hot vector
-    __yt = y_true if (depth < 2) else mlable.ops.divide(y_true, input_axis=-2, output_axis=-1, factor=depth, insert=True)
-    __yp = y_pred if (depth < 2) else mlable.ops.divide(y_pred, input_axis=-2, output_axis=-1, factor=depth, insert=True)
     # category indexes
-    __yt = mlable.sampling.categorical(prediction=__yt, random=False)
-    __yp = mlable.sampling.categorical(prediction=__yp, random=False)
+    __yt = mlable.sampling.categorical(prediction=y_true, depth=depth, random=False)
+    __yp = mlable.sampling.categorical(prediction=y_pred, depth=depth, random=False)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -51,12 +48,9 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 @ks.saving.register_keras_serializable(package='metrics', name='binary_group_accuracy')
 def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, depth: int=-1, threshold: float=0.5, dtype: tf.dtypes.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
-    # group the bits of each encoded value
-    __yt = y_true if (depth < 2) else mlable.ops.divide(y_true, input_axis=-2, output_axis=-1, factor=depth, insert=True)
-    __yp = y_pred if (depth < 2) else mlable.ops.divide(y_pred, input_axis=-2, output_axis=-1, factor=depth, insert=True)
     # category indexes
-    __yt = mlable.sampling.binary(prediction=__yt, threshold=threshold, random=False)
-    __yp = mlable.sampling.binary(prediction=__yp, threshold=threshold, random=False)
+    __yt = mlable.sampling.binary(prediction=y_true, depth=depth, threshold=threshold, random=False)
+    __yp = mlable.sampling.binary(prediction=y_pred, depth=depth, threshold=threshold, random=False)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
