@@ -10,11 +10,14 @@ import mlable.utils
 # CATEGORICAL #################################################################
 
 @ks.saving.register_keras_serializable(package='metrics', name='categorical_group_accuracy')
-def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, dtype: tf.dtypes.DType=None) -> tf.Tensor:
+def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, depth: int=-1, dtype: tf.dtypes.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
+    # isolate each one-hot vector
+    __yt = y_true if (depth < 2) else mlable.ops.divide(y_true, input_axis=-2, output_axis=-1, factor=depth, insert=True)
+    __yp = y_pred if (depth < 2) else mlable.ops.divide(y_pred, input_axis=-2, output_axis=-1, factor=depth, insert=True)
     # category indexes
-    __yt = mlable.sampling.categorical(prediction=y_true, random=False)
-    __yp = mlable.sampling.categorical(prediction=y_pred, random=False)
+    __yt = mlable.sampling.categorical(prediction=__yt, random=False)
+    __yp = mlable.sampling.categorical(prediction=__yp, random=False)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -26,11 +29,11 @@ def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=
 
 @ks.saving.register_keras_serializable(package='metrics')
 class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, group: int=4, name: str='categorical_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
+    def __init__(self, group: int=4, depth: int=-1, name: str='categorical_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
         # serialization wrapper
         __wrap = ks.saving.register_keras_serializable(package='metrics', name='categorical_group_accuracy')
         # adapt the measure
-        __fn = __wrap(functools.partial(categorical_group_accuracy, group=group, dtype=dtype))
+        __fn = __wrap(functools.partial(categorical_group_accuracy, group=group, depth=depth, dtype=dtype))
         # init
         super(CategoricalGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
@@ -46,11 +49,14 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 # BINARY ######################################################################
 
 @ks.saving.register_keras_serializable(package='metrics', name='binary_group_accuracy')
-def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, threshold: float=0.5, dtype: tf.dtypes.DType=None) -> tf.Tensor:
+def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, depth: int=-1, threshold: float=0.5, dtype: tf.dtypes.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
+    # group the bits of each encoded value
+    __yt = y_true if (depth < 2) else mlable.ops.divide(y_true, input_axis=-2, output_axis=-1, factor=depth, insert=True)
+    __yp = y_pred if (depth < 2) else mlable.ops.divide(y_pred, input_axis=-2, output_axis=-1, factor=depth, insert=True)
     # category indexes
-    __yt = mlable.sampling.binary(prediction=y_true, threshold=threshold, random=False)
-    __yp = mlable.sampling.binary(prediction=y_pred, threshold=threshold, random=False)
+    __yt = mlable.sampling.binary(prediction=__yt, threshold=threshold, random=False)
+    __yp = mlable.sampling.binary(prediction=__yp, threshold=threshold, random=False)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -62,11 +68,11 @@ def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, group: int=4, th
 
 @ks.saving.register_keras_serializable(package='metrics')
 class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, group: int=4, threshold: float=0.5, name: str='binary_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
+    def __init__(self, group: int=4, depth: int=-1, threshold: float=0.5, name: str='binary_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
         # serialization wrapper
         __wrap = ks.saving.register_keras_serializable(package='metrics', name='binary_group_accuracy')
         # adapt the measure
-        __fn = __wrap(functools.partial(binary_group_accuracy, group=group, threshold=threshold, dtype=dtype))
+        __fn = __wrap(functools.partial(binary_group_accuracy, group=group, depth=depth, threshold=threshold, dtype=dtype))
         # init
         super(BinaryGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
