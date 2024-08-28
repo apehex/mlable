@@ -19,5 +19,5 @@ def categorical(prediction: tf.Tensor, random: bool=False) -> tf.Tensor:
 
 # RAW #########################################################################
 
-def raw(prediction: tf.Tensor, factor: float=256., dtype: tf.dtypes.DType=tf.int32 random: bool=False) -> tf.Tensor:
+def raw(prediction: tf.Tensor, factor: float=256., dtype: tf.dtypes.DType=tf.int32, random: bool=False) -> tf.Tensor:
     return tf.cast(tf.round(tf.cast(factor, prediction.dtype) * prediction), dtype)
