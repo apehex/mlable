@@ -59,6 +59,42 @@ class CategoricalGroupAccuracyTest(tf.test.TestCase):
         self.assertEqual(__byte_acc.result().numpy(), (4 * 16 - 3) / (4 * 16))
         self.assertEqual(__character_acc.result().numpy(), (16 - 3) / 16)
 
+    def test_flat_predictions(self):
+        __iterations = 16
+        # init
+        __byte_acc = mlable.metrics.CategoricalGroupAccuracy(group=1, depth=256)
+        __character_acc = mlable.metrics.CategoricalGroupAccuracy(group=4, depth=256)
+        # test on ascii => leading zeroes match but not the characters
+        __yt = tf.convert_to_tensor([
+            '1111111111111111',
+            '2222222222222222'])
+        __yp = tf.convert_to_tensor([
+            '0111111101111110',
+            '0002222222222222'])
+        # encode
+        __yt = tf.strings.unicode_transcode(input=__yt, input_encoding='UTF-8', output_encoding='UTF-32-BE')
+        __yp = tf.strings.unicode_transcode(input=__yp, input_encoding='UTF-8', output_encoding='UTF-32-BE')
+        __yt = tf.io.decode_raw(__yt, out_type=tf.int8, fixed_length=64)
+        __yp = tf.io.decode_raw(__yp, out_type=tf.int8, fixed_length=64)
+        __yt = tf.one_hot(__yt, depth=256)
+        __yp = tf.one_hot(__yp, depth=256)
+        # flatten
+        __yt = tf.reshape(__yt, (2, -1))
+        __yp = tf.reshape(__yp, (2, -1))
+        # one-shot
+        __byte_acc.update_state(y_true=__yt, y_pred=__yp)
+        __character_acc.update_state(y_true=__yt, y_pred=__yp)
+        self.assertEqual(__byte_acc.result().numpy(), (4 * 16 - 3) / (4 * 16))
+        self.assertEqual(__character_acc.result().numpy(), (16 - 3) / 16)
+        # unchanged when iterating
+        __byte_acc.reset_state()
+        __character_acc.reset_state()
+        for _ in range(__iterations):
+            __byte_acc.update_state(y_true=__yt, y_pred=__yp)
+            __character_acc.update_state(y_true=__yt, y_pred=__yp)
+        self.assertEqual(__byte_acc.result().numpy(), (4 * 16 - 3) / (4 * 16))
+        self.assertEqual(__character_acc.result().numpy(), (16 - 3) / 16)
+
     def test_bounds(self):
         # 0. <= a <= 1.
         __batch_dim, __seq_dim, __encoding_dim, __group_dim, __iterations = 3, 16, 16, 4, 128
@@ -151,6 +187,35 @@ class BinaryGroupAccuracyTest(tf.test.TestCase):
         # reshape
         __yt = tf.reshape(__yt, shape=(2, 4, 8))
         __yp = tf.reshape(__yp, shape=(2, 4, 8))
+        # one-shot
+        __byte_acc.update_state(y_true=__yt, y_pred=__yp)
+        __char_acc.update_state(y_true=__yt, y_pred=__yp)
+        self.assertEqual(__byte_acc.result().numpy(), 6 / 8)
+        self.assertEqual(__char_acc.result().numpy(), 0.5)
+        # unchanged when iterating
+        __byte_acc.reset_state()
+        __char_acc.reset_state()
+        for _ in range(__iterations):
+            __byte_acc.update_state(y_true=__yt, y_pred=__yp)
+            __char_acc.update_state(y_true=__yt, y_pred=__yp)
+        self.assertEqual(__byte_acc.result().numpy(), 6 / 8)
+        self.assertEqual(__char_acc.result().numpy(), 0.5)
+
+    def test_flat_predictions(self):
+        __iterations = 16
+        # init
+        __byte_acc = mlable.metrics.BinaryGroupAccuracy(group=1, depth=8)
+        __char_acc = mlable.metrics.BinaryGroupAccuracy(group=4, depth=8)
+        # test on ascii => leading zeroes match but not the characters
+        __yt = tf.convert_to_tensor([
+            [float(__b) for __b in '11111111' + '11111111'+ '11111111'+ '11111111'],
+            [float(__b) for __b in '11111111' + '11111111'+ '11111111'+ '11111111']], dtype=tf.dtypes.float32)
+        __yp = tf.convert_to_tensor([
+            [float(__b) for __b in '10111110' + '11111111'+ '11111111'+ '11111100'],
+            [float(__b) for __b in '11111111' + '11111111'+ '11111111'+ '11111111']], dtype=tf.dtypes.float32)
+        # reshape
+        __yt = tf.reshape(__yt, shape=(2, 32))
+        __yp = tf.reshape(__yp, shape=(2, 32))
         # one-shot
         __byte_acc.update_state(y_true=__yt, y_pred=__yp)
         __char_acc.update_state(y_true=__yt, y_pred=__yp)
