@@ -182,3 +182,37 @@ class RopeTest(tf.test.TestCase):
                 self.assertEqual(tuple(__outputs.shape), __case['output']['shape'])
             if 'values' in __case['output']:
                 self.assertAllClose(__outputs, __case['output']['values'])
+
+# TOKUN EMBEDDING #############################################################
+
+class TokunEmbeddingTest(tf.test.TestCase):
+    def setUp(self):
+        super(TokunEmbeddingTest, self).setUp()
+        self._test_cases = [
+            {
+                'init': {
+                    'input_dim': 256,
+                    'output_dim': 128,},
+                'input': {
+                    'inputs': tf.random.uniform((2, 32, 4), minval=0, maxval=256),},
+                'output': {
+                    'shape': (2, 32, 512),}},
+            {
+                'init': {
+                    'input_dim': 256,
+                    'output_dim': 128,
+                    'embeddings_initializer': 'ones'},
+                'input': {
+                    'inputs': tf.random.uniform((2, 8), minval=0, maxval=256),},
+                'output': {
+                    'shape': (2, 1024),
+                    'values': tf.ones((2, 1024), dtype=tf.float32),}},]
+
+    def test_embedding_shape(self):
+        for __case in self._test_cases:
+            __layer = mlable.layers.embedding.TokunEmbedding(**__case['init'])
+            __outputs = __layer(**__case['input'])
+            if 'shape' in __case['output']:
+                self.assertEqual(tuple(__outputs.shape), __case['output']['shape'])
+            if 'values' in __case['output']:
+                self.assertAllEqual(__outputs, __case['output']['values'])
