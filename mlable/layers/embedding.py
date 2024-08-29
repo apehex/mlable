@@ -2,6 +2,7 @@ import keras
 import tensorflow as tf
 
 import mlable.utils
+import mlable.ops
 
 # ROPE ########################################################################
 
@@ -120,3 +121,13 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
     @classmethod
     def from_config(cls, config) -> tf.keras.layers.Layer:
         return cls(**config)
+
+# TOKUN #######################################################################
+
+@keras.saving.register_keras_serializable(package='layers')
+class TokunEmbedding(tf.keras.layers.Embedding):
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+        # embed each element separately
+        __outputs = super().call(inputs)
+        # concatenate the embeddings
+        return mlable.ops.merge(__outputs, left_axis=-2, right_axis=-1, left=True)
