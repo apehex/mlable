@@ -13,7 +13,13 @@ class Reshape(tf.keras.layers.Layer):
         **kwargs
     ) -> None:
         super(Reshape, self).__init__(**kwargs)
+        # save for import / export
         self._config = {'target_shape': target_shape}
+        # no weights
+        self.build()
+
+    def build(self, input_shape: tf.TensorShape=None) -> None:
+        self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         return tf.reshape(inputs, self._config['target_shape'])
@@ -24,7 +30,7 @@ class Reshape(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
 # DIVIDE ######################################################################
@@ -40,11 +46,17 @@ class Divide(tf.keras.layers.Layer):
         **kwargs
     ) -> None:
         super(Divide, self).__init__(**kwargs)
+        # save for import / export
         self._config = {
             'input_axis': input_axis,
             'output_axis': output_axis,
             'factor': factor,
             'insert': insert,}
+        # no weights
+        self.build()
+
+    def build(self, input_shape: tf.TensorShape=None) -> None:
+        self.built = True
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         # move data from axis 0 to axis 1
@@ -56,7 +68,7 @@ class Divide(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
 # MERGE #######################################################################
@@ -71,10 +83,16 @@ class Merge(tf.keras.layers.Layer):
         **kwargs
     ) -> None:
         super(Merge, self).__init__(**kwargs)
+        # save for import / export
         self._config = {
             'left_axis': left_axis,
             'right_axis': right_axis,
             'left': left,}
+        # no weights
+        self.build()
+
+    def build(self, input_shape: tf.TensorShape=None) -> None:
+        self.built = True
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         # merge the two axes
@@ -86,5 +104,5 @@ class Merge(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)

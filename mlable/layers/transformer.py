@@ -29,6 +29,17 @@ class FeedForwardGate(tf.keras.layers.Layer):
         self._linear = tf.keras.layers.Dense(units=self._config['hidden_dim'], activation='linear', use_bias=False, kernel_initializer='glorot_uniform', name='linear')
         self._output = tf.keras.layers.Dense(units=self._config['input_dim'], activation='linear', use_bias=False, kernel_initializer='glorot_uniform', name='output')
 
+    def build(self, input_shape: tf.TensorShape) -> None:
+        __output_shape = list(input_shape)
+        __output_shape[-1] = self._config['hidden_dim']
+        # directly handle the input
+        self._gelu.build(input_shape)
+        self._linear.build(input_shape)
+        # from hidden to input dim
+        self._output.build(__output_shape)
+        # register
+        self.built = True
+
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         # gating mechanism
         return self._output(self._gelu(inputs) * self._linear(inputs))
@@ -39,7 +50,7 @@ class FeedForwardGate(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
 # ATTENTION ###################################################################
