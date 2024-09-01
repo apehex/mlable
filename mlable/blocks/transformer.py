@@ -194,13 +194,21 @@ class CachedBaseAttentionBlock(tf.keras.layers.Layer):
         self._position = mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=sequence_axis, feature_axis=-1)
         self._attention = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=num_heads, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
 
+    def build(self, input_shape: tf.TensorShape) -> None:
+        # the input shape is progated / unchanged
+        self._input_norm.build(input_shape)
+        self._position.build(input_shape)
+        self._attention.build(query_shape=input_shape, value_shape=input_shape, key_shape=input_shape)
+        # register
+        self.built = True
+
     def get_config(self) -> dict:
         __config = super(CachedBaseAttentionBlock, self).get_config()
         __config.update(self._config)
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
 @keras.saving.register_keras_serializable(package='blocks')
