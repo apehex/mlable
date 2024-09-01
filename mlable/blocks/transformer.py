@@ -88,7 +88,11 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
         # the input shape is progated / unchanged
         self._input_norm.build(input_shape)
         self._position.build(input_shape)
-        self._attention.build(query_shape=input_shape, value_shape=input_shape, key_shape=input_shape)
+        # attention API depends on the version
+        if hasattr(self._attention, '_build_from_signature'):
+            self._attention._build_from_signature(query=input_shape, value=input_shape, key=input_shape)
+        else:
+            self._attention.build(query_shape=input_shape, value_shape=input_shape, key_shape=input_shape)
         # register
         self.built = True
 
@@ -141,7 +145,11 @@ class BaseCrossAttentionBlock(BaseAttentionBlock):
         self._input_norm.build(inputs_shape)
         self._context_norm.build(contexts_shape)
         self._position.build(inputs_shape)
-        self._attention.build(query_shape=inputs_shape, value_shape=contexts_shape, key_shape=contexts_shape)
+        # attention API depends on the version
+        if hasattr(self._attention, '_build_from_signature'):
+            self._attention._build_from_signature(query=inputs_shape, value=contexts_shape, key=contexts_shape)
+        else:
+            self._attention.build(query_shape=inputs_shape, value_shape=contexts_shape, key_shape=contexts_shape)
         # register
         self.built = True
 
@@ -190,7 +198,6 @@ class CachedBaseAttentionBlock(tf.keras.layers.Layer):
             'epsilon': epsilon,}
         # layers
         self._input_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
-        self._context_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._position = mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=sequence_axis, feature_axis=-1)
         self._attention = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=num_heads, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
 
@@ -198,7 +205,11 @@ class CachedBaseAttentionBlock(tf.keras.layers.Layer):
         # the input shape is progated / unchanged
         self._input_norm.build(input_shape)
         self._position.build(input_shape)
-        self._attention.build(query_shape=input_shape, value_shape=input_shape, key_shape=input_shape)
+        # attention API depends on the version
+        if hasattr(self._attention, '_build_from_signature'):
+            self._attention._build_from_signature(query=input_shape, value=input_shape, key=input_shape)
+        else:
+            self._attention.build(query_shape=input_shape, value_shape=input_shape, key_shape=input_shape)
         # register
         self.built = True
 
