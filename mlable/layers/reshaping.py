@@ -1,7 +1,7 @@
 import keras
 import tensorflow as tf
 
-import mlable.ops
+import mlable.shaping
 
 # GENERIC #####################################################################
 
@@ -48,7 +48,7 @@ class Divide(tf.keras.layers.Layer):
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         # move data from axis 0 to axis 1
-        return mlable.ops.divide(data=inputs, **self._config)
+        return mlable.shaping.divide(data=inputs, **self._config)
 
     def get_config(self) -> dict:
         __config = super(Divide, self).get_config()
@@ -78,7 +78,7 @@ class Merge(tf.keras.layers.Layer):
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         # merge the two axes
-        return mlable.ops.merge(data=inputs, **self._config)
+        return mlable.shaping.merge(data=inputs, **self._config)
 
     def get_config(self) -> dict:
         __config = super(Merge, self).get_config()

@@ -1,8 +1,7 @@
 import keras
 import tensorflow as tf
 
-import mlable.utils
-import mlable.ops
+import mlable.shaping
 
 # ROPE ########################################################################
 
@@ -38,7 +37,7 @@ def compute_rotation_embedding(inputs: tf.Tensor, cos_emb: tf.Tensor, sin_emb: t
 def reshape_embedding(embeddings: tf.Tensor, shape: list, sequence_axis: int=1, feature_axis: int=-1) -> tf.Tensor:
     __rank = len(shape)
     __axes = [sequence_axis % __rank, feature_axis % __rank]
-    __shape = mlable.utils.filter_shape(shape=shape, axes=__axes)
+    __shape = mlable.shaping.filter_shape(shape=shape, axes=__axes)
     return tf.reshape(tensor=embeddings, shape=__shape)
 
 def swap_axes(axes: tuple, left: int, right: int) -> tuple:
@@ -130,4 +129,4 @@ class TokunEmbedding(tf.keras.layers.Embedding):
         # embed each element separately
         __outputs = super().call(inputs)
         # concatenate the embeddings
-        return mlable.ops.merge(__outputs, left_axis=-2, right_axis=-1, left=True)
+        return mlable.shaping.merge(__outputs, left_axis=-2, right_axis=-1, left=True)
