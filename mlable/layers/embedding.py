@@ -90,6 +90,9 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
             'max_wavelength': max_wavelength,
             'scaling_factor': scaling_factor}
         # no weights
+        self.build()
+
+    def build(self, input_shape: tf.TensorShape=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, offset: int=0) -> tf.Tensor:
@@ -118,7 +121,7 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
 # TOKUN #######################################################################
@@ -127,6 +130,6 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
 class TokunEmbedding(tf.keras.layers.Embedding):
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         # embed each element separately
-        __outputs = super().call(inputs)
+        __outputs = super(TokunEmbedding, self).call(inputs)
         # concatenate the embeddings
         return mlable.shaping.merge(__outputs, left_axis=-2, right_axis=-1, left=True)

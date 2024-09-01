@@ -15,11 +15,11 @@ class Einsum(tf.keras.layers.Layer):
         self._config = {'equation': equation, 'shape': shape}
         self._w = None
 
-    def build(self, input_shape):
+    def build(self, input_shape: tf.TensorShape) -> None:
         self._w = self.add_weight(name='w', shape=self._config['shape'], initializer='glorot_normal', trainable=True)
         self.built = True
 
-    def call(self, inputs):
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
         return tf.einsum(self._config['equation'], inputs, self._w)
 
     def get_config(self) -> dict:
@@ -28,5 +28,5 @@ class Einsum(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)

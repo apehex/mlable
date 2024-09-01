@@ -36,6 +36,13 @@ class FeedForwardBlock(tf.keras.layers.Layer):
         self._norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._ffn = mlable.layers.transformer.FeedForwardGate(input_dim=embed_dim, hidden_dim=hidden_dim)
 
+    def build(self, input_shape: tf.TensorShape) -> None:
+        # the input shape is progated / unchanged
+        self._norm.build(input_shape)
+        self._ffn.build(input_shape)
+        # register
+        self.built = True
+
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         return self._ffn(self._norm(inputs))
 
@@ -45,10 +52,10 @@ class FeedForwardBlock(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-# ATTENTION ###################################################################
+# SELF ATTENTION ##############################################################
 
 @keras.saving.register_keras_serializable(package='blocks')
 class BaseAttentionBlock(tf.keras.layers.Layer):
@@ -74,9 +81,16 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
             'epsilon': epsilon,}
         # layers
         self._input_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
-        self._context_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._position = mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=sequence_axis, feature_axis=-1)
         self._attention = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
+
+    def build(self, input_shape: tf.TensorShape) -> None:
+        # the input shape is progated / unchanged
+        self._input_norm.build(input_shape)
+        self._position.build(input_shape)
+        self._attention.build(query_shape=input_shape, value_shape=input_shape, key_shape=input_shape)
+        # register
+        self.built = True
 
     def get_config(self) -> dict:
         __config = super(BaseAttentionBlock, self).get_config()
@@ -84,7 +98,7 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
         return __config
 
     @classmethod
-    def from_config(cls, config) -> tf.keras.layers.Layer:
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
 @keras.saving.register_keras_serializable(package='blocks')
@@ -103,8 +117,36 @@ class SelfAttentionBlock(BaseAttentionBlock):
         # attention
         return self._attention(key=__yp, query=__yp, value=__y, training=training, attention_mask=attention_mask, use_causal_mask=use_causal_mask, return_attention_scores=False)
 
+# CROSS ATTENTION #############################################################
+
 @keras.saving.register_keras_serializable(package='blocks')
-class CrossAttentionBlock(BaseAttentionBlock):
+class BaseCrossAttentionBlock(BaseAttentionBlock):
+    def __init__(
+        self,
+        num_heads: int,
+        head_dim: int,
+        sequence_axis: int=1,
+        center: bool=False,
+        scale: bool=False,
+        epsilon: float=EPSILON,
+        **kwargs
+    ) -> None:
+        # init
+        super(BaseCrossAttentionBlock, self).__init__(num_heads=num_heads, head_dim=head_dim, sequence_axis=sequence_axis, center=center, scale=scale, epsilon=epsilon, **kwargs)
+        # layers
+        self._context_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
+
+    def build(self, inputs_shape: tf.TensorShape, contexts_shape: tf.TensorShape) -> None:
+        # the input shape is progated / unchanged
+        self._input_norm.build(inputs_shape)
+        self._context_norm.build(contexts_shape)
+        self._position.build(inputs_shape)
+        self._attention.build(query_shape=inputs_shape, value_shape=contexts_shape, key_shape=contexts_shape)
+        # register
+        self.built = True
+
+@keras.saving.register_keras_serializable(package='blocks')
+class CrossAttentionBlock(BaseCrossAttentionBlock):
     def call(
         self,
         inputs: tf.Tensor,
