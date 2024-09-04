@@ -45,13 +45,13 @@ def _reduce_group_by_group_all(data: tf.Tensor, group: int, axis: int=-1, keepdi
 
 # BASE ########################################################################
 
-def _reduce_base(data: tf.Tensor, base: int, axis: int=-1, keepdims: bool=False) -> tf.Tensor:
+def _reduce_base(data: tf.Tensor, base: int, axis: int=-1, keepdims: bool=False, bigendian: bool=True) -> tf.Tensor:
     # select the dimension of the given axis
     __shape = mlable.shaping.filter_shape(shape=data.shape, axes=[axis])
     # exponents
-    __exp = range(__shape[axis])
+    __exp = range(__shape[axis])[::-1] if bigendian else range(__shape[axis])
     # base, in big endian
-    __base = tf.convert_to_tensor([base ** __e for __e in __exp[::-1]], dtype=data.dtype)
+    __base = tf.convert_to_tensor([base ** __e for __e in __exp], dtype=data.dtype)
     # match the input shape
     __base = tf.reshape(__base, shape=__shape)
     # recompose the number
