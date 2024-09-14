@@ -57,10 +57,10 @@ def _reduce_base(data: tf.Tensor, base: int, axis: int=-1, keepdims: bool=False,
     # recompose the number
     return tf.reduce_sum(data * __base, axis=axis, keepdims=keepdims)
 
-def expand_base(data: tf.Tensor, base: int, depth: int) -> tf.Tensor:
+def expand_base(data: tf.Tensor, base: int, depth: int, bigendian: bool=True) -> tf.Tensor:
     __shape = len(list(data.shape)) * [1] + [depth]
-    # base indexes, in big endian
-    __idx = range(depth)[::-1]
+    # base indexes
+    __idx = range(depth)[::-1] if bigendian else range(depth)
     # base divisor and modulus
     __div = tf.convert_to_tensor([base ** __e for __e in __idx], dtype=data.dtype)
     __mod = tf.convert_to_tensor([base ** (__e + 1) for __e in __idx], dtype=data.dtype)
