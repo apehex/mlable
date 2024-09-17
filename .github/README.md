@@ -7,12 +7,15 @@ Tensorflow libs:
         - [Divide](#divide)
         - [Merge](#merge)
     - embedding:
+        - [TokunEmbedding](#TokunEmbedding)
         - [RotaryPositionalEmbedding](#RotaryPositionalEmbedding)
     - transformer:
         - [CachedMultiHeadAttention](#CachedMultiHeadAttention)
         - [FeedForwardGate](#FeedForwardGate)
 - [metrics](#layers):
+    - [BinaryGroupAccuracy](#BinaryGroupAccuracy)
     - [CategoricalGroupAccuracy](#CategoricalGroupAccuracy)
+    - [RawGroupAccuracy](#RawGroupAccuracy)
 
 ## Installation
 
@@ -57,6 +60,51 @@ __l = mlable.layers.reshaping.Merge(
 
 list(__l(__x).shape)
 # [2, 6, 32]
+```
+
+### TokunEmbedding
+
+These embeddings are made from the combination of elementary embeddings.
+
+The layer inherits from `keras.layers.Embedding`.
+It expects a tensor with a shape following the structure:
+
+- axis `-2`: sequence axis, with dimension `S / T`
+- axis `-1`: token axis, with dimension `T`
+
+The `T` values in the token axis are the indexes of the embeddings to be combined.
+Typically, these are byte values:
+
+```python
+import mlable.layers.embedding
+
+__x = tf.random.uniform((128, 1024, 16), minval=0, maxval=256, dtype=int32)
+__l = mlable.layers.embedding.TokunEmbedding(
+    input_dim=256,
+    output_dim=128,)
+
+list(__l(__x).shape)
+# [128, 1024, 2048]
+```
+
+And the output tensor has a shape `(..., S / T, T * E)`, where `T * E = H` is the embedding dimension inside the LLM.
+In the above example, it is set to 2048.
+
+### RotaryPositionalEmbedding
+
+Tensorflow implementation of [RoPE][arxiv-rope]:
+
+```python
+import mlable.layers.embedding
+
+__x = tf.ones(shape=(2, 3, 5))
+__l = mlable.layers.embedding.RotaryPositionalEmbedding(
+    sequence_axis=1, # position along this axis
+    feature_axis=-1, # output axis
+    max_wavelength=10_000, # see the paper
+    scaling_factor=1.) # see the paper
+
+__l(inputs=__x, offset=2) # the offset is typically used to perform iterative decoding during inference
 ```
 
 ### CachedMultiHeadAttention
@@ -116,26 +164,7 @@ __l = mlable.layers.transformer.FeedForwardGate(
 __l(__x)
 ```
 
-### RotaryPositionalEmbedding
-
-Tensorflow implementation of [RoPE][arxiv-rope]:
-
-```python
-import mlable.layers.embedding
-
-__x = tf.ones(shape=(2, 3, 5))
-__l = mlable.layers.embedding.RotaryPositionalEmbedding(
-    sequence_axis=1, # position along this axis
-    feature_axis=-1, # output axis
-    max_wavelength=10_000, # see the paper
-    scaling_factor=1.) # see the paper
-
-__l(inputs=__x, offset=2) # the offset is typically used to perform iterative decoding during inference
-```
-
 ## Metrics
-
-### CategoricalGroupAccuracy
 
 Hierarchical models should not be scored on individual predictions but on their combination.
 
@@ -147,12 +176,53 @@ A prediction of `(0, 0, 0, 98)` for "a" has 3 correct byte out of 4, but the pre
 In this case the byte accuracy is 75% while the character accuracy is 0%.
 Having several hierarchies of scoring helps with training and evaluation.
 
+The individual predictions are evaluated in groups forming logical entities.
+These predictions can be in binary, categorical or raw formats.
+Each of these formats has a dedicated metric.
+
+### BinaryGroupAccuracy
+
+Arguments:
+
+- `group`: the number of elementary predictions that must be correct to predict a higher level entity
+- `depth`: the dimension of the binary embedding for each predicted value
+- `threshold`: probabilities below the threshold are scored as `0` and above `1`
+
+```python
+import mlable.metrics
+
+byte_accuracy = mlable.metrics.BinaryGroupAccuracy(group=1, depth=8, threshold=0.6, name='byte_accuracy')
+character_accuracy = mlable.metrics.BinaryGroupAccuracy(group=4, depth=8, threshold=0.6, name='character_accuracy')
+token_accuracy = mlable.metrics.BinaryGroupAccuracy(group=64, depth=8, threshold=0.6, name='token_accuracy')
+```
+
+### CategoricalGroupAccuracy
+
+Arguments:
+
+- `group`: the number of elementary predictions that must be correct to predict a higher level entity
+
 ```python
 import mlable.metrics
 
 byte_accuracy = mlable.metrics.CategoricalGroupAccuracy(group=1, name='byte_accuracy')
 character_accuracy = mlable.metrics.CategoricalGroupAccuracy(group=4, name='character_accuracy')
 token_accuracy = mlable.metrics.CategoricalGroupAccuracy(group=64, name='token_accuracy')
+```
+
+### RawGroupAccuracy
+
+Arguments:
+
+- `group`: the number of elementary predictions that must be correct to predict a higher level entity
+- `factor`: scaling factor, typically from a probability distribution to a numeric value
+
+```python
+import mlable.metrics
+
+byte_accuracy = mlable.metrics.RawGroupAccuracy(group=1, factor=256.0, name='byte_accuracy')
+character_accuracy = mlable.metrics.RawGroupAccuracy(group=4, factor=256.0, name='character_accuracy')
+token_accuracy = mlable.metrics.RawGroupAccuracy(group=64, factor=256.0, name='token_accuracy')
 ```
 
 ## Credits
