@@ -37,6 +37,13 @@ class ConvolutionBlock(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
+# RESIDUAL #####################################################################
+
+@keras.saving.register_keras_serializable(package='blocks')
+class ResidualBlock(ConvolutionBlock):
+    def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
+        return inputs + functools.reduce(lambda __t, __l: __l(__t, training=training, **kwargs), self._layers, inputs)
+
 # TRANSPOSE ####################################################################
 
 @keras.saving.register_keras_serializable(package='blocks')
