@@ -25,6 +25,13 @@ class ConvolutionBlock(tf.keras.layers.Layer):
             tf.keras.layers.Dropout(rate=dropout_rate),
             tf.keras.layers.Conv2D(filters=channel_dim, kernel_size=kernel_dim, padding=padding, strides=stride_dim, activation=None, use_bias=True, data_format='channels_last'),]
 
+    def build(self, input_shape: tf.TensorShape) -> None:
+        # the input shape is progated / unchanged
+        for __l in self._layers:
+            __l.build(input_shape)
+        # register
+        self.built = True
+
     def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
         return functools.reduce(lambda __t, __l: __l(__t, training=training, **kwargs), self._layers, inputs)
 
@@ -58,6 +65,13 @@ class TransposeConvolutionBlock(tf.keras.layers.Layer):
             tf.keras.layers.ReLU(),
             tf.keras.layers.Dropout(rate=dropout_rate),
             tf.keras.layers.Conv2DTranspose(filters=channel_dim, kernel_size=kernel_dim, padding=padding, strides=stride_dim, activation=None, use_bias=True, data_format='channels_last'),]
+
+    def build(self, input_shape: tf.TensorShape) -> None:
+        # the input shape is progated / unchanged
+        for __l in self._layers:
+            __l.build(input_shape)
+        # register
+        self.built = True
 
     def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
         return functools.reduce(lambda __t, __l: __l(__t, training=training, **kwargs), self._layers, inputs)
