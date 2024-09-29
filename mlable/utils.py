@@ -4,13 +4,19 @@ import tensorflow as tf
 
 import mlable.shaping
 
-# FUNCTIONS ###################################################################
+# FUNCTIONS ####################################################################
 
 compose = lambda __l: (lambda __x: functools.reduce(lambda __e, __f: __f(__e), __l, __x))
 
 distribute = lambda __f: (lambda *__t: tuple(map(__f, __t)))
 
-# CACHE #######################################################################
+# SPLIT ########################################################################
+
+def chunk(seq: list, size: int, repeats: bool=True) -> list:
+    __chunks = (seq[__i:__i+size] for __i in range(0, len(seq), size))
+    return list(__chunks if repeats else set(__chunks))
+
+# CACHE ########################################################################
 
 def create_cache(batch_dim: int, cache_dim: int, head_dim: int, num_heads: int=None) -> tf.Tensor:
     __shape = [2, batch_dim, cache_dim, num_heads, head_dim] if num_heads else [2, batch_dim, cache_dim, head_dim]
