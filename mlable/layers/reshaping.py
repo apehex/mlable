@@ -57,7 +57,7 @@ class Divide(tf.keras.layers.Layer):
     def build(self, input_shape: tf.TensorShape=None) -> None:
         self.built = True
 
-    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # move data from axis 0 to axis 1
         return mlable.shaping.divide(data=inputs, **self._config)
 
@@ -93,7 +93,7 @@ class Merge(tf.keras.layers.Layer):
     def build(self, input_shape: tf.TensorShape=None) -> None:
         self.built = True
 
-    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # merge the two axes
         return mlable.shaping.merge(data=inputs, **self._config)
 

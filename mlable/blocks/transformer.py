@@ -42,7 +42,7 @@ class FeedForwardBlock(tf.keras.layers.Layer):
         # register
         self.built = True
 
-    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         return self._ffn(self._norm(inputs))
 
     def get_config(self) -> dict:
@@ -112,6 +112,7 @@ class SelfAttentionBlock(BaseAttentionBlock):
         attention_mask: tf.Tensor=None,
         use_causal_mask: bool=True,
         training: bool=False,
+        **kwargs
     ) -> tf.Tensor:
         # normalize
         __y = self._input_norm(inputs)
@@ -161,6 +162,7 @@ class CrossAttentionBlock(BaseCrossAttentionBlock):
         attention_mask: tf.Tensor=None,
         use_causal_mask: bool=False, # use ALL the context
         training: bool=False,
+        **kwargs
     ) -> tf.Tensor:
         # normalize
         __x = self._input_norm(inputs)
@@ -231,6 +233,7 @@ class CachedSelfAttentionBlock(CachedBaseAttentionBlock):
         attention_mask: tf.Tensor=None,
         use_causal_mask: bool=True,
         training: bool=False,
+        **kwargs
     ) -> tf.Tensor:
         # normalize
         __y = self._input_norm(inputs)

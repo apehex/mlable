@@ -18,7 +18,7 @@ class Einsum(tf.keras.layers.Layer):
         self._w = self.add_weight(name='w', shape=self._config['shape'], initializer='glorot_normal', trainable=True)
         self.built = True
 
-    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         return tf.einsum(self._config['equation'], inputs, self._w)
 
     def get_config(self) -> dict:
