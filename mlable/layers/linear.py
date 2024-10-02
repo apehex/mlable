@@ -1,9 +1,8 @@
-import keras
 import tensorflow as tf
 
 # EINSUM ######################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
+@tf.keras.utils.register_keras_serializable(package='layers')
 class Einsum(tf.keras.layers.Layer):
     def __init__(
         self,

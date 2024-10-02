@@ -1,4 +1,3 @@
-import keras
 import tensorflow as tf
 
 import mlable.shaping
@@ -71,7 +70,7 @@ def transpose_axes(tensor: tf.Tensor, swaps: list) -> tf.Tensor:
         __perm = swap_axes(axes=__perm, left=__s[0], right=__s[1])
     return tf.transpose(tensor, perm=__perm)
 
-@keras.saving.register_keras_serializable(package='layers')
+@tf.keras.utils.register_keras_serializable(package='layers')
 class RotaryPositionalEmbedding(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -126,7 +125,7 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
 
 # TOKUN #######################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
+@tf.keras.utils.register_keras_serializable(package='layers')
 class TokunEmbedding(tf.keras.layers.Embedding):
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         # embed each element separately

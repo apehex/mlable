@@ -1,11 +1,10 @@
-import keras
 import tensorflow as tf
 
 import mlable.shaping
 
 # GENERIC #####################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
+@tf.keras.utils.register_keras_serializable(package='layers')
 class Reshape(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -35,7 +34,7 @@ class Reshape(tf.keras.layers.Layer):
 
 # DIVIDE ######################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
+@tf.keras.utils.register_keras_serializable(package='layers')
 class Divide(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -73,7 +72,7 @@ class Divide(tf.keras.layers.Layer):
 
 # MERGE #######################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
+@tf.keras.utils.register_keras_serializable(package='layers')
 class Merge(tf.keras.layers.Layer):
     def __init__(
         self,
