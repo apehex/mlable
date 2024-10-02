@@ -39,7 +39,7 @@ class FeedForwardGate(tf.keras.layers.Layer):
         # register
         self.built = True
 
-    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # gating mechanism
         return self._output(self._gelu(inputs) * self._linear(inputs))
 
@@ -77,6 +77,7 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
         attention_mask: tf.Tensor=None,
         return_attention_scores: bool=False,
         use_causal_mask: bool=True,
+        **kwargs
     ) -> tf.Tensor:
         if (hasattr(self, "_build_from_signature") and hasattr(self, "_built_from_signature") and not self._built_from_signature):
             self._build_from_signature(query=query, value=value, key=key)

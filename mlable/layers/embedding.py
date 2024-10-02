@@ -2,9 +2,11 @@ import tensorflow as tf
 
 import mlable.shaping
 
-# ROPE ########################################################################
+# CONSTANTS ####################################################################
 
 WAVELENGTH = 10_000
+
+# ROPE #########################################################################
 
 def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
     __range = tf.cast(tf.range(dim, dtype=tf.dtypes.float32), dtype=dtype)
@@ -94,7 +96,7 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
     def build(self, input_shape: tf.TensorShape=None) -> None:
         self.built = True
 
-    def call(self, inputs: tf.Tensor, offset: int=0) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, offset: int=0, **kwargs) -> tf.Tensor:
         __dtype = inputs.dtype
         __rank = len(list(inputs.shape))
         # swap the seq and feat axes to their defaut positions
@@ -127,7 +129,7 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
 
 @tf.keras.utils.register_keras_serializable(package='layers')
 class TokunEmbedding(tf.keras.layers.Embedding):
-    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # embed each element separately
         __outputs = super(TokunEmbedding, self).call(inputs)
         # concatenate the embeddings
