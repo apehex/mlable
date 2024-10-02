@@ -1,6 +1,5 @@
 import math
 
-import keras
 import tensorflow as tf
 
 import mlable.utils
@@ -11,7 +10,7 @@ EPSILON = 1e-6
 
 # FEED FORWARD ################################################################
 
-@keras.saving.register_keras_serializable(package='layers')
+@tf.keras.utils.register_keras_serializable(package='layers')
 class FeedForwardGate(tf.keras.layers.Layer):
     def __init__(
         self,

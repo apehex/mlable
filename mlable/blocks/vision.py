@@ -1,7 +1,6 @@
 import functools
 import math
 
-import keras
 import tensorflow as tf
 
 # CONSTANTS ####################################################################
@@ -12,7 +11,7 @@ PADDING = 'same'
 
 # CONVOLUTION ##################################################################
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class ConvolutionBlock(tf.keras.layers.Layer):
     def __init__(self, channel_dim: int, kernel_dim: int, stride_dim: int, dropout_rate: float=DROPOUT, epsilon: float=EPSILON, padding: str=PADDING, **kwargs) -> None:
         super(ConvolutionBlock, self).__init__(**kwargs)
@@ -46,14 +45,14 @@ class ConvolutionBlock(tf.keras.layers.Layer):
 
 # RESIDUAL #####################################################################
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class ResidualBlock(ConvolutionBlock):
     def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
         return inputs + functools.reduce(lambda __t, __l: __l(__t, training=training, **kwargs), self._layers, inputs)
 
 # TRANSPOSE ####################################################################
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class TransposeConvolutionBlock(tf.keras.layers.Layer):
     def __init__(self, channel_dim: int, kernel_dim: int, stride_dim: int, dropout_rate: float=DROPOUT, epsilon: float=EPSILON, padding: str=PADDING, **kwargs) -> None:
         super(TransposeConvolutionBlock, self).__init__(**kwargs)

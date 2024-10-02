@@ -1,6 +1,5 @@
 import math
 
-import keras
 import tensorflow as tf
 
 import mlable.layers.embedding
@@ -12,7 +11,7 @@ EPSILON = 1e-6
 
 # FEED FORWARD ################################################################
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class FeedForwardBlock(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -57,7 +56,7 @@ class FeedForwardBlock(tf.keras.layers.Layer):
 
 # SELF ATTENTION ##############################################################
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class BaseAttentionBlock(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -105,7 +104,7 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class SelfAttentionBlock(BaseAttentionBlock):
     def call(
         self,
@@ -123,7 +122,7 @@ class SelfAttentionBlock(BaseAttentionBlock):
 
 # CROSS ATTENTION #############################################################
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class BaseCrossAttentionBlock(BaseAttentionBlock):
     def __init__(
         self,
@@ -153,7 +152,7 @@ class BaseCrossAttentionBlock(BaseAttentionBlock):
         # register
         self.built = True
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class CrossAttentionBlock(BaseCrossAttentionBlock):
     def call(
         self,
@@ -174,7 +173,7 @@ class CrossAttentionBlock(BaseCrossAttentionBlock):
 
 # ATTENTION WITH CACHE ########################################################
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class CachedBaseAttentionBlock(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -222,7 +221,7 @@ class CachedBaseAttentionBlock(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-@keras.saving.register_keras_serializable(package='blocks')
+@tf.keras.utils.register_keras_serializable(package='blocks')
 class CachedSelfAttentionBlock(CachedBaseAttentionBlock):
     def call(
         self,
