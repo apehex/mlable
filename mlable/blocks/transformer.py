@@ -241,3 +241,58 @@ class CachedSelfAttentionBlock(CachedBaseAttentionBlock):
         __yp = self._position(inputs=__y, offset=0)
         # attention
         return self._attention(key=__yp, query=__yp, value=__y, cache=cache, step=position, training=training, attention_mask=attention_mask, use_causal_mask=use_causal_mask, return_attention_scores=False)
+
+# SELF DECODER ################################################################
+
+@tf.keras.utils.register_keras_serializable(package='blocks')
+class SelfDecoderBlock(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        embed_dim: int,
+        head_num: int,
+        head_dim: int,
+        hidden_dim: int,
+        sequence_axis: int=1,
+        epsilon: float=EPSILON,
+        **kwargs
+    ) -> None:
+        # init
+        super(SelfDecoderBlock, self).__init__(**kwargs)
+        # config
+        self._config = {
+            'embed_dim': embed_dim,
+            'head_num': head_num,
+            'head_dim': head_dim,
+            'hidden_dim': hidden_dim,
+            'epsilon': epsilon,}
+        # layers
+        self._attention = SelfAttentionBlock(num_heads=head_num, head_dim=head_dim, sequence_axis=sequence_axis, epsilon=epsilon, center=False, scale=False)
+        self._ffn = FeedForwardBlock(embed_dim=embed_dim, hidden_dim=hidden_dim, epsilon=epsilon, center=False, scale=False)
+
+    def build(self, input_shape: tf.TensorShape) -> None:
+        # the input shape is propagated / unchanged
+        self._attention.build(input_shape)
+        self._ffn.build(input_shape)
+        # register
+        self.built = True
+
+    def call(
+        self,
+        inputs: tf.Tensor,
+        attention_mask: tf.Tensor=None,
+        training: bool=False,
+        **kwargs
+    ) -> tf.Tensor:
+        # residual + self attention
+        __x = inputs + self._attention(inputs=inputs, attention_mask=attention_mask, training=training, use_causal_mask=True)
+        # residual + augmentation
+        return __x + self._ffn(__x)
+
+    def get_config(self) -> dict:
+        __config = super(SelfDecoderBlock, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
