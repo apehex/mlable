@@ -5,11 +5,11 @@ import tensorflow as tf
 import mlable.layers.embedding
 import mlable.layers.transformer
 
-# CONSTANTS ###################################################################
+# CONSTANTS ####################################################################
 
 EPSILON = 1e-6
 
-# FEED FORWARD ################################################################
+# FEED FORWARD #################################################################
 
 @tf.keras.utils.register_keras_serializable(package='blocks')
 class FeedForwardBlock(tf.keras.layers.Layer):
@@ -54,13 +54,13 @@ class FeedForwardBlock(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-# SELF ATTENTION ##############################################################
+# SELF ATTENTION ###############################################################
 
 @tf.keras.utils.register_keras_serializable(package='blocks')
 class BaseAttentionBlock(tf.keras.layers.Layer):
     def __init__(
         self,
-        num_heads: int,
+        head_num: int,
         head_dim: int,
         sequence_axis: int=1,
         center: bool=False,
@@ -72,7 +72,7 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
         super(BaseAttentionBlock, self).__init__(**kwargs)
         # config
         self._config = {
-            'num_heads': num_heads,
+            'head_num': head_num,
             'head_dim': head_dim,
             'sequence_axis': sequence_axis,
             'center': center,
@@ -81,7 +81,7 @@ class BaseAttentionBlock(tf.keras.layers.Layer):
         # layers
         self._input_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._position = mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=sequence_axis, feature_axis=-1)
-        self._attention = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
+        self._attention = tf.keras.layers.MultiHeadAttention(num_heads=head_num, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
 
     def build(self, input_shape: tf.TensorShape) -> None:
         # the input shape is progated / unchanged
@@ -121,13 +121,13 @@ class SelfAttentionBlock(BaseAttentionBlock):
         # attention
         return self._attention(key=__yp, query=__yp, value=__y, training=training, attention_mask=attention_mask, use_causal_mask=use_causal_mask, return_attention_scores=False)
 
-# CROSS ATTENTION #############################################################
+# CROSS ATTENTION ##############################################################
 
 @tf.keras.utils.register_keras_serializable(package='blocks')
 class BaseCrossAttentionBlock(BaseAttentionBlock):
     def __init__(
         self,
-        num_heads: int,
+        head_num: int,
         head_dim: int,
         sequence_axis: int=1,
         center: bool=False,
@@ -136,7 +136,7 @@ class BaseCrossAttentionBlock(BaseAttentionBlock):
         **kwargs
     ) -> None:
         # init
-        super(BaseCrossAttentionBlock, self).__init__(num_heads=num_heads, head_dim=head_dim, sequence_axis=sequence_axis, center=center, scale=scale, epsilon=epsilon, **kwargs)
+        super(BaseCrossAttentionBlock, self).__init__(head_num=head_num, head_dim=head_dim, sequence_axis=sequence_axis, center=center, scale=scale, epsilon=epsilon, **kwargs)
         # layers
         self._context_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
 
@@ -173,13 +173,13 @@ class CrossAttentionBlock(BaseCrossAttentionBlock):
         # attention
         return self._attention(key=__yp, query=__xp, value=__y, training=training, attention_mask=attention_mask, use_causal_mask=use_causal_mask, return_attention_scores=False)
 
-# ATTENTION WITH CACHE ########################################################
+# ATTENTION WITH CACHE #########################################################
 
 @tf.keras.utils.register_keras_serializable(package='blocks')
 class CachedBaseAttentionBlock(tf.keras.layers.Layer):
     def __init__(
         self,
-        num_heads: int,
+        head_num: int,
         head_dim: int,
         sequence_axis: int=1,
         center: bool=False,
@@ -191,7 +191,7 @@ class CachedBaseAttentionBlock(tf.keras.layers.Layer):
         super(CachedBaseAttentionBlock, self).__init__(**kwargs)
         # config
         self._config = {
-            'num_heads': num_heads,
+            'head_num': head_num,
             'head_dim': head_dim,
             'sequence_axis': sequence_axis,
             'center': center,
@@ -200,7 +200,7 @@ class CachedBaseAttentionBlock(tf.keras.layers.Layer):
         # layers
         self._input_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._position = mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=sequence_axis, feature_axis=-1)
-        self._attention = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=num_heads, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
+        self._attention = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=head_num, key_dim=head_dim, value_dim=head_dim, attention_axes=[sequence_axis], use_bias=False, kernel_initializer='glorot_uniform')
 
     def build(self, input_shape: tf.TensorShape) -> None:
         # the input shape is progated / unchanged
@@ -242,7 +242,7 @@ class CachedSelfAttentionBlock(CachedBaseAttentionBlock):
         # attention
         return self._attention(key=__yp, query=__yp, value=__y, cache=cache, step=position, training=training, attention_mask=attention_mask, use_causal_mask=use_causal_mask, return_attention_scores=False)
 
-# SELF DECODER ################################################################
+# SELF DECODER #################################################################
 
 @tf.keras.utils.register_keras_serializable(package='blocks')
 class SelfDecoderBlock(tf.keras.layers.Layer):
@@ -268,7 +268,7 @@ class SelfDecoderBlock(tf.keras.layers.Layer):
             'hidden_dim': hidden_dim,
             'epsilon': epsilon,}
         # layers
-        self._attention = SelfAttentionBlock(num_heads=head_num, head_dim=head_dim, sequence_axis=sequence_axis, epsilon=epsilon, center=center, scale=scale)
+        self._attention = SelfAttentionBlock(head_num=head_num, head_dim=head_dim, sequence_axis=sequence_axis, epsilon=epsilon, center=center, scale=scale)
         self._ffn = FeedForwardBlock(embed_dim=embed_dim, hidden_dim=hidden_dim, epsilon=epsilon, center=center, scale=scale)
 
     def build(self, input_shape: tf.TensorShape) -> None:
