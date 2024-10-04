@@ -254,6 +254,8 @@ class SelfDecoderBlock(tf.keras.layers.Layer):
         hidden_dim: int,
         sequence_axis: int=1,
         epsilon: float=EPSILON,
+        center: bool=True,
+        scale: bool=True,
         **kwargs
     ) -> None:
         # init
@@ -266,8 +268,8 @@ class SelfDecoderBlock(tf.keras.layers.Layer):
             'hidden_dim': hidden_dim,
             'epsilon': epsilon,}
         # layers
-        self._attention = SelfAttentionBlock(num_heads=head_num, head_dim=head_dim, sequence_axis=sequence_axis, epsilon=epsilon, center=False, scale=False)
-        self._ffn = FeedForwardBlock(embed_dim=embed_dim, hidden_dim=hidden_dim, epsilon=epsilon, center=False, scale=False)
+        self._attention = SelfAttentionBlock(num_heads=head_num, head_dim=head_dim, sequence_axis=sequence_axis, epsilon=epsilon, center=center, scale=scale)
+        self._ffn = FeedForwardBlock(embed_dim=embed_dim, hidden_dim=hidden_dim, epsilon=epsilon, center=center, scale=scale)
 
     def build(self, input_shape: tf.TensorShape) -> None:
         # the input shape is propagated / unchanged
