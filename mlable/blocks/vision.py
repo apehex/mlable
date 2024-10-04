@@ -19,7 +19,7 @@ class ConvolutionBlock(tf.keras.layers.Layer):
         self._config = {'channel_dim': channel_dim, 'kernel_dim': kernel_dim, 'stride_dim': stride_dim, 'dropout_rate': dropout_rate, 'epsilon': epsilon, 'padding': padding,}
         # layers
         self._layers = [
-            tf.keras.layers.BatchNormalization(axis=-1, epsilon=epsilon, momentum=0.1, center=True, scale=True),
+            tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=True, scale=True),
             tf.keras.layers.ReLU(),
             tf.keras.layers.Dropout(rate=dropout_rate),
             tf.keras.layers.Conv2D(filters=channel_dim, kernel_size=kernel_dim, padding=padding, strides=stride_dim, activation=None, use_bias=True, data_format='channels_last'),]
@@ -60,7 +60,7 @@ class TransposeConvolutionBlock(tf.keras.layers.Layer):
         self._config = {'channel_dim': channel_dim, 'kernel_dim': kernel_dim, 'stride_dim': stride_dim, 'dropout_rate': dropout_rate, 'epsilon': epsilon, 'padding': padding,}
         # layers
         self._layers = [
-            tf.keras.layers.BatchNormalization(axis=-1, epsilon=epsilon, momentum=0.1, center=True, scale=True),
+            tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=True, scale=True),
             tf.keras.layers.ReLU(),
             tf.keras.layers.Dropout(rate=dropout_rate),
             tf.keras.layers.Conv2DTranspose(filters=channel_dim, kernel_size=kernel_dim, padding=padding, strides=stride_dim, activation=None, use_bias=True, data_format='channels_last'),]
