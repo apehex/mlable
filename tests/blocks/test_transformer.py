@@ -45,7 +45,7 @@ class SelfAttentionBlockTest(tf.test.TestCase):
             {
                 'inputs': tf.ones((2, 4, 8), dtype=tf.float16),
                 'args': {
-                    'num_heads': 2,
+                    'head_num': 2,
                     'head_dim': 4,
                     'sequence_axis': 1,},
                 'outputs': {
@@ -54,7 +54,7 @@ class SelfAttentionBlockTest(tf.test.TestCase):
             {
                 'inputs': tf.reshape(tf.stack(4 * [tf.range(16)], axis=1), (1, 16, 4)),
                 'args': {
-                    'num_heads': 2,
+                    'head_num': 2,
                     'head_dim': 4,
                     'sequence_axis': 1,},
                 'outputs': {
@@ -81,7 +81,7 @@ class CrossAttentionBlockTest(tf.test.TestCase):
                 'inputs': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
                 'contexts': tf.ones((2, 4, 16), dtype=tf.float16),
                 'args': {
-                    'num_heads': 2,
+                    'head_num': 2,
                     'head_dim': 4,
                     'sequence_axis': 1,},
                 'outputs': {
@@ -91,7 +91,7 @@ class CrossAttentionBlockTest(tf.test.TestCase):
                 'inputs': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
                 'contexts': tf.stack(2 * [tf.stack(16 * [tf.range(4)], axis=1)], axis=0),
                 'args': {
-                    'num_heads': 2,
+                    'head_num': 2,
                     'head_dim': 4,
                     'sequence_axis': 1,},
                 'outputs': {
