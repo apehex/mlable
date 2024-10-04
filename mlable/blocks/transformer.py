@@ -266,7 +266,10 @@ class SelfDecoderBlock(tf.keras.layers.Layer):
             'head_num': head_num,
             'head_dim': head_dim,
             'hidden_dim': hidden_dim,
-            'epsilon': epsilon,}
+            'sequence_axis': sequence_axis,
+            'epsilon': epsilon,
+            'center': center,
+            'scale': scale,}
         # layers
         self._attention = SelfAttentionBlock(head_num=head_num, head_dim=head_dim, sequence_axis=sequence_axis, epsilon=epsilon, center=center, scale=scale)
         self._ffn = FeedForwardBlock(embed_dim=embed_dim, hidden_dim=hidden_dim, epsilon=epsilon, center=center, scale=scale)
@@ -282,11 +285,12 @@ class SelfDecoderBlock(tf.keras.layers.Layer):
         self,
         inputs: tf.Tensor,
         attention_mask: tf.Tensor=None,
+        use_causal_mask: bool=True,
         training: bool=False,
         **kwargs
     ) -> tf.Tensor:
         # residual + self attention
-        __x = inputs + self._attention(inputs=inputs, attention_mask=attention_mask, training=training, use_causal_mask=True)
+        __x = inputs + self._attention(inputs=inputs, attention_mask=attention_mask, training=training, use_causal_mask=use_causal_mask)
         # residual + augmentation
         return __x + self._ffn(__x)
 
