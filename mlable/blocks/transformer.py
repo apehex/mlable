@@ -166,7 +166,7 @@ class CrossAttentionBlock(BaseCrossAttentionBlock):
     ) -> tf.Tensor:
         # normalize
         __x = self._input_norm(inputs)
-        __y = self._context_norm(contexts) # may need a dedicated norm layer
+        __y = self._context_norm(contexts)
         # position embedding
         __xp = self._position(inputs=__x, offset=0)
         __yp = self._position(inputs=__y, offset=0)
@@ -351,7 +351,7 @@ class CrossDecoderBlock(tf.keras.layers.Layer):
         training: bool=False,
         **kwargs
     ) -> tf.Tensor:
-        # residual + self attention
+        # residual + cross attention
         __x = inputs + self._attention(inputs=inputs, contexts=contexts, attention_mask=attention_mask, training=training, use_causal_mask=use_causal_mask)
         # residual + augmentation
         return __x + self._ffn(__x)
