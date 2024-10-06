@@ -104,8 +104,8 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
         __inputs = transpose_axes(tensor=inputs, swaps=__swaps)
         # meta
         __shape = list(__inputs.shape)
-        __sequence_dim = inputs.shape[1]
-        __feature_dim = inputs.shape[-1]
+        __sequence_dim = __inputs.shape[1]
+        __feature_dim = __inputs.shape[-1]
         # compute the trigo embeddings
         __cos, __sin = compute_cos_sin_embedding(sequence_dim=__sequence_dim, feature_dim=__feature_dim, offset=offset, factor=self._config['scaling_factor'], wavelength=self._config['max_wavelength'], dtype=__dtype)
         # add placeholder axes to match the input shape
