@@ -289,10 +289,7 @@ class SelfDecoderBlock(tf.keras.layers.Layer):
         training: bool=False,
         **kwargs
     ) -> tf.Tensor:
-        # residual + self attention
-        __x = inputs + self._attention(inputs=inputs, attention_mask=attention_mask, training=training, use_causal_mask=use_causal_mask)
-        # residual + augmentation
-        return __x + self._ffn(__x)
+        return self._ffn(self._attention(inputs=inputs, attention_mask=attention_mask, use_causal_mask=use_causal_mask, training=training))
 
     def get_config(self) -> dict:
         __config = super(SelfDecoderBlock, self).get_config()
@@ -302,6 +299,21 @@ class SelfDecoderBlock(tf.keras.layers.Layer):
     @classmethod
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
+
+@tf.keras.utils.register_keras_serializable(package='blocks')
+class SelfResidualDecoderBlock(SelfDecoderBlock):
+    def call(
+        self,
+        inputs: tf.Tensor,
+        attention_mask: tf.Tensor=None,
+        use_causal_mask: bool=True,
+        training: bool=False,
+        **kwargs
+    ) -> tf.Tensor:
+        # residual + self attention
+        __x = inputs + self._attention(inputs=inputs, attention_mask=attention_mask, use_causal_mask=use_causal_mask, training=training)
+        # residual + augmentation
+        return __x + self._ffn(__x)
 
 # CROSS DECODER ################################################################
 
@@ -351,10 +363,7 @@ class CrossDecoderBlock(tf.keras.layers.Layer):
         training: bool=False,
         **kwargs
     ) -> tf.Tensor:
-        # residual + cross attention
-        __x = inputs + self._attention(inputs=inputs, contexts=contexts, attention_mask=attention_mask, training=training, use_causal_mask=use_causal_mask)
-        # residual + augmentation
-        return __x + self._ffn(__x)
+        return self._ffn(self._attention(inputs=inputs, contexts=contexts, attention_mask=attention_mask, use_causal_mask=use_causal_mask, training=training))
 
     def get_config(self) -> dict:
         __config = super(CrossDecoderBlock, self).get_config()
@@ -364,3 +373,19 @@ class CrossDecoderBlock(tf.keras.layers.Layer):
     @classmethod
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
+
+@tf.keras.utils.register_keras_serializable(package='blocks')
+class CrossResidualDecoderBlock(CrossDecoderBlock):
+    def call(
+        self,
+        inputs: tf.Tensor,
+        contexts: tf.Tensor,
+        attention_mask: tf.Tensor=None,
+        use_causal_mask: bool=False, # use ALL the context
+        training: bool=False,
+        **kwargs
+    ) -> tf.Tensor:
+        # residual + cross attention
+        __x = inputs + self._attention(inputs=inputs, contexts=contexts, attention_mask=attention_mask, use_causal_mask=use_causal_mask, training=training)
+        # residual + augmentation
+        return __x + self._ffn(__x)
