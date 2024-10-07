@@ -301,7 +301,7 @@ class SelfDecoderBlock(tf.keras.layers.Layer):
         return cls(**config)
 
 @tf.keras.utils.register_keras_serializable(package='blocks')
-class SelfResidualDecoderBlock(SelfDecoderBlock):
+class ResidualSelfDecoderBlock(SelfDecoderBlock):
     def call(
         self,
         inputs: tf.Tensor,
@@ -375,7 +375,7 @@ class CrossDecoderBlock(tf.keras.layers.Layer):
         return cls(**config)
 
 @tf.keras.utils.register_keras_serializable(package='blocks')
-class CrossResidualDecoderBlock(CrossDecoderBlock):
+class ResidualCrossDecoderBlock(CrossDecoderBlock):
     def call(
         self,
         inputs: tf.Tensor,
