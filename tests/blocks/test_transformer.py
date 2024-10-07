@@ -78,8 +78,9 @@ class CrossAttentionBlockTest(tf.test.TestCase):
         super(CrossAttentionBlockTest, self).setUp()
         self._null_cases = [
             {
-                'inputs': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
-                'contexts': tf.ones((2, 4, 16), dtype=tf.float16),
+                'query': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
+                'key': tf.ones((2, 4, 16), dtype=tf.float16),
+                'value': tf.ones((2, 4, 16), dtype=tf.float16),
                 'args': {
                     'head_num': 2,
                     'head_dim': 4,
@@ -88,8 +89,9 @@ class CrossAttentionBlockTest(tf.test.TestCase):
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},
             {
-                'inputs': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
-                'contexts': tf.stack(2 * [tf.stack(16 * [tf.range(4)], axis=1)], axis=0),
+                'query': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
+                'key': tf.stack(2 * [tf.stack(16 * [tf.range(4)], axis=1)], axis=0),
+                'value': tf.stack(2 * [tf.stack(16 * [tf.range(4)], axis=1)], axis=0),
                 'args': {
                     'head_num': 2,
                     'head_dim': 4,
@@ -101,7 +103,7 @@ class CrossAttentionBlockTest(tf.test.TestCase):
     def test_null_on_constant_inputs(self): # because of the layer norm
         for __case in self._null_cases:
             __layer = mlable.blocks.transformer.CrossAttentionBlock(**__case['args'])
-            __outputs = __layer(__case['inputs'], __case['contexts'])
+            __outputs = __layer(query=__case['query'], key=__case['key'], value=__case['value'])
             # test
             if 'shape' in __case['outputs']:
                 self.assertEqual(tuple(__outputs.shape), __case['outputs']['shape'])
