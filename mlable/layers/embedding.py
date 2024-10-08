@@ -2,11 +2,11 @@ import tensorflow as tf
 
 import mlable.shaping
 
-# CONSTANTS ####################################################################
+# CONSTANTS #####################################################################
 
 WAVELENGTH = 10_000
 
-# ROPE #########################################################################
+# ROPE ##########################################################################
 
 def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
     __range = tf.cast(tf.range(dim, dtype=tf.dtypes.float32), dtype=dtype)
@@ -125,7 +125,35 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-# TOKUN #######################################################################
+# POSITION #####################################################################
+
+@tf.keras.utils.register_keras_serializable(package='layers')
+class PositionalEmbedding(tf.keras.layers.Embedding):
+    def __init__(self, sequence_dim: int, feature_dim: int, sequence_axis: int=1, feature_axis: int=-1, **kwargs) -> None:
+        # init
+        super(PositionalEmbedding, self).__init__(input_dim=sequence_dim, output_dim=feature_dim, **kwargs)
+        # config
+        self._config = {'sequence_axis': sequence_axis, 'sequence_dim': sequence_dim, 'feature_axis': feature_axis, 'feature_dim': feature_dim,}
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        __shape = mlable.shaping.filter_shape(shape=inputs.shape, axes=[self._config['sequence_axis'], self._config['feature_axis']])
+        # flat range up to sequence dim
+        __embed = tf.range(__shape[self._config['sequence_axis']])
+        # could just output the kernel, but it might not be built
+        __embed = super(PositionalEmbedding, self).call(__embed)
+        # match the input shape
+        return tf.reshape(__embed, shape=__shape)
+
+    def get_config(self) -> dict:
+        __config = super(PositionalEmbedding, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+# TOKUN ########################################################################
 
 @tf.keras.utils.register_keras_serializable(package='layers')
 class TokunEmbedding(tf.keras.layers.Embedding):
