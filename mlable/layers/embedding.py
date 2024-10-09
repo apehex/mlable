@@ -136,13 +136,18 @@ class PositionalEmbedding(tf.keras.layers.Embedding):
         self._config = {'sequence_axis': sequence_axis, 'sequence_dim': sequence_dim, 'feature_axis': feature_axis, 'feature_dim': feature_dim,}
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        __shape = mlable.shaping.filter_shape(shape=inputs.shape, axes=[self._config['sequence_axis'], self._config['feature_axis']])
+        # normalize: positive indexes for comparisons
+        __rank = len(list(inputs.shape))
+        __axis_s = self._config['sequence_axis'] % __rank
+        __axis_f = self._config['feature_axis'] % __rank
+        # keep only the sequence and feature dimensions, eg (1, S, 1, F)
+        __shape = mlable.shaping.filter_shape(shape=inputs.shape, axes=[__axis_s, __axis_f])
         # flat range up to sequence dim
-        __embed = tf.range(__shape[self._config['sequence_axis']])
+        __embed = tf.range(__shape[__axis_s])
         # could just output the kernel, but it might not be built
         __embed = super(PositionalEmbedding, self).call(__embed)
         # transpose the embeddings if the channels come first
-        __embed = tf.transpose(__embed, perm=(1, 0), conjugate=False) if (self._config['feature_axis'] < self._config['sequence_axis']) else __embed
+        __embed = tf.transpose(__embed, perm=(1, 0), conjugate=False) if (__axis_f < __axis_s) else __embed
         # match the input shape
         return inputs + tf.reshape(__embed, shape=__shape)
 
