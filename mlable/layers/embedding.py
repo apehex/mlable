@@ -144,7 +144,7 @@ class PositionalEmbedding(tf.keras.layers.Embedding):
         # transpose the embeddings if the channels come first
         __embed = tf.transpose(__embed, perm=(1, 0), conjugate=False) if (self._config['feature_axis'] < self._config['sequence_axis']) else __embed
         # match the input shape
-        return tf.reshape(__embed, shape=__shape)
+        return inputs + tf.reshape(__embed, shape=__shape)
 
     def get_config(self) -> dict:
         __config = super(PositionalEmbedding, self).get_config()
