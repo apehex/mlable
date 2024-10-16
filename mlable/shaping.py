@@ -2,6 +2,14 @@ import tensorflow as tf
 
 # AXES ########################################################################
 
+def swap_axes(rank: int, left: int, right: int, perm: tuple=()) -> tuple:
+    __perm = perm if perm else list(range(rank))
+    __left, __right = left % rank, right % rank
+    __perm[__left], __perm[__right] = __perm[__right], __perm[__left]
+    return __perm
+
+# DIMS ########################################################################
+
 def normalize_dim(dim: int) -> int:
     return -1 if (dim is None or dim < 0) else dim
 

@@ -1,7 +1,6 @@
 import tensorflow as tf
 
 import mlable.layers.reshaping
-import mlable.utils
 
 # BOTH ########################################################################
 

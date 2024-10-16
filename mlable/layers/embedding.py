@@ -41,13 +41,6 @@ def reshape_embedding(embeddings: tf.Tensor, shape: list, sequence_axis: int=1, 
     __shape = mlable.shaping.filter_shape(shape=shape, axes=__axes)
     return tf.reshape(tensor=embeddings, shape=__shape)
 
-def swap_axes(axes: tuple, left: int, right: int) -> tuple:
-    __rank = len(axes)
-    __perm = list(axes)
-    __left, __right = left % __rank, right % __rank
-    __perm[__left], __perm[__right] = __perm[__right], __perm[__left]
-    return __perm
-
 def swap_to_default(rank: int, sequence_axis: int, feature_axis: int) -> list:
     __swaps = []
     # current positions
@@ -69,7 +62,7 @@ def transpose_axes(tensor: tf.Tensor, swaps: list) -> tf.Tensor:
     __rank = len(list(tensor.shape))
     __perm = list(range(__rank))
     for __s in swaps:
-        __perm = swap_axes(axes=__perm, left=__s[0], right=__s[1])
+        __perm = mlable.shaping.swap_axes(rank=__rank, left=__s[0], right=__s[1], perm=__perm)
     return tf.transpose(tensor, perm=__perm)
 
 @tf.keras.utils.register_keras_serializable(package='layers')
