@@ -10,12 +10,19 @@ class PatchingTest(tf.test.TestCase):
         self._test_cases = [
             {
                 'init': {
-                    'height_axis': 0,
-                    'height_dim': 3,
-                    'width_axis': 1,
-                    'width_dim': 2,
+                    'space_height_axis': 0,
+                    'space_width_axis': 1,
+                    'patch_height_dim': 3,
+                    'patch_width_dim': 2,
                     'merge_patch_axes': False,
                     'merge_space_axes': False,},
+                'init_unpatching': {
+                    'space_height_dim': 6,
+                    'space_width_dim': 8,
+                    'patch_height_dim': 3,
+                    'patch_width_dim': 2,
+                    'space_axes': [0, 1],
+                    'patch_axes': [2, 3],},
                 'input': {
                     'inputs': tf.reshape(tf.range(48, dtype=tf.int32), shape=(6, 8)),},
                 'output': {
@@ -34,12 +41,19 @@ class PatchingTest(tf.test.TestCase):
                                 [[30, 31], [38, 39], [46, 47]],],])}},
             {
                 'init': {
-                    'height_axis': 0,
-                    'height_dim': 3,
-                    'width_axis': 1,
-                    'width_dim': 2,
+                    'space_height_axis': 0,
+                    'space_width_axis': 1,
+                    'patch_height_dim': 3,
+                    'patch_width_dim': 2,
                     'merge_patch_axes': True,
                     'merge_space_axes': True,},
+                'init_unpatching': {
+                    'space_height_dim': 6,
+                    'space_width_dim': 8,
+                    'patch_height_dim': 3,
+                    'patch_width_dim': 2,
+                    'space_axes': 0,
+                    'patch_axes': 1,},
                 'input': {
                     'inputs': tf.reshape(tf.range(48, dtype=tf.int32), shape=(6, 8)),},
                 'output': {
@@ -56,12 +70,19 @@ class PatchingTest(tf.test.TestCase):
                             [30, 31, 38, 39, 46, 47],])}},
             {
                 'init': {
-                    'height_axis': 1,
-                    'height_dim': 2,
-                    'width_axis': 0,
-                    'width_dim': 3,
+                    'space_height_axis': 1,
+                    'space_width_axis': 0,
+                    'patch_height_dim': 2,
+                    'patch_width_dim': 3,
                     'merge_patch_axes': True,
                     'merge_space_axes': True,},
+                'init_unpatching': {
+                    'space_height_dim': 6,
+                    'space_width_dim': 8,
+                    'patch_height_dim': 3,
+                    'patch_width_dim': 2,
+                    'space_axes': [0],
+                    'patch_axes': [1],},
                 'input': {
                     'inputs': tf.reshape(tf.stack([tf.range(48, dtype=tf.int32), tf.range(48, dtype=tf.int32)], axis=-1), shape=(6, 8, 2)),},
                 'output': {
@@ -86,10 +107,11 @@ class PatchingTest(tf.test.TestCase):
             if 'values' in __case['output']:
                 self.assertAllClose(__outputs, __case['output']['values'])
 
-# RECIPROCITY ##################################################################
-
-    # test width != height
-    # test axes permuted
-    # test channel first
-    # test axis in-between
-    # with / without merging
+    def test_reciprocity(self):
+        for __case in self._test_cases:
+            __patch = mlable.layers.vision.Patching(**__case['init'])
+            __unpatch = mlable.layers.vision.Unpatching(**__case['init_unpatching'])
+            print(__case['init'])
+            print(__case['init_unpatching'])
+            __outputs = __unpatch(__patch(__case['input']['inputs']))
+            self.assertAllEqual(__case['input']['inputs'], __outputs)
