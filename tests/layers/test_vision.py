@@ -10,17 +10,15 @@ class PatchingTest(tf.test.TestCase):
         self._test_cases = [
             {
                 'init': {
-                    'space_height_axis': 0,
-                    'space_width_axis': 1,
-                    'patch_height_dim': 3,
-                    'patch_width_dim': 2,
+                    'height_axis': 0,
+                    'width_axis': 1,
+                    'patch_dim': (3, 2),
                     'merge_patch_axes': False,
                     'merge_space_axes': False,},
                 'init_unpatching': {
-                    'space_height_dim': 6,
-                    'space_width_dim': 8,
-                    'patch_height_dim': 3,
-                    'patch_width_dim': 2,
+                    'height_dim': 6,
+                    'width_dim': 8,
+                    'patch_dim': [3, 2],
                     'space_axes': [0, 1],
                     'patch_axes': [2, 3],},
                 'input': {
@@ -41,17 +39,15 @@ class PatchingTest(tf.test.TestCase):
                                 [[30, 31], [38, 39], [46, 47]],],])}},
             {
                 'init': {
-                    'space_height_axis': 0,
-                    'space_width_axis': 1,
-                    'patch_height_dim': 3,
-                    'patch_width_dim': 2,
+                    'height_axis': 0,
+                    'width_axis': 1,
+                    'patch_dim': (3, 2),
                     'merge_patch_axes': True,
                     'merge_space_axes': True,},
                 'init_unpatching': {
-                    'space_height_dim': 6,
-                    'space_width_dim': 8,
-                    'patch_height_dim': 3,
-                    'patch_width_dim': 2,
+                    'height_dim': 6,
+                    'width_dim': 8,
+                    'patch_dim': (3, 2),
                     'space_axes': 0,
                     'patch_axes': 1,},
                 'input': {
@@ -70,17 +66,15 @@ class PatchingTest(tf.test.TestCase):
                             [30, 31, 38, 39, 46, 47],])}},
             {
                 'init': {
-                    'space_height_axis': 1,
-                    'space_width_axis': 0,
-                    'patch_height_dim': 2,
-                    'patch_width_dim': 3,
+                    'height_axis': 1,
+                    'width_axis': 0,
+                    'patch_dim': (2, 3),
                     'merge_patch_axes': True,
                     'merge_space_axes': True,},
                 'init_unpatching': {
-                    'space_height_dim': 6,
-                    'space_width_dim': 8,
-                    'patch_height_dim': 3,
-                    'patch_width_dim': 2,
+                    'height_dim': 6,
+                    'width_dim': 8,
+                    'patch_dim': (3, 2),
                     'space_axes': [0],
                     'patch_axes': [1],},
                 'input': {
@@ -111,7 +105,5 @@ class PatchingTest(tf.test.TestCase):
         for __case in self._test_cases:
             __patch = mlable.layers.vision.Patching(**__case['init'])
             __unpatch = mlable.layers.vision.Unpatching(**__case['init_unpatching'])
-            print(__case['init'])
-            print(__case['init_unpatching'])
             __outputs = __unpatch(__patch(__case['input']['inputs']))
             self.assertAllEqual(__case['input']['inputs'], __outputs)
