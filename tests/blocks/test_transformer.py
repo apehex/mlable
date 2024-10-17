@@ -36,46 +36,11 @@ class FeedForwardBlockTest(tf.test.TestCase):
             if 'values' in __case['outputs']:
                 self.assertAllEqual(__outputs, __case['outputs']['values'])
 
-# SELF ATTENTION ##############################################################
+# ATTENTION ####################################################################
 
-class SelfAttentionBlockTest(tf.test.TestCase):
+class AttentionBlockTest(tf.test.TestCase):
     def setUp(self):
-        super(SelfAttentionBlockTest, self).setUp()
-        self._null_cases = [
-            {
-                'inputs': tf.ones((2, 4, 8), dtype=tf.float16),
-                'args': {
-                    'head_num': 2,
-                    'head_dim': 4,
-                    'sequence_axis': 1,},
-                'outputs': {
-                    'values': tf.zeros((2, 4, 8), dtype=tf.float32),
-                },},
-            {
-                'inputs': tf.reshape(tf.stack(4 * [tf.range(16)], axis=1), (1, 16, 4)),
-                'args': {
-                    'head_num': 2,
-                    'head_dim': 4,
-                    'sequence_axis': 1,},
-                'outputs': {
-                    'values': tf.zeros((1, 16, 4), dtype=tf.float32),
-                },},]
-
-    def test_null_on_constant_inputs(self): # because of the layer norm
-        for __case in self._null_cases:
-            __layer = mlable.blocks.transformer.SelfAttentionBlock(**__case['args'])
-            __outputs = __layer(__case['inputs'])
-            # test
-            if 'shape' in __case['outputs']:
-                self.assertEqual(tuple(__outputs.shape), __case['outputs']['shape'])
-            if 'values' in __case['outputs']:
-                self.assertAllEqual(__outputs, __case['outputs']['values'])
-
-# CROSS ATTENTION #############################################################
-
-class CrossAttentionBlockTest(tf.test.TestCase):
-    def setUp(self):
-        super(CrossAttentionBlockTest, self).setUp()
+        super(AttentionBlockTest, self).setUp()
         self._null_cases = [
             {
                 'query': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
@@ -83,8 +48,8 @@ class CrossAttentionBlockTest(tf.test.TestCase):
                 'value': tf.ones((2, 4, 16), dtype=tf.float16),
                 'args': {
                     'head_num': 2,
-                    'head_dim': 4,
-                    'sequence_axis': 1,},
+                    'key_dim': 4,
+                    'attention_axes': [1],},
                 'outputs': {
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},
@@ -94,15 +59,58 @@ class CrossAttentionBlockTest(tf.test.TestCase):
                 'value': tf.stack(2 * [tf.stack(16 * [tf.range(4)], axis=1)], axis=0),
                 'args': {
                     'head_num': 2,
-                    'head_dim': 4,
-                    'sequence_axis': 1,},
+                    'key_dim': 4,
+                    'attention_axes': [1],},
                 'outputs': {
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},]
 
     def test_null_on_constant_inputs(self): # because of the layer norm
         for __case in self._null_cases:
-            __layer = mlable.blocks.transformer.CrossAttentionBlock(**__case['args'])
+            __layer = mlable.blocks.transformer.AttentionBlock(**__case['args'])
+            __outputs = __layer(query=__case['query'], key=__case['key'], value=__case['value'])
+            # test
+            if 'shape' in __case['outputs']:
+                self.assertEqual(tuple(__outputs.shape), __case['outputs']['shape'])
+            if 'values' in __case['outputs']:
+                self.assertAllEqual(__outputs, __case['outputs']['values'])
+
+# DECODER ######################################################################
+
+class DecoderBLockTest(tf.test.TestCase):
+    def setUp(self):
+        super(DecoderBLockTest, self).setUp()
+        self._null_cases = [
+            {
+                'query': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
+                'key': tf.ones((2, 4, 16), dtype=tf.float16),
+                'value': tf.ones((2, 4, 16), dtype=tf.float16),
+                'args': {
+                    'head_num': 2,
+                    'embed_dim': 16,
+                    'hidden_dim': 64,
+                    'key_dim': 4,
+                    'attention_axes': [1],},
+                'outputs': {
+                    'values': tf.zeros((2, 8, 16), dtype=tf.float32),
+                },},
+            {
+                'query': tf.random.uniform((2, 8, 16), minval=-1., maxval=1.),
+                'key': tf.stack(2 * [tf.stack(16 * [tf.range(4)], axis=1)], axis=0),
+                'value': tf.stack(2 * [tf.stack(16 * [tf.range(4)], axis=1)], axis=0),
+                'args': {
+                    'head_num': 2,
+                    'embed_dim': 16,
+                    'hidden_dim': 64,
+                    'key_dim': 4,
+                    'attention_axes': [1],},
+                'outputs': {
+                    'values': tf.zeros((2, 8, 16), dtype=tf.float32),
+                },},]
+
+    def test_null_on_constant_inputs(self): # because of the layer norm
+        for __case in self._null_cases:
+            __layer = mlable.blocks.transformer.DecoderBlock(**__case['args'])
             __outputs = __layer(query=__case['query'], key=__case['key'], value=__case['value'])
             # test
             if 'shape' in __case['outputs']:
