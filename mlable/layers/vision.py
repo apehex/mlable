@@ -113,7 +113,7 @@ class Unpatching(tf.keras.layers.Layer):
             'patch_axes': __patch_axes,}
         # reshaping layers
         self._split_patch = mlable.layers.reshaping.Divide(input_axis=min(__patch_axes), output_axis=min(__patch_axes) + 1, factor=__patch_dim[-1], insert=True)
-        self._split_space = mlable.layers.reshaping.Divide(input_axis=min(__space_axes), output_axis=min(__space_axes) + 1, factor=width_dim // __patch_dim[-1], insert=True)
+        self._split_space = mlable.layers.reshaping.Divide(input_axis=min(__space_axes), output_axis=min(__space_axes) + 1, factor=__width_dim // __patch_dim[-1], insert=True)
 
     def build(self, input_shape: tf.TensorShape=None) -> None:
         # no weights
