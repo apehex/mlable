@@ -121,12 +121,24 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
 # POSITION #####################################################################
 
 @tf.keras.utils.register_keras_serializable(package='layers')
-class PositionalEmbedding(tf.keras.layers.Embedding):
-    def __init__(self, sequence_dim: int, feature_dim: int, sequence_axis: int=1, feature_axis: int=-1, **kwargs) -> None:
-        # init
-        super(PositionalEmbedding, self).__init__(input_dim=sequence_dim, output_dim=feature_dim, **kwargs)
-        # config
-        self._config = {'sequence_axis': sequence_axis, 'sequence_dim': sequence_dim, 'feature_axis': feature_axis, 'feature_dim': feature_dim,}
+class PositionalEmbedding(tf.keras.layers.Layer):
+    def __init__(self, sequence_axis: int=1, feature_axis: int=-1, **kwargs) -> None:
+        super(PositionalEmbedding, self).__init__(**kwargs)
+        # save the config to init later
+        self._config = {'sequence_axis': sequence_axis, 'feature_axis': feature_axis,}
+        # create when the input shape is knwon
+        self._layer = None
+
+    def build(self, input_shape: tf.TensorShape) -> None:
+        __shape = list(input_shape)
+        __rank = len(__shape)
+        __axis_s = self._config['sequence_axis'] % __rank
+        __axis_f = self._config['feature_axis'] % __rank
+        __dim_s = __shape[__axis_s]
+        __dim_f = __shape[__axis_f]
+        # actually init & build
+        self._layer = tf.keras.layers.Embedding(input_dim=__dim_s, output_dim=__dim_f)
+        self._layer.build((__dim_s,))
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # normalize: positive indexes for comparisons
@@ -138,7 +150,7 @@ class PositionalEmbedding(tf.keras.layers.Embedding):
         # flat range up to sequence dim
         __embed = tf.range(__shape[__axis_s])
         # could just output the kernel, but it might not be built
-        __embed = super(PositionalEmbedding, self).call(__embed)
+        __embed = self._layer.call(__embed)
         # transpose the embeddings if the channels come first
         __embed = tf.transpose(__embed, perm=(1, 0), conjugate=False) if (__axis_f < __axis_s) else __embed
         # match the input shape
