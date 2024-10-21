@@ -148,6 +148,42 @@ class CategoricalGroupAccuracyTest(tf.test.TestCase):
         self.assertNotEqual(__byte_acc.result().numpy(), __character_acc.result().numpy())
         self.assertGreaterEqual(__byte_acc.result().numpy(), __character_acc.result().numpy())
 
+    def test_multiple_group_reductions(self):
+        __iterations = 16
+        # init
+        __acc_0 = mlable.metrics.CategoricalGroupAccuracy(depth=256, group=16, axis=-1)
+        __acc_1 = mlable.metrics.CategoricalGroupAccuracy(depth=256, group=[4, 2], axis=[-1, -2])
+        # test on ascii => leading zeroes match but not the characters
+        __yt = tf.convert_to_tensor([
+            '1111111111111111',
+            '2222222222222222'])
+        __yp = tf.convert_to_tensor([
+            '0111111101111110',
+            '0002222222222222'])
+        # encode
+        __yt = tf.strings.unicode_transcode(input=__yt, input_encoding='UTF-8', output_encoding='UTF-32-BE')
+        __yp = tf.strings.unicode_transcode(input=__yp, input_encoding='UTF-8', output_encoding='UTF-32-BE')
+        __yt = tf.io.decode_raw(__yt, out_type=tf.int8, fixed_length=64)
+        __yp = tf.io.decode_raw(__yp, out_type=tf.int8, fixed_length=64)
+        __yt = tf.one_hot(__yt, depth=256)
+        __yp = tf.one_hot(__yp, depth=256)
+        # flatten
+        __yt = tf.reshape(__yt, (2, -1))
+        __yp = tf.reshape(__yp, (2, -1))
+        # one-shot
+        __acc_0.update_state(y_true=__yt, y_pred=__yp)
+        __acc_1.update_state(y_true=__yt, y_pred=__yp)
+        self.assertEqual(__acc_0.result().numpy(), ((0.25 + 0.75) / 2.)) # 1 / 4 on the first sample and 3 / 4 on the second
+        self.assertEqual(__acc_1.result().numpy(), ((16. - 5.) / 16.)) # combine the predictions on both axes
+        # unchanged when iterating
+        __acc_0.reset_state()
+        __acc_1.reset_state()
+        for _ in range(__iterations):
+            __acc_0.update_state(y_true=__yt, y_pred=__yp)
+            __acc_1.update_state(y_true=__yt, y_pred=__yp)
+        self.assertEqual(__acc_0.result().numpy(), ((0.25 + 0.75) / 2.)) # 1 / 4 on the first sample and 3 / 4 on the second
+        self.assertEqual(__acc_1.result().numpy(), ((16. - 5.) / 16.)) # combine the predictions on both axes
+
 # BINARY ######################################################################
 
 class BinaryGroupAccuracyTest(tf.test.TestCase):
