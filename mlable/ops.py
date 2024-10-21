@@ -31,11 +31,11 @@ def _reduce_group_by_group(data: tf.Tensor, operation: callable, group: int, axi
     # interpret negative axis index / orginal shape
     __axis = axis % len(__shape)
     # split the last axis
-    __data = mlable.shaping.divide(data=data, input_axis=__axis, output_axis=-1, factor=group, insert=True)
+    __data = mlable.shaping.divide(data=data, input_axis=__axis, output_axis=__axis + 1, factor=group, insert=True)
     # repeat values to keep the same shape as the original tensor
-    __data = _reduce(data=__data, operation=operation, axis=-1, keepdims=keepdims)
+    __data = _reduce(data=__data, operation=operation, axis=__axis + 1, keepdims=keepdims)
     # merge the new axis back
-    return mlable.shaping.merge(data=__data, left_axis=__axis, right_axis=-1, left=True) if keepdims else __data
+    return mlable.shaping.merge(data=__data, left_axis=__axis, right_axis=__axis + 1, left=True) if keepdims else __data
 
 def _reduce_group_by_group_any(data: tf.Tensor, group: int, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
     return _reduce_group_by_group(data=data, operation=tf.reduce_any, group=group, axis=axis, keepdims=keepdims)
