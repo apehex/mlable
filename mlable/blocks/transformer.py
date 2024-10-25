@@ -15,9 +15,11 @@ class FeedForwardBlock(tf.keras.layers.Layer):
         self,
         embed_dim: int,
         hidden_dim: int,
+        use_bias: bool=True,
         center: bool=False,
         scale: bool=False,
         epsilon: float=EPSILON,
+        activation: str='gelu',
         **kwargs
     ) -> None:
         # init
@@ -26,12 +28,14 @@ class FeedForwardBlock(tf.keras.layers.Layer):
         self._config = {
             'embed_dim': embed_dim,
             'hidden_dim': hidden_dim,
+            'use_bias': use_bias,
             'center': center,
             'scale': scale,
-            'epsilon': epsilon,}
+            'epsilon': epsilon,
+            'activation': activation,}
         # layers
         self._norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
-        self._ffn = mlable.layers.transformer.FeedForwardGate(input_dim=embed_dim, hidden_dim=hidden_dim)
+        self._ffn = mlable.layers.transformer.FeedForwardNetwork(input_dim=embed_dim, hidden_dim=hidden_dim, use_bias=use_bias, activation=activation)
 
     def build(self, input_shape: tf.TensorShape) -> None:
         # the input shape is progated / unchanged
