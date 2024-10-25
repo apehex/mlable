@@ -4,41 +4,74 @@ import tensorflow as tf
 import mlable.layers.transformer
 import mlable.utils
 
-# FF ##########################################################################
+# FF ###########################################################################
 
-class FeedForwardGateTest(tf.test.TestCase):
+class FeedForwardNetworkTest(tf.test.TestCase):
     def setUp(self):
-        super(FeedForwardGateTest, self).setUp()
-        self._test_cases = [
+        super(FeedForwardNetworkTest, self).setUp()
+        self._cases = [
             {
-                'input_dim': 2,
-                'hidden_dim': 3,
-                'batch_size': 2,
-                'expected_val': [11.726998, 47.998482],
-                'expected_shape': (2, 1, 2),},]
+                'inputs': tf.ones((1, 2), dtype=tf.float32),
+                'args': {
+                    'input_dim': 2,
+                    'hidden_dim': 4,
+                    'use_bias': False,
+                    'activation': 'gelu'},
+                'outputs': {
+                    'shape': (1, 2),
+                    'values': 4. * tf.keras.activations.gelu([[2., 2.]]),
+                },},]
 
-    def test_ffn(self):
-        for __case in self._test_cases:
-            # inputs
-            __inputs = tf.reshape(tf.range(1, __case['batch_size'] + 1, dtype=tf.float32), (__case['batch_size'], 1, 1))
-            __inputs = tf.repeat(__inputs, __case['input_dim'], axis=-1)
-            # init
-            __layer = mlable.layers.transformer.FeedForwardGate(
-                input_dim=__case["input_dim"],
-                hidden_dim=__case["hidden_dim"])
+    def test_with_specific_weights(self):
+        for __case in self._cases:
+            __layer = mlable.layers.transformer.FeedForwardNetwork(**__case['args'])
             # build
-            _ = __layer(__inputs)
+            _ = __layer(__case['inputs'])
             # set weights
-            __layer._gelu.set_weights([np.ones((__case['input_dim'], __case['hidden_dim']))])
-            __layer._linear.set_weights([np.ones((__case['input_dim'], __case['hidden_dim']))])
-            __layer._output.set_weights([np.ones((__case['hidden_dim'], __case['input_dim']))])
+            __layer._hidden.set_weights([np.ones((__case['args']['input_dim'], __case['args']['hidden_dim']))])
+            __layer._output.set_weights([np.ones((__case['args']['hidden_dim'], __case['args']['input_dim']))])
             # compute
-            __outputs = __layer(__inputs)
+            __outputs = __layer(__case['inputs'])
             # test
-            self.assertAllClose(__outputs[:, 0, 0].numpy().tolist(), __case["expected_val"])
-            self.assertEqual(tuple(__outputs.shape), __case['expected_shape'])
+            if 'shape' in __case['outputs']:
+                self.assertEqual(tuple(__outputs.shape), __case['outputs']['shape'])
+            if 'values' in __case['outputs']:
+                self.assertAllEqual(__outputs, __case['outputs']['values'])
 
-# CACHED ATTENTION ############################################################
+# GATE #########################################################################
+
+class GatedLinearUnitTest(tf.test.TestCase):
+    def setUp(self):
+        super(GatedLinearUnitTest, self).setUp()
+        self._cases = [
+            {
+                'inputs': tf.ones((1, 2), dtype=tf.float32),
+                'args': {
+                    'output_dim': 3,
+                    'use_bias': False,
+                    'activation': 'gelu'},
+                'outputs': {
+                    'shape': (1, 3),
+                    'values': 2. * tf.keras.activations.gelu([[2., 2., 2.]]),
+                },},]
+
+    def test_with_specific_weights(self):
+        for __case in self._cases:
+            __layer = mlable.layers.transformer.GatedLinearUnit(**__case['args'])
+            # build
+            _ = __layer(__case['inputs'])
+            # set weights
+            __layer._gate.set_weights([np.ones((tuple(__case['inputs'].shape)[-1], __case['args']['output_dim']))])
+            __layer._linear.set_weights([np.ones((tuple(__case['inputs'].shape)[-1], __case['args']['output_dim']))])
+            # compute
+            __outputs = __layer(__case['inputs'])
+            # test
+            if 'shape' in __case['outputs']:
+                self.assertEqual(tuple(__outputs.shape), __case['outputs']['shape'])
+            if 'values' in __case['outputs']:
+                self.assertAllEqual(__outputs, __case['outputs']['values'])
+
+# CACHED ATTENTION #############################################################
 
 class CachedAttentionTest(tf.test.TestCase):
 

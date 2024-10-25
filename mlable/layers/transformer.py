@@ -4,47 +4,49 @@ import tensorflow as tf
 
 import mlable.utils
 
-# CONSTANTS ###################################################################
+# CONSTANTS ####################################################################
 
 EPSILON = 1e-6
 
-# FEED FORWARD ################################################################
+# FEED FORWARD #################################################################
 
 @tf.keras.utils.register_keras_serializable(package='layers')
-class FeedForwardGate(tf.keras.layers.Layer):
+class FeedForwardNetwork(tf.keras.layers.Layer):
     def __init__(
         self,
         input_dim: int,
         hidden_dim: int,
+        use_bias: bool=True,
+        activation: str='gelu',
         **kwargs
     ) -> None:
-        super(FeedForwardGate, self).__init__(**kwargs)
+        super(FeedForwardNetwork, self).__init__(**kwargs)
         # config
         self._config = {
             'input_dim': input_dim,
-            'hidden_dim': hidden_dim,}
+            'hidden_dim': hidden_dim,
+            'use_bias': use_bias,
+            'activation': activation,}
         # layers
-        self._gelu = tf.keras.layers.Dense(units=self._config['hidden_dim'], activation='gelu', use_bias=False, kernel_initializer='glorot_uniform', name='gate')
-        self._linear = tf.keras.layers.Dense(units=self._config['hidden_dim'], activation='linear', use_bias=False, kernel_initializer='glorot_uniform', name='linear')
-        self._output = tf.keras.layers.Dense(units=self._config['input_dim'], activation='linear', use_bias=False, kernel_initializer='glorot_uniform', name='output')
+        self._hidden = tf.keras.layers.Dense(units=self._config['hidden_dim'], activation=activation, use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
+        self._output = tf.keras.layers.Dense(units=self._config['input_dim'], activation='linear', use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
 
     def build(self, input_shape: tf.TensorShape) -> None:
-        __output_shape = list(input_shape)
-        __output_shape[-1] = self._config['hidden_dim']
+        __hidden_shape = list(input_shape)
+        __hidden_shape[-1] = self._config['hidden_dim']
         # directly handle the input
-        self._gelu.build(input_shape)
-        self._linear.build(input_shape)
+        self._hidden.build(input_shape)
         # from hidden to input dim
-        self._output.build(__output_shape)
+        self._output.build(__hidden_shape)
         # register
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # gating mechanism
-        return self._output(self._gelu(inputs) * self._linear(inputs))
+        return self._output(self._hidden(inputs))
 
     def get_config(self) -> dict:
-        __config = super(FeedForwardGate, self).get_config()
+        __config = super(FeedForwardNetwork, self).get_config()
         __config.update(self._config)
         return __config
 
@@ -52,7 +54,45 @@ class FeedForwardGate(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-# ATTENTION ###################################################################
+# FEED FORWARD #################################################################
+
+@tf.keras.utils.register_keras_serializable(package='layers')
+class GatedLinearUnit(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        output_dim: int,
+        use_bias: bool=True,
+        activation: str='gelu',
+        **kwargs
+    ) -> None:
+        super(GatedLinearUnit, self).__init__(**kwargs)
+        # config
+        self._config = {
+            'output_dim': output_dim,
+            'use_bias': use_bias,
+            'activation': activation,}
+        # layers
+        self._gate = tf.keras.layers.Dense(units=output_dim, activation=activation, use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
+        self._linear = tf.keras.layers.Dense(units=output_dim, activation='linear', use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
+
+    def build(self, input_shape: tf.TensorShape) -> None:
+        self._gate.build(input_shape)
+        self._linear.build(input_shape)
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        return self._gate(inputs) * self._linear(inputs)
+
+    def get_config(self) -> dict:
+        __config = super(GatedLinearUnit, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+# ATTENTION ####################################################################
 
 @tf.keras.utils.register_keras_serializable(package="layers")
 class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
