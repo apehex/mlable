@@ -289,8 +289,7 @@ class DecoderBlock(tf.keras.layers.Layer):
 class ResidualDecoderBlock(DecoderBlock):
     def call(self, query: tf.Tensor, key: tf.Tensor, value: tf.Tensor, **kwargs) -> tf.Tensor:
         # build
-        if not self._built:
-            self._build(query_shape=tuple(query.shape), key_shape=tuple(key.shape), value_shape=tuple(value.shape))
+        self._build(query_shape=tuple(query.shape), key_shape=tuple(key.shape), value_shape=tuple(value.shape))
         # residual + cross attention
         __x = query + self._attention(query=query, key=key, value=value, **kwargs)
         # residual + augmentation
