@@ -54,7 +54,7 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-# FEED FORWARD #################################################################
+# GATE #########################################################################
 
 @tf.keras.utils.register_keras_serializable(package='layers')
 class GatedLinearUnit(tf.keras.layers.Layer):
