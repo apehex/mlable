@@ -16,7 +16,7 @@ class ContrastModel(tf.keras.models.Model):
         __weights = mlable.masking.contrast(
             left=x,
             right=tf.cast(tf.argmax(y, axis=-1), dtype=x.dtype),
-            weight=0.9,
+            weight=getattr(self, '_contrast_weight', 0.8),
             dtype=sample_weight.dtype)
         # combine with the sample weights
         __weights = __weights * sample_weight if (sample_weight is not None) else __weights
