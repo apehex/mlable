@@ -17,6 +17,7 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
         input_dim: int,
         hidden_dim: int,
         use_bias: bool=True,
+        dropout_rate: float=0.0,
         activation: str='gelu',
         **kwargs
     ) -> None:
@@ -26,9 +27,11 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
             'input_dim': input_dim,
             'hidden_dim': hidden_dim,
             'use_bias': use_bias,
+            'dropout_rate': dropout_rate,
             'activation': activation,}
         # layers
         self._hidden = tf.keras.layers.Dense(units=self._config['hidden_dim'], activation=activation, use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
+        self._dropout = tf.keras.layers.Dropout(rate=dropout_rate)
         self._output = tf.keras.layers.Dense(units=self._config['input_dim'], activation='linear', use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
 
     def build(self, input_shape: tf.TensorShape) -> None:
@@ -37,13 +40,18 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
         # directly handle the input
         self._hidden.build(input_shape)
         # from hidden to input dim
+        self._dropout.build(__hidden_shape)
         self._output.build(__hidden_shape)
         # register
         self.built = True
 
-    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        # gating mechanism
-        return self._output(self._hidden(inputs))
+    def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
+        # expand
+        __outputs = self._hidden(inputs)
+        # drop random values
+        self._dropout(__outputs, training=training)
+        # shrink
+        return self._output(__outputs)
 
     def get_config(self) -> dict:
         __config = super(FeedForwardNetwork, self).get_config()
@@ -138,10 +146,10 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
             __value = mlable.utils.update_cache(tensor=__value, cache=cache[1], step=step, axis=self._attention_axes[0]) # custom seq axis?
             __cache = tf.stack(values=(__key, __value), axis=0)
         # use the parent functionalities
-        __output, __scores = self._compute_attention(query=__query, key=__key, value=__value, attention_mask=__mask, training=training)
+        __outputs, __scores = self._compute_attention(query=__query, key=__key, value=__value, attention_mask=__mask, training=training)
         # projection
-        __output = self._output_dense(__output)
+        __outputs = self._output_dense(__outputs)
         # output
         if return_attention_scores:
-            return __output, __scores, __cache
-        return __output, __cache
+            return __outputs, __scores, __cache
+        return __outputs, __cache
