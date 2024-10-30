@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mlable"
-version = "0.13.0"
+version = "0.13.1"
 description = "Tensorflow libs: layers, metrics, ops, etc."
 authors = ["apehex <apehex@protonmail.com>"]
 readme = ".github/README.md"

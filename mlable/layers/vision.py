@@ -161,8 +161,10 @@ class PixelShuffle(Unpatching):
         space_axes: iter=[1, 2],
         **kwargs
     ) -> None:
+        # normalize
+        __patch_dim = [patch_dim] if isinstance(patch_dim, int) else list(patch_dim)
         # init
-        super(PixelShuffle, self).__init__(height_dim=height_dim, width_dim=width_dim, patch_dim=patch_dim, space_axes=space_axes, patch_axes=[-3], **kwargs)
+        super(PixelShuffle, self).__init__(height_dim=height_dim * __patch_dim[0], width_dim=width_dim * __patch_dim[-1], patch_dim=__patch_dim, space_axes=space_axes, patch_axes=[-3], **kwargs)
         # reshaping layers
         self._split_feature = mlable.layers.reshaping.Divide(input_axis=-1, output_axis=-2, factor=self._config['patch_dim'][0] * self._config['patch_dim'][-1], insert=True)
 
