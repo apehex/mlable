@@ -102,8 +102,6 @@ class Unpatching(tf.keras.layers.Layer):
         # sort the axes
         __space_axes = sorted(__space_axes)
         __patch_axes = sorted(__patch_axes)
-        # force the couple of axes to be separate
-        assert max(__space_axes) < min(__patch_axes)
         # save for import / export
         self._config = {
             'height_dim': __height_dim,
@@ -145,6 +143,44 @@ class Unpatching(tf.keras.layers.Layer):
 
     def get_config(self) -> dict:
         __config = super(Unpatching, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+# PIXEL SHUFFLING ##############################################################
+
+class PixelShuffle(Unpatching):
+    def __init__(
+        self,
+        height_dim: int,
+        width_dim: int,
+        patch_dim: iter,
+        space_axes: iter=[1, 2],
+        **kwargs
+    ) -> None:
+        # init
+        super(PixelShuffle, self).__init__(height_dim=height_dim, width_dim=width_dim, patch_dim=patch_dim, space_axes=space_axes, patch_axes=[-3], **kwargs)
+        # reshaping layers
+        self._split_feature = mlable.layers.reshaping.Divide(input_axis=-1, output_axis=-2, factor=self._config['patch_dim'][0] * self._config['patch_dim'][-1], insert=True)
+
+    def build(self, input_shape: tf.TensorShape=None) -> None:
+        self._split_feature.build(input_shape)
+        # unpatching happens after the feature axis is split
+        super(PixelShuffle, self).build(mlable.shaping.divide_shape(input_shape, input_axis=-1, output_axis=-2, factor=self._config['patch_dim'][0] * self._config['patch_dim'][-1], insert=True))
+        # register
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        # split the feature axis by chunks of patch size
+        __outputs = self._split_feature(inputs)
+        # merge the patches with the global space
+        return super(PixelShuffle, self).call(inputs=__outputs, **kwargs)
+
+    def get_config(self) -> dict:
+        __config = super(PixelShuffle, self).get_config()
         __config.update(self._config)
         return __config
 
