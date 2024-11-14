@@ -76,3 +76,48 @@ class PatchingTest(tf.test.TestCase):
             __unpatch = mlable.layers.vision.Unpatching(**__case['init_unpatching'])
             __outputs = __unpatch(__patch(__case['input']['inputs']))
             self.assertAllEqual(__case['input']['inputs'], __outputs)
+
+# PIXEL SHUFFLE ################################################################
+
+class PixelShuffleTest(tf.test.TestCase):
+    def setUp(self):
+        super(PixelShuffleTest, self).setUp()
+        self._test_cases = [
+            {
+                'init': {
+                    'height_axis': 0,
+                    'width_axis': 1,
+                    'patch_dim': (3, 2),},
+                'init_patching': {
+                    'height_axis': 0,
+                    'width_axis': 1,
+                    'patch_dim': (3, 2),},
+                'input': {
+                    'inputs': tf.reshape(tf.range(48, dtype=tf.int32), shape=(2, 2, 12)),},
+                'output': {
+                    'shape': (6, 4, 2),
+                    'values': tf.convert_to_tensor(
+                        [
+                            [[0, 1], [2, 3], [12, 13], [14, 15]],
+                            [[4, 5], [6, 7], [16, 17], [18, 19]],
+                            [[8, 9], [10, 11], [20, 21], [22, 23]],
+                            [[24, 25], [26, 27], [36, 37], [38, 39]],
+                            [[28, 29], [30, 31], [40, 41], [42, 43]],
+                            [[32, 33], [34, 35], [44, 45], [46, 47]]])}},]
+
+    def test_patching(self):
+        for __case in self._test_cases:
+            __layer = mlable.layers.vision.PixelShuffle(**__case['init'])
+            __outputs = __layer(**__case['input'])
+            if 'shape' in __case['output']:
+                self.assertEqual(tuple(__outputs.shape), __case['output']['shape'])
+            if 'values' in __case['output']:
+                self.assertAllClose(__outputs, __case['output']['values'])
+
+    def test_reciprocity(self):
+        for __case in self._test_cases:
+            __shuffle = mlable.layers.vision.PixelShuffle(**__case['init'])
+            __patch = mlable.layers.vision.Patching(**__case['init_patching'])
+            __outputs = __patch(__shuffle(__case['input']['inputs']))
+            __outputs = mlable.shaping.merge(mlable.shaping.merge(__outputs, left_axis=-2, right_axis=-1, left=False), left_axis=-2, right_axis=-1, left=False)
+            self.assertAllEqual(__case['input']['inputs'], __outputs)
