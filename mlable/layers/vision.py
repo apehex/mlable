@@ -111,39 +111,47 @@ class Unpatching(tf.keras.layers.Layer):
 
 # PIXEL SHUFFLING ##############################################################
 
-class PixelShuffle(Unpatching):
+class PixelShuffle(tf.keras.layers.Layer):
     def __init__(
         self,
-        space_dim: iter,
         patch_dim: iter,
-        space_axes: iter=[1, 2],
+        height_axis: int=1,
+        width_axis: int=2,
         **kwargs
     ) -> None:
-        # normalize
-        __space_dim = [space_dim] if isinstance(space_dim, int) else list(space_dim)
-        __patch_dim = [patch_dim] if isinstance(patch_dim, int) else list(patch_dim)
         # init
-        super(PixelShuffle, self).__init__(space_dim=(__space_dim[0] * __patch_dim[0], __space_dim[-1] * __patch_dim[-1]), patch_dim=__patch_dim, space_axes=space_axes, patch_axes=[-3], **kwargs)
-        # reset the config after the unpatch init
+        super(PixelShuffle, self).__init__(**kwargs)
+        # normalize
+        __patch_dim = [patch_dim] if isinstance(patch_dim, int) else list(patch_dim)
+        # save config
         self._config = {
-            'space_dim': __space_dim,
             'patch_dim': __patch_dim,
-            'space_axes': __space_axes,}
+            'height_axis': height_axis,
+            'width_axis': width_axis,}
         # reshaping layers
-        self._split_feature = mlable.layers.reshaping.Divide(input_axis=-1, output_axis=-2, factor=self._config['patch_dim'][0] * self._config['patch_dim'][-1], insert=True)
+        self._split_height = None
+        self._split_width = None
+        self._unpatch_space = None
 
     def build(self, input_shape: tuple=None) -> None:
-        self._split_feature.build(input_shape)
-        # unpatching happens after the feature axis is split
-        super(PixelShuffle, self).build(mlable.shaping.divide_shape(input_shape, input_axis=-1, output_axis=-2, factor=self._config['patch_dim'][0] * self._config['patch_dim'][-1], insert=True))
+        # common args
+        __args = {'input_axis': -1, 'output_axis': -2, 'insert': True,}
+        # init
+        self._split_height = mlable.layers.reshaping.Divide(factor=self._config['patch_dim'][0], **__args)
+        self._split_width = mlable.layers.reshaping.Divide(factor=self._config['patch_dim'][-1], **__args)
+        self._unpatch_space = Unpatching(space_height_axis=self._config['height_axis'], space_width_axis=self._config['width_axis'], patch_height_axis=-3, patch_width_axis=-2)
+        # no weights
+        self._split_height.build()
+        self._split_width.build()
+        self._unpatch_space.build()
         # register
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # split the feature axis by chunks of patch size
-        __outputs = self._split_feature(inputs)
+        __outputs = self._split_width(self._split_height(inputs))
         # merge the patches with the global space
-        return super(PixelShuffle, self).call(inputs=__outputs, **kwargs)
+        return self._unpatch_space(__outputs)
 
     def get_config(self) -> dict:
         __config = super(PixelShuffle, self).get_config()
