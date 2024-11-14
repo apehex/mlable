@@ -2,7 +2,7 @@ import tensorflow as tf
 
 import mlable.shaping
 
-# GENERIC #####################################################################
+# GENERIC ######################################################################
 
 @tf.keras.utils.register_keras_serializable(package='layers')
 class Reshape(tf.keras.layers.Layer):
@@ -30,7 +30,7 @@ class Reshape(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-# DIVIDE ######################################################################
+# DIVIDE #######################################################################
 
 @tf.keras.utils.register_keras_serializable(package='layers')
 class Divide(tf.keras.layers.Layer):
@@ -66,7 +66,7 @@ class Divide(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-# MERGE #######################################################################
+# MERGE ########################################################################
 
 @tf.keras.utils.register_keras_serializable(package='layers')
 class Merge(tf.keras.layers.Layer):
@@ -93,6 +93,38 @@ class Merge(tf.keras.layers.Layer):
 
     def get_config(self) -> dict:
         __config = super(Merge, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+# SWAP #########################################################################
+
+@tf.keras.utils.register_keras_serializable(package='layers')
+class Swap(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        left_axis: int,
+        right_axis: int,
+        **kwargs
+    ) -> None:
+        super(Swap, self).__init__(**kwargs)
+        # save for import / export
+        self._config = {'left_axis': left_axis, 'right_axis': right_axis,}
+        # the actual permutation depends on the rank of the input
+        self._perm = []
+
+    def build(self, input_shape: tuple) -> None:
+        self._perm = mlable.shaping.swap_axes(rank=len(input_shape), left=self._config['left_axis'], right=self._config['right_axis'], perm=[])
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        return tf.transpose(inputs, perm=self._perm, conjugate=False)
+
+    def get_config(self) -> dict:
+        __config = super(Swap, self).get_config()
         __config.update(self._config)
         return __config
 
