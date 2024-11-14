@@ -13,7 +13,6 @@ EPSILON = 1e-6
 class FeedForwardBlock(tf.keras.layers.Layer):
     def __init__(
         self,
-        embed_dim: int,
         hidden_dim: int,
         dropout_rate: float=0.0,
         use_bias: bool=True,
@@ -27,7 +26,6 @@ class FeedForwardBlock(tf.keras.layers.Layer):
         super(FeedForwardBlock, self).__init__(**kwargs)
         # config
         self._config = {
-            'embed_dim': embed_dim,
             'hidden_dim': hidden_dim,
             'dropout_rate': dropout_rate,
             'use_bias': use_bias,
@@ -37,9 +35,9 @@ class FeedForwardBlock(tf.keras.layers.Layer):
             'activation': activation,}
         # layers
         self._norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
-        self._ffn = mlable.layers.transformer.FeedForwardNetwork(input_dim=embed_dim, hidden_dim=hidden_dim, use_bias=use_bias, activation=activation, dropout_rate=dropout_rate)
+        self._ffn = mlable.layers.transformer.FeedForwardNetwork(hidden_dim=hidden_dim, use_bias=use_bias, activation=activation, dropout_rate=dropout_rate)
 
-    def build(self, input_shape: tf.TensorShape) -> None:
+    def build(self, input_shape: tuple) -> None:
         # the input shape is progated / unchanged
         self._norm.build(input_shape)
         self._ffn.build(input_shape)
@@ -104,13 +102,13 @@ class AttentionBlock(tf.keras.layers.Layer):
         # specific building mechanism != built-in
         self._built = False
 
-    def _build(self, query_shape: tf.TensorShape, key_shape: tf.TensorShape, value_shape: tf.TensorShape) -> None:
+    def _build(self, query_shape: tuple, key_shape: tuple, value_shape: tuple) -> None:
         if not self._built:
             # the input shape is progated / unchanged
             self._query_norm.build(query_shape)
             self._key_norm.build(key_shape)
             self._value_norm.build(value_shape)
-            for __p in self._position.values(): __p.build(query_shape)
+            for __p in self._position.values(): __p.build()
             # attention API depends on the version
             if hasattr(self._attention, '_build_from_signature'):
                 self._attention._build_from_signature(query=query_shape, key=key_shape, value=value_shape)
@@ -119,7 +117,7 @@ class AttentionBlock(tf.keras.layers.Layer):
             # register
             self.built, self._built = True, True
 
-    def build(self, query_shape: tf.TensorShape, key_shape: tf.TensorShape=None, value_shape: tf.TensorShape=None) -> None:
+    def build(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> None:
         if (key_shape is not None) and (value_shape is not None):
             self._build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
 
@@ -190,7 +188,7 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
         # specific building mechanism != built-in
         self._built = False
 
-    def _build(self, query_shape: tf.TensorShape, key_shape: tf.TensorShape, value_shape: tf.TensorShape) -> None:
+    def _build(self, query_shape: tuple, key_shape: tuple, value_shape: tuple) -> None:
         if not self._built:
             # the input shape is progated / unchanged
             self._query_norm.build(query_shape)
@@ -205,7 +203,7 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
             # register
             self.built, self._built = True, True
 
-    def build(self, query_shape: tf.TensorShape, key_shape: tf.TensorShape=None, value_shape: tf.TensorShape=None) -> None:
+    def build(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> None:
         if (key_shape is not None) and (value_shape is not None):
             self._build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
 
@@ -240,7 +238,6 @@ class DecoderBlock(tf.keras.layers.Layer):
     def __init__(
         self,
         head_num: int,
-        embed_dim: int,
         key_dim: int,
         hidden_dim: int,
         value_dim: int=None,
@@ -257,7 +254,6 @@ class DecoderBlock(tf.keras.layers.Layer):
         # config
         self._config = {
             'head_num': head_num,
-            'embed_dim': embed_dim,
             'key_dim': key_dim,
             'value_dim': value_dim,
             'hidden_dim': hidden_dim,
@@ -269,11 +265,11 @@ class DecoderBlock(tf.keras.layers.Layer):
             'scale': scale,}
         # layers
         self._attention = AttentionBlock(head_num=head_num, key_dim=key_dim, value_dim=value_dim, attention_axes=attention_axes, dropout_rate=dropout_rate, epsilon=epsilon, use_bias=use_bias, center=center, scale=scale)
-        self._ffn = mlable.blocks.transformer.FeedForwardBlock(embed_dim=embed_dim, hidden_dim=hidden_dim, dropout_rate=dropout_rate, epsilon=epsilon, center=center, scale=scale)
+        self._ffn = mlable.blocks.transformer.FeedForwardBlock(hidden_dim=hidden_dim, dropout_rate=dropout_rate, epsilon=epsilon, center=center, scale=scale)
         # specific building mechanism != built-in
         self._built = False
 
-    def _build(self, query_shape: tf.TensorShape, key_shape: tf.TensorShape, value_shape: tf.TensorShape) -> None:
+    def _build(self, query_shape: tuple, key_shape: tuple, value_shape: tuple) -> None:
         if not self._built:
             # the input shape is propagated / unchanged
             self._attention._build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
@@ -281,7 +277,7 @@ class DecoderBlock(tf.keras.layers.Layer):
             # register
             self.built, self._built = True, True
 
-    def build(self, query_shape: tf.TensorShape, key_shape: tf.TensorShape=None, value_shape: tf.TensorShape=None) -> None:
+    def build(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> None:
         if (key_shape is not None) and (value_shape is not None):
             self._build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
 

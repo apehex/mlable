@@ -14,10 +14,8 @@ class Reshape(tf.keras.layers.Layer):
         super(Reshape, self).__init__(**kwargs)
         # save for import / export
         self._config = {'target_shape': target_shape}
-        # no weights
-        self.build()
 
-    def build(self, input_shape: tf.TensorShape=None) -> None:
+    def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
@@ -51,10 +49,8 @@ class Divide(tf.keras.layers.Layer):
             'output_axis': output_axis,
             'factor': factor,
             'insert': insert,}
-        # no weights
-        self.build()
 
-    def build(self, input_shape: tf.TensorShape=None) -> None:
+    def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
@@ -87,10 +83,8 @@ class Merge(tf.keras.layers.Layer):
             'left_axis': left_axis,
             'right_axis': right_axis,
             'left': left,}
-        # no weights
-        self.build()
 
-    def build(self, input_shape: tf.TensorShape=None) -> None:
+    def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:

@@ -14,7 +14,6 @@ EPSILON = 1e-6
 class FeedForwardNetwork(tf.keras.layers.Layer):
     def __init__(
         self,
-        input_dim: int,
         hidden_dim: int,
         use_bias: bool=True,
         dropout_rate: float=0.0,
@@ -24,22 +23,29 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
         super(FeedForwardNetwork, self).__init__(**kwargs)
         # config
         self._config = {
-            'input_dim': input_dim,
             'hidden_dim': hidden_dim,
             'use_bias': use_bias,
             'dropout_rate': dropout_rate,
             'activation': activation,}
         # layers
-        self._hidden = tf.keras.layers.Dense(units=self._config['hidden_dim'], activation=activation, use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
-        self._dropout = tf.keras.layers.Dropout(rate=dropout_rate)
-        self._output = tf.keras.layers.Dense(units=self._config['input_dim'], activation='linear', use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
+        self._hidden = None
+        self._dropout = None
+        self._output = None
 
-    def build(self, input_shape: tf.TensorShape) -> None:
-        __hidden_shape = list(input_shape)
-        __hidden_shape[-1] = self._config['hidden_dim']
-        # directly handle the input
-        self._hidden.build(input_shape)
-        # from hidden to input dim
+    def build(self, input_shape: tuple) -> None:
+        __input_shape = tuple(input_shape)
+        __hidden_shape = __input_shape[:-1] + (self._config['hidden_dim'],)
+        # common args
+        __args = {
+            'use_bias': self._config['use_bias'],
+            'kernel_initializer': 'glorot_uniform',
+            'bias_initializer': 'zeros',}
+        # init
+        self._hidden = tf.keras.layers.Dense(units=__hidden_shape[-1], activation=self._config['activation'], **__args)
+        self._dropout = tf.keras.layers.Dropout(rate=self._config['dropout_rate'])
+        self._output = tf.keras.layers.Dense(units=__input_shape[-1], activation='linear', **__args)
+        # build
+        self._hidden.build(__input_shape)
         self._dropout.build(__hidden_shape)
         self._output.build(__hidden_shape)
         # register
@@ -49,7 +55,7 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
         # expand
         __outputs = self._hidden(inputs)
         # drop random values
-        self._dropout(__outputs, training=training)
+        __outputs = self._dropout(__outputs, training=training)
         # shrink
         return self._output(__outputs)
 
@@ -80,12 +86,23 @@ class GatedLinearUnit(tf.keras.layers.Layer):
             'use_bias': use_bias,
             'activation': activation,}
         # layers
-        self._gate = tf.keras.layers.Dense(units=output_dim, activation=activation, use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
-        self._linear = tf.keras.layers.Dense(units=output_dim, activation='linear', use_bias=use_bias, kernel_initializer='glorot_uniform', bias_initializer='zeros')
+        self._gate = None
+        self._linear = None
 
-    def build(self, input_shape: tf.TensorShape) -> None:
+    def build(self, input_shape: tuple) -> None:
+        # common args
+        __args = {
+            'units': self._config['output_dim'],
+            'use_bias': self._config['use_bias'],
+            'kernel_initializer': 'glorot_uniform',
+            'bias_initializer': 'zeros',}
+        # init
+        self._gate = tf.keras.layers.Dense(activation=self._config['activation'], **__args)
+        self._linear = tf.keras.layers.Dense(activation='linear', **__args)
+        # build
         self._gate.build(input_shape)
         self._linear.build(input_shape)
+        # register
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:

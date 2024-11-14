@@ -43,12 +43,12 @@ class Patching(tf.keras.layers.Layer):
         self._merge_patch = mlable.layers.reshaping.Merge(left_axis=__width_axis + 1, right_axis=__width_axis + 2, left=True) # moved by splitting axes
         self._merge_space = mlable.layers.reshaping.Merge(left_axis=__height_axis, right_axis=__height_axis + 1, left=True)
 
-    def build(self, input_shape: tf.TensorShape=None) -> None:
+    def build(self, input_shape: tuple=None) -> None:
         # no weights
-        self._split_height.build(input_shape)
-        self._split_width.build(input_shape)
-        self._merge_space.build(input_shape)
-        self._merge_patch.build(input_shape)
+        self._split_height.build()
+        self._split_width.build()
+        self._merge_space.build()
+        self._merge_patch.build()
         # register
         self.built = True
 
@@ -83,8 +83,7 @@ class Patching(tf.keras.layers.Layer):
 class Unpatching(tf.keras.layers.Layer):
     def __init__(
         self,
-        height_dim: int,
-        width_dim: int,
+        space_dim: iter,
         patch_dim: iter,
         space_axes: iter=[1, 2],
         patch_axes: iter=[3, 4],
@@ -95,28 +94,28 @@ class Unpatching(tf.keras.layers.Layer):
         # normalize & check
         __space_axes = [space_axes] if isinstance(space_axes, int) else list(space_axes)
         __patch_axes = [patch_axes] if isinstance(patch_axes, int) else list(patch_axes)
+        __space_dim = [space_dim] if isinstance(space_dim, int) else list(space_dim)
         __patch_dim = [patch_dim] if isinstance(patch_dim, int) else list(patch_dim)
         # match the ordering of the axes (see below)
+        __space_dim = __space_dim[::-1] if (__space_axes[-1] < __space_axes[0]) else __space_dim
         __patch_dim = __patch_dim[::-1] if (__patch_axes[-1] < __patch_axes[0]) else __patch_dim
-        __height_dim, __width_dim = (width_dim, height_dim) if (__space_axes[-1] < __space_axes[0]) else (height_dim, width_dim)
         # sort the axes
         __space_axes = sorted(__space_axes)
         __patch_axes = sorted(__patch_axes)
         # save for import / export
         self._config = {
-            'height_dim': __height_dim,
-            'width_dim': __width_dim,
+            'space_dim': __space_dim,
             'patch_dim': __patch_dim,
             'space_axes': __space_axes,
             'patch_axes': __patch_axes,}
         # reshaping layers
         self._split_patch = mlable.layers.reshaping.Divide(input_axis=min(__patch_axes), output_axis=min(__patch_axes) + 1, factor=__patch_dim[-1], insert=True)
-        self._split_space = mlable.layers.reshaping.Divide(input_axis=min(__space_axes), output_axis=min(__space_axes) + 1, factor=__width_dim // __patch_dim[-1], insert=True)
+        self._split_space = mlable.layers.reshaping.Divide(input_axis=min(__space_axes), output_axis=min(__space_axes) + 1, factor=__space_dim[-1] // __patch_dim[-1], insert=True)
 
-    def build(self, input_shape: tf.TensorShape=None) -> None:
+    def build(self, input_shape: tuple=None) -> None:
         # no weights
-        self._split_patch.build(input_shape)
-        self._split_space.build(input_shape)
+        self._split_patch.build()
+        self._split_space.build()
         # register
         self.built = True
 
@@ -155,20 +154,25 @@ class Unpatching(tf.keras.layers.Layer):
 class PixelShuffle(Unpatching):
     def __init__(
         self,
-        height_dim: int,
-        width_dim: int,
+        space_dim: iter,
         patch_dim: iter,
         space_axes: iter=[1, 2],
         **kwargs
     ) -> None:
         # normalize
+        __space_dim = [space_dim] if isinstance(space_dim, int) else list(space_dim)
         __patch_dim = [patch_dim] if isinstance(patch_dim, int) else list(patch_dim)
         # init
-        super(PixelShuffle, self).__init__(height_dim=height_dim * __patch_dim[0], width_dim=width_dim * __patch_dim[-1], patch_dim=__patch_dim, space_axes=space_axes, patch_axes=[-3], **kwargs)
+        super(PixelShuffle, self).__init__(space_dim=(__space_dim[0] * __patch_dim[0], __space_dim[-1] * __patch_dim[-1]), patch_dim=__patch_dim, space_axes=space_axes, patch_axes=[-3], **kwargs)
+        # reset the config after the unpatch init
+        self._config = {
+            'space_dim': __space_dim,
+            'patch_dim': __patch_dim,
+            'space_axes': __space_axes,}
         # reshaping layers
         self._split_feature = mlable.layers.reshaping.Divide(input_axis=-1, output_axis=-2, factor=self._config['patch_dim'][0] * self._config['patch_dim'][-1], insert=True)
 
-    def build(self, input_shape: tf.TensorShape=None) -> None:
+    def build(self, input_shape: tuple=None) -> None:
         self._split_feature.build(input_shape)
         # unpatching happens after the feature axis is split
         super(PixelShuffle, self).build(mlable.shaping.divide_shape(input_shape, input_axis=-1, output_axis=-2, factor=self._config['patch_dim'][0] * self._config['patch_dim'][-1], insert=True))

@@ -24,7 +24,7 @@ class ConvolutionBlock(tf.keras.layers.Layer):
             tf.keras.layers.Dropout(rate=dropout_rate),
             tf.keras.layers.Conv2D(filters=channel_dim, kernel_size=kernel_dim, padding=padding, strides=stride_dim, activation=None, use_bias=True, data_format='channels_last'),]
 
-    def build(self, input_shape: tf.TensorShape) -> None:
+    def build(self, input_shape: tuple) -> None:
         # the input shape is progated / unchanged
         for __l in self._layers:
             __l.build(input_shape)
@@ -65,7 +65,7 @@ class TransposeConvolutionBlock(tf.keras.layers.Layer):
             tf.keras.layers.Dropout(rate=dropout_rate),
             tf.keras.layers.Conv2DTranspose(filters=channel_dim, kernel_size=kernel_dim, padding=padding, strides=stride_dim, activation=None, use_bias=True, data_format='channels_last'),]
 
-    def build(self, input_shape: tf.TensorShape) -> None:
+    def build(self, input_shape: tuple) -> None:
         # the input shape is progated / unchanged
         for __l in self._layers:
             __l.build(input_shape)
