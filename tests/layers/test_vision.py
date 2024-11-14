@@ -16,8 +16,7 @@ class PatchingTest(tf.test.TestCase):
                     'merge_patch_axes': False,
                     'merge_space_axes': False,},
                 'init_unpatching': {
-                    'height_dim': 6,
-                    'width_dim': 8,
+                    'space_dim': [6, 8],
                     'patch_dim': [3, 2],
                     'space_axes': [0, 1],
                     'patch_axes': [2, 3],},
@@ -45,8 +44,7 @@ class PatchingTest(tf.test.TestCase):
                     'merge_patch_axes': True,
                     'merge_space_axes': True,},
                 'init_unpatching': {
-                    'height_dim': 6,
-                    'width_dim': 8,
+                    'space_dim': (6, 8),
                     'patch_dim': (3, 2),
                     'space_axes': 0,
                     'patch_axes': 1,},
@@ -72,8 +70,7 @@ class PatchingTest(tf.test.TestCase):
                     'merge_patch_axes': True,
                     'merge_space_axes': True,},
                 'init_unpatching': {
-                    'height_dim': 6,
-                    'width_dim': 8,
+                    'space_dim': (6, 8),
                     'patch_dim': (3, 2),
                     'space_axes': [0],
                     'patch_axes': [1],},

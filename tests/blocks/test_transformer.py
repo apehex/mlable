@@ -12,7 +12,6 @@ class FeedForwardBlockTest(tf.test.TestCase):
             {
                 'inputs': tf.ones((2, 4, 6), dtype=tf.float16),
                 'args': {
-                    'embed_dim': 6,
                     'hidden_dim': 24,},
                 'outputs': {
                     'values': tf.zeros((2, 4, 6), dtype=tf.float32),
@@ -20,7 +19,6 @@ class FeedForwardBlockTest(tf.test.TestCase):
             {
                 'inputs': tf.stack(4 * [tf.range(16)], axis=1),
                 'args': {
-                    'embed_dim': 4,
                     'hidden_dim': 16,},
                 'outputs': {
                     'values': tf.zeros((16, 4), dtype=tf.float32),
@@ -87,7 +85,6 @@ class DecoderBLockTest(tf.test.TestCase):
                 'value': tf.ones((2, 4, 16), dtype=tf.float16),
                 'args': {
                     'head_num': 2,
-                    'embed_dim': 16,
                     'hidden_dim': 64,
                     'key_dim': 4,
                     'attention_axes': [1],},
@@ -100,7 +97,6 @@ class DecoderBLockTest(tf.test.TestCase):
                 'value': tf.stack(2 * [tf.stack(16 * [tf.range(4)], axis=1)], axis=0),
                 'args': {
                     'head_num': 2,
-                    'embed_dim': 16,
                     'hidden_dim': 64,
                     'key_dim': 4,
                     'attention_axes': [1],},

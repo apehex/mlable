@@ -13,7 +13,6 @@ class FeedForwardNetworkTest(tf.test.TestCase):
             {
                 'inputs': tf.ones((1, 2), dtype=tf.float32),
                 'args': {
-                    'input_dim': 2,
                     'hidden_dim': 4,
                     'use_bias': False,
                     'activation': 'gelu'},
@@ -28,8 +27,9 @@ class FeedForwardNetworkTest(tf.test.TestCase):
             # build
             _ = __layer(__case['inputs'])
             # set weights
-            __layer._hidden.set_weights([np.ones((__case['args']['input_dim'], __case['args']['hidden_dim']))])
-            __layer._output.set_weights([np.ones((__case['args']['hidden_dim'], __case['args']['input_dim']))])
+            __input_dim = tuple(__case['inputs'].shape)[-1]
+            __layer._hidden.set_weights([np.ones((__input_dim, __case['args']['hidden_dim']))])
+            __layer._output.set_weights([np.ones((__case['args']['hidden_dim'], __input_dim))])
             # compute
             __outputs = __layer(__case['inputs'])
             # test

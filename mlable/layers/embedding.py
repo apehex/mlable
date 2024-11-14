@@ -83,10 +83,8 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
             'feature_axis': feature_axis,
             'max_wavelength': max_wavelength,
             'scaling_factor': scaling_factor}
-        # no weights
-        self.build()
 
-    def build(self, input_shape: tf.TensorShape=None) -> None:
+    def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, offset: int=0, **kwargs) -> tf.Tensor:
@@ -129,7 +127,7 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         # create when the input shape is knwon
         self._layer = None
 
-    def build(self, input_shape: tf.TensorShape) -> None:
+    def build(self, input_shape: tuple) -> None:
         __shape = list(input_shape)
         __rank = len(__shape)
         __axis_s = self._config['sequence_axis'] % __rank
@@ -139,6 +137,8 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         # actually init & build
         self._layer = tf.keras.layers.Embedding(input_dim=__dim_s, output_dim=__dim_f)
         self._layer.build((__dim_s,))
+        # register
+        self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # normalize: positive indexes for comparisons
