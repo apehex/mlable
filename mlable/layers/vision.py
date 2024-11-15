@@ -38,12 +38,10 @@ class Patching(tf.keras.layers.Layer):
     def build(self, input_shape: tuple) -> None:
         __rank = len(input_shape)
         # normalize negative indexes
-        __axis_h = self._config['height_axis'] % __rank
-        __axis_w = self._config['width_axis'] % __rank
+        __axes_s = [self._config['height_axis'] % __rank, self._config['width_axis'] % __rank]
         # match the ordering of the axes
-        __dim_p = self._config['patch_dim'][::-1] if (__axis_w < __axis_h) else self._config['patch_dim']
+        __dim_p = self._config['patch_dim'][::-1] if (__axes_s[-1] < __axes_s[0]) else self._config['patch_dim']
         # shortcuts
-        __axes_s = sorted([__axis_h, __axis_w])
         # several calls with the same args
         __split_width = {'input_axis': max(__axes_s), 'output_axis': max(__axes_s) + 1, 'factor': __dim_p[-1], 'insert': True,}
         __split_height = {'input_axis': min(__axes_s), 'output_axis': min(__axes_s) + 1, 'factor': __dim_p[0], 'insert': True,}
