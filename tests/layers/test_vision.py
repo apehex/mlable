@@ -12,7 +12,8 @@ class PatchingTest(tf.test.TestCase):
                 'init': {
                     'height_axis': 0,
                     'width_axis': 1,
-                    'patch_dim': (3, 2),},
+                    'patch_dim': (3, 2),
+                    'transpose': False,},
                 'init_unpatching': {
                     'space_height_axis': 0,
                     'space_width_axis': 1,
@@ -36,9 +37,36 @@ class PatchingTest(tf.test.TestCase):
                                 [[30, 31], [38, 39], [46, 47]],],])}},
             {
                 'init': {
+                    'height_axis': 0,
+                    'width_axis': 1,
+                    'patch_dim': (3, 2),
+                    'transpose': True,},
+                'init_unpatching': {
+                    'space_height_axis': 2,
+                    'space_width_axis': 3,
+                    'patch_height_axis': 0,
+                    'patch_width_axis': 1,},
+                'input': {
+                    'inputs': tf.reshape(tf.range(48, dtype=tf.int32), shape=(6, 8)),},
+                'output': {
+                    'shape': (3, 2, 2, 4),
+                    'values': tf.convert_to_tensor(
+                        [
+                            [
+                                [[0, 2, 4, 6], [24, 26, 28, 30]],
+                                [[1, 3, 5, 7], [25, 27, 29, 31]]],
+                            [
+                                [[8, 10, 12, 14], [32, 34, 36, 38]],
+                                [[9, 11, 13, 15], [33, 35, 37, 39]]],
+                            [
+                                [[16, 18, 20, 22], [40, 42, 44, 46]],
+                                [[17, 19, 21, 23], [41, 43, 45, 47]],],])}},
+            {
+                'init': {
                     'height_axis': 1,
                     'width_axis': 0,
-                    'patch_dim': (2, 3),},
+                    'patch_dim': (2, 3),
+                    'transpose': False,},
                 'init_unpatching': {
                     'space_height_axis': 0,
                     'space_width_axis': 1,
@@ -91,7 +119,8 @@ class PixelShuffleTest(tf.test.TestCase):
                 'init_patching': {
                     'height_axis': 0,
                     'width_axis': 1,
-                    'patch_dim': (3, 2),},
+                    'patch_dim': (3, 2),
+                    'transpose': False,},
                 'input': {
                     'inputs': tf.reshape(tf.range(48, dtype=tf.int32), shape=(2, 2, 12)),},
                 'output': {

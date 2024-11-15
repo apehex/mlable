@@ -17,38 +17,36 @@ class Patching(tf.keras.layers.Layer):
         patch_dim: iter,
         height_axis: int=1,
         width_axis: int=2,
+        transpose: bool=False,
         **kwargs
     ) -> None:
         # init
         super(Patching, self).__init__(**kwargs)
-        # the patch dim should always be an iterable
-        __patch_dim = [patch_dim] if isinstance(patch_dim, int) else list(patch_dim)
-        # match the ordering of the axes
-        __patch_dim = __patch_dim[::-1] if (width_axis < height_axis) else __patch_dim
-        # always interpret the smallest axis as height
-        __height_axis = min(height_axis, width_axis)
-        __width_axis = max(height_axis, width_axis)
         # save for import / export
         self._config = {
-            'height_axis': __height_axis,
-            'width_axis': __width_axis,
-            'patch_dim': __patch_dim,}
+            'height_axis': height_axis,
+            'width_axis': width_axis,
+            'patch_dim': [patch_dim] if isinstance(patch_dim, int) else list(patch_dim),
+            'transpose': transpose,}
         # reshaping layers
         self._split_width = None
         self._split_height = None
+        self._swap_height = None
+        self._swap_width = None
         self._swap_groups = None
 
     def build(self, input_shape: tuple) -> None:
-        __split_width = {
-            'input_axis': self._config['width_axis'],
-            'output_axis': self._config['width_axis'] + 1,
-            'factor': self._config['patch_dim'][-1],
-            'insert': True}
-        __split_height = {
-            'input_axis': self._config['height_axis'],
-            'output_axis': self._config['height_axis'] + 1,
-            'factor': self._config['patch_dim'][0],
-            'insert': True}
+        __rank = len(input_shape)
+        # normalize negative indexes
+        __axis_h = self._config['height_axis'] % __rank
+        __axis_w = self._config['width_axis'] % __rank
+        # match the ordering of the axes
+        __dim_p = self._config['patch_dim'][::-1] if (__axis_w < __axis_h) else self._config['patch_dim']
+        # shortcuts
+        __axes_s = sorted([__axis_h, __axis_w])
+        # several calls with the same args
+        __split_width = {'input_axis': max(__axes_s), 'output_axis': max(__axes_s) + 1, 'factor': __dim_p[-1], 'insert': True,}
+        __split_height = {'input_axis': min(__axes_s), 'output_axis': min(__axes_s) + 1, 'factor': __dim_p[0], 'insert': True,}
         # shape after splitting both height and width axes
         __shape = mlable.shaping.divide_shape(input_shape, **__split_width)
         __shape = mlable.shaping.divide_shape(__shape, **__split_height)
@@ -56,10 +54,15 @@ class Patching(tf.keras.layers.Layer):
         self._split_width = mlable.layers.reshaping.Divide(**__split_width)
         self._split_height = mlable.layers.reshaping.Divide(**__split_height)
         # the width axis has been pushed right by the insertion of the patch height axis
-        self._swap_groups = mlable.layers.reshaping.Swap(left_axis=self._config['height_axis'] + 1, right_axis=self._config['width_axis'] + 1)
+        self._swap_height = mlable.layers.reshaping.Swap(left_axis=min(__axes_s), right_axis=min(__axes_s) + 1)
+        self._swap_width = mlable.layers.reshaping.Swap(left_axis=max(__axes_s) + 1, right_axis=max(__axes_s) + 2)
+        self._swap_groups = mlable.layers.reshaping.Swap(left_axis=min(__axes_s) + 1, right_axis=max(__axes_s) + 1)
         # no weights
         self._split_height.build()
         self._split_width.build()
+        # only the rank is used
+        self._swap_height.build(__shape)
+        self._swap_width.build(__shape)
         self._swap_groups.build(__shape)
         # register
         self.built = True
@@ -67,6 +70,9 @@ class Patching(tf.keras.layers.Layer):
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # split the last axis first, because it increases the position of the following axes
         __outputs = self._split_height(self._split_width(inputs))
+        # swap the patch with the space axes => local order rather than global
+        if self._config['transpose']:
+            __outputs = self._swap_width(self._swap_height(__outputs))
         # group by space and patch instead of height and width
         return self._swap_groups(__outputs)
 
@@ -92,26 +98,38 @@ class Unpatching(tf.keras.layers.Layer):
     ) -> None:
         # init
         super(Unpatching, self).__init__(**kwargs)
-        # normalize
-        self._space_axes = sorted([space_height_axis, space_width_axis])
-        self._patch_axes = sorted([patch_height_axis, patch_width_axis])
         # save for import / export
         self._config = {
-            'space_height_axis': min(self._space_axes),
-            'space_width_axis': max(self._space_axes),
-            'patch_height_axis': min(self._patch_axes),
-            'patch_width_axis': max(self._patch_axes),}
+            'space_height_axis': space_height_axis,
+            'space_width_axis': space_width_axis,
+            'patch_height_axis': patch_height_axis,
+            'patch_width_axis': patch_width_axis,}
         # reshaping layers
+        self._swap_height = None
+        self._swap_width = None
         self._swap_groups = None
         self._merge_width = None
         self._merge_height = None
 
     def build(self, input_shape: tuple) -> None:
-        # init
-        self._swap_groups = mlable.layers.reshaping.Swap(left_axis=max(self._space_axes), right_axis=min(self._patch_axes))
-        self._merge_width = mlable.layers.reshaping.Merge(left_axis=min(self._patch_axes), right_axis=max(self._patch_axes), left=True)
-        self._merge_height = mlable.layers.reshaping.Merge(left_axis=min(self._space_axes), right_axis=max(self._space_axes), left=True)
+        # normalize negative indexes, relative to the input rank
+        __rank = len(input_shape)
+        __config = {__k: __v % __rank for __k, __v in self._config.items()}
+        # by convention, the space axes come first and then the patch axes
+        __space_axes = sorted(__config.values())[:2]
+        __patch_axes = sorted(__config.values())[-2:]
+        # if the patch axes come first, swap then back
+        self._transpose = max(__config['patch_height_axis'], __config['patch_width_axis']) < min(__config['space_height_axis'], __config['space_width_axis'])
+        # symmetric (space and patch can be swapped)
+        self._swap_height = mlable.layers.reshaping.Swap(left_axis=min(__space_axes), right_axis=min(__patch_axes))
+        self._swap_width = mlable.layers.reshaping.Swap(left_axis=max(__space_axes), right_axis=max(__patch_axes))
+        # asymmetric (space and patch cannot be interverted)
+        self._swap_groups = mlable.layers.reshaping.Swap(left_axis=max(__space_axes), right_axis=min(__patch_axes))
+        self._merge_width = mlable.layers.reshaping.Merge(left_axis=min(__patch_axes), right_axis=max(__patch_axes), left=True)
+        self._merge_height = mlable.layers.reshaping.Merge(left_axis=min(__space_axes), right_axis=max(__space_axes), left=True)
         # build
+        self._swap_height.build(input_shape)
+        self._swap_width.build(input_shape)
         self._swap_groups.build(input_shape)
         self._merge_width.build()
         self._merge_height.build()
@@ -119,9 +137,13 @@ class Unpatching(tf.keras.layers.Layer):
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        # swap image width with patch height
-        __outputs = self._swap_groups(inputs)
-        # after transposing, the patch axes are now the width axes
+        __outputs = inputs
+        # space and patch axes need to be swapped first
+        if self._transpose:
+            __outputs = self._swap_width(self._swap_height(__outputs))
+        # group by height and width instead of space and patch
+        __outputs = self._swap_groups(__outputs)
+        # after transposing, the patch axes are now the width axes (unless transposed)
         __outputs = self._merge_width(__outputs)
         # and the space axes are the height axes
         return self._merge_height(__outputs)
