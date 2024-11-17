@@ -131,3 +131,35 @@ class Swap(tf.keras.layers.Layer):
     @classmethod
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
+
+# MOVE #########################################################################
+
+@tf.keras.utils.register_keras_serializable(package='layers')
+class Move(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        from_axis: int,
+        to_axis: int,
+        **kwargs
+    ) -> None:
+        super(Move, self).__init__(**kwargs)
+        # save for import / export
+        self._config = {'from_axis': from_axis, 'to_axis': to_axis,}
+        # the actual permutation depends on the rank of the input
+        self._perm = []
+
+    def build(self, input_shape: tuple) -> None:
+        self._perm = mlable.shaping.move_axis(rank=len(input_shape), before=self._config['from_axis'], after=self._config['to_axis'], perm=[])
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        return tf.transpose(inputs, perm=self._perm, conjugate=False)
+
+    def get_config(self) -> dict:
+        __config = super(Move, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
