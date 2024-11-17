@@ -1,12 +1,32 @@
 import tensorflow as tf
 
+# PERMUTATION ##################################################################
+
+def rotate(sequence: list, ticks: int) -> list:
+    __n = ticks % len(sequence)
+    return sequence[__n:] + sequence[:__n] # shift left if ticks > 0 right otherwise
+
 # AXES ########################################################################
 
-def swap_axes(rank: int, left: int, right: int, perm: tuple=()) -> tuple:
+def swap_axes(rank: int, left: int, right: int, perm: list=[]) -> list:
     __perm = perm if perm else list(range(rank))
     __left, __right = left % rank, right % rank
     __perm[__left], __perm[__right] = __perm[__right], __perm[__left]
     return __perm
+
+def move_axis(rank: int, before: int, after: int, perm: list=[]) -> list:
+    __perm = perm if perm else list(range(rank))
+    # indexes
+    __from = before % len(__perm)
+    __to = after % len(__perm)
+    # rotate left to right if from < to and vice-versa
+    __dir = 1 if __from < __to else -1
+    # split the sequence
+    __left = __perm[:min(__from, __to)]
+    __shift = rotate(__perm[min(__from, __to):max(__from, __to) + 1], ticks=__dir)
+    __right = __perm[max(__from, __to) + 1:]
+    # recompose
+    return __left + __shift + __right
 
 # DIMS ########################################################################
 
