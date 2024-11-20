@@ -83,7 +83,7 @@ class Patching(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
-# RECOMPOSE THE IMAGE #########################################################
+# RECOMPOSE THE IMAGE ##########################################################
 
 class Unpatching(tf.keras.layers.Layer):
     def __init__(
@@ -148,6 +148,54 @@ class Unpatching(tf.keras.layers.Layer):
 
     def get_config(self) -> dict:
         __config = super(Unpatching, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+# PIXEL PACKING ################################################################
+
+class PixelPacking(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        patch_dim: iter,
+        height_axis: int=1,
+        width_axis: int=2,
+        **kwargs
+    ) -> None:
+        # init
+        super(PixelPacking, self).__init__(**kwargs)
+        # normalize
+        __patch_dim = [patch_dim] if isinstance(patch_dim, int) else list(patch_dim)
+        # save config
+        self._config = {
+            'patch_dim': __patch_dim,
+            'height_axis': height_axis,
+            'width_axis': width_axis,}
+        # reshaping layers
+        self._patch_space = None
+        self._merge_patch = None
+
+    def build(self, input_shape: tuple=None) -> None:
+        # init
+        self._patch_space = Patching(transpose=False, **self._config)
+        self._merge_patch = mlable.layers.reshaping.Merge(left_axis=-2, right_axis=-1, left=True)
+        # no weights
+        self._patch_space.build(input_shape)
+        self._merge_patch.build()
+        # register
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        # split the space axes into patches
+        __outputs = self._patch_space(inputs)
+        # merge the feature axis with the patch axes
+        return self._merge_patch(self._merge_patch(__outputs))
+
+    def get_config(self) -> dict:
+        __config = super(PixelPacking, self).get_config()
         __config.update(self._config)
         return __config
 

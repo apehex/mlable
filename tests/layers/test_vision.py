@@ -116,11 +116,10 @@ class PixelShuffleTest(tf.test.TestCase):
                     'height_axis': 0,
                     'width_axis': 1,
                     'patch_dim': (3, 2),},
-                'init_patching': {
+                'init_packing': {
                     'height_axis': 0,
                     'width_axis': 1,
-                    'patch_dim': (3, 2),
-                    'transpose': False,},
+                    'patch_dim': (3, 2),},
                 'input': {
                     'inputs': tf.reshape(tf.range(48, dtype=tf.int32), shape=(2, 2, 12)),},
                 'output': {
@@ -146,7 +145,6 @@ class PixelShuffleTest(tf.test.TestCase):
     def test_reciprocity(self):
         for __case in self._test_cases:
             __shuffle = mlable.layers.vision.PixelShuffle(**__case['init'])
-            __patch = mlable.layers.vision.Patching(**__case['init_patching'])
-            __outputs = __patch(__shuffle(__case['input']['inputs']))
-            __outputs = mlable.shaping.merge(mlable.shaping.merge(__outputs, left_axis=-2, right_axis=-1, left=False), left_axis=-2, right_axis=-1, left=False)
+            __pack = mlable.layers.vision.PixelPacking(**__case['init_packing'])
+            __outputs = __pack(__shuffle(__case['input']['inputs']))
             self.assertAllEqual(__case['input']['inputs'], __outputs)
