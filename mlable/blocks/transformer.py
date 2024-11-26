@@ -265,7 +265,7 @@ class DecoderBlock(tf.keras.layers.Layer):
             'scale': scale,}
         # layers
         self._attention = AttentionBlock(head_num=head_num, key_dim=key_dim, value_dim=value_dim, attention_axes=attention_axes, dropout_rate=dropout_rate, epsilon=epsilon, use_bias=use_bias, center=center, scale=scale)
-        self._ffn = mlable.blocks.transformer.FeedForwardBlock(hidden_dim=hidden_dim, dropout_rate=dropout_rate, epsilon=epsilon, center=center, scale=scale)
+        self._ffn = FeedForwardBlock(hidden_dim=hidden_dim, dropout_rate=dropout_rate, epsilon=epsilon, center=center, scale=scale)
         # specific building mechanism != built-in
         self._built = False
 
