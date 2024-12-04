@@ -118,6 +118,53 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
+# SINE #########################################################################
+
+@tf.keras.utils.register_keras_serializable(package='layers')
+class SinePositionalEmbedding(tf.keras.layers.Layer):
+    def __init__(self, sequence_axis: int=1, feature_axis: int=-1, wavelength_dim: int=WAVELENGTH, **kwargs) -> None:
+        super(SinePositionalEmbedding, self).__init__(**kwargs)
+        # save the config to init later
+        self._config = {'sequence_axis': sequence_axis, 'feature_axis': feature_axis, 'wavelength_dim': wavelength_dim,}
+
+    def build(self, input_shape: tuple=None) -> None:
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, offset: int=0, **kwargs) -> tf.Tensor:
+        # dtype of the computations
+        __dtype = self.compute_dtype
+        # normalize: positive indexes for comparisons
+        __rank = len(list(inputs.shape))
+        __axis_s = self._config['sequence_axis'] % __rank
+        __axis_f = self._config['feature_axis'] % __rank
+        # keep only the sequence and feature dimensions, eg (1, S, 1, F)
+        __shape = mlable.shaping.filter_shape(shape=inputs.shape, axes=[__axis_s, __axis_f])
+        # parse
+        __dim_s = __shape[__axis_s]
+        __dim_f = __shape[__axis_f]
+        # flat range up to sequence dim
+        __pos = compute_positions(dim=__dim_s, offset=offset, factor=1.0, dtype=__dtype)
+        # inverse frequencies
+        __freq = compute_inverse_freq(dim=__dim_f, wavelength=self._config['wavelength_dim'], dtype=__dtype)
+        # the angles have shape (S, F)
+        __angles = tf.einsum("i,j->ij", __pos, __freq)
+        # even indices are sine, odd are cosine
+        __mask_c = tf.cast(tf.range(__dim_f, dtype=tf.int32) % 2, __dtype)
+        __mask_s = 1.0 - __mask_c
+        # embedding shape is [__dim_s, __dim_f]
+        __embed = tf.math.sin(__angles) * __mask_s + tf.math.cos(__angles) * __mask_c
+        # broadcast to match the inputs shape
+        return tf.reshape(__embed, __shape)
+
+    def get_config(self) -> dict:
+        __config = super(SinePositionalEmbedding, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
+
 # POSITION #####################################################################
 
 @tf.keras.utils.register_keras_serializable(package='layers')
