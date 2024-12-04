@@ -6,7 +6,7 @@ import mlable.shaping
 
 WAVELENGTH = 10_000
 
-# ROPE ##########################################################################
+# TRIGONOMETRY ##################################################################
 
 def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
     __range = tf.cast(tf.range(dim, dtype=tf.dtypes.float32), dtype=dtype)
@@ -15,12 +15,14 @@ def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtyp
     return __factor * (__range + __offset)
 
 def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
-    __freq = tf.divide(tf.cast(tf.range(0, limit=dim, delta=2, dtype=tf.dtypes.float32), dtype=dtype), tf.cast(dim, dtype=dtype))
-    return 1.0 / (wavelength ** __freq)
+    __exp = tf.divide(tf.range(dim, dtype=dtype), tf.cast(dim, dtype=dtype))
+    return 1.0 / (wavelength ** __exp)
+
+# ROPE ##########################################################################
 
 def compute_cos_sin_embedding(sequence_dim: int, feature_dim: int, offset: int=0, factor: float=1.0, wavelength: float=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tuple:
     # inverse frequencies
-    __freq = compute_inverse_freq(dim=feature_dim, wavelength=wavelength, dtype=dtype)
+    __freq = compute_inverse_freq(dim=feature_dim // 2, wavelength=wavelength, dtype=dtype)
     # positions
     __pos = compute_positions(dim=sequence_dim, offset=offset, factor=factor, dtype=dtype)
     # (S, E / 2)
