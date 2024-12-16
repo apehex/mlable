@@ -15,8 +15,8 @@ def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtyp
     return __factor * (__range + __offset)
 
 def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
-    __exp = tf.divide(tf.range(dim, dtype=dtype), tf.cast(dim, dtype=dtype))
-    return 1.0 / (wavelength ** __exp)
+    __exp = tf.divide(tf.range(dim, dtype=tf.float32), tf.cast(dim, dtype=tf.float32))
+    return 1.0 / (wavelength ** tf.cast(__exp, dtype=dtype))
 
 # ROPE ##########################################################################
 
