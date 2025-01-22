@@ -1,3 +1,5 @@
+import math
+
 import tensorflow as tf
 
 import mlable.shaping
@@ -223,3 +225,26 @@ class TokunEmbedding(tf.keras.layers.Embedding):
         __outputs = super(TokunEmbedding, self).call(inputs)
         # concatenate the embeddings
         return mlable.shaping.merge(__outputs, left_axis=-2, right_axis=-1, left=True)
+
+# BASE #########################################################################
+
+@tf.keras.utils.register_keras_serializable(package='layers')
+class GenericEmbedding(tf.keras.layers.Embedding):
+    def compute_internal_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape)[:1] + (math.prod(tuple(input_shape)[1:]),)
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape) + (self.output_dim,)
+
+    def build(self, input_shape: tuple) -> None:
+        super(GenericEmbedding, self).build(self.compute_internal_shape(input_shape))
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        # this class lifts the limitation on tensor rank (<= 3) in the base class tf.keras.layers.Embedding
+        __shape = tuple(tf.shape(inputs))
+        # merge all the intermediate axes
+        __outputs = tf.reshape(inputs, shape=self.compute_internal_shape(__shape))
+        # embed each element separately
+        __outputs = super(GenericEmbedding, self).call(__outputs)
+        # split the intermediate axes back
+        return tf.reshape(__outputs, shape=self.compute_output_shape(__shape))
