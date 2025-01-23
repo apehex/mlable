@@ -102,11 +102,9 @@ class AttentionBlock(tf.keras.layers.Layer):
         self._position = {__a: mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=__a, feature_axis=-1) for __a in __axes}
         # attention layer
         self._attention = tf.keras.layers.MultiHeadAttention(num_heads=head_num, key_dim=key_dim, value_dim=value_dim, attention_axes=__axes, use_bias=use_bias, dropout=dropout_rate, kernel_initializer='glorot_uniform')
-        # specific building mechanism != built-in
-        self._built = False
 
     def _build(self, query_shape: tuple, key_shape: tuple, value_shape: tuple) -> None:
-        if not self._built:
+        if not self.built:
             # the input shape is progated / unchanged
             self._query_norm.build(query_shape)
             self._key_norm.build(key_shape)
@@ -118,7 +116,7 @@ class AttentionBlock(tf.keras.layers.Layer):
             else:
                 self._attention.build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
             # register
-            self.built, self._built = True, True
+            self.built = True
 
     def build(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> None:
         if (key_shape is not None) and (value_shape is not None):
@@ -191,11 +189,9 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
         self._position = {__a: mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=__a, feature_axis=-1) for __a in __axes}
         # attention layer
         self._attention = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=head_num, key_dim=key_dim, value_dim=value_dim, attention_axes=__axes, use_bias=use_bias, dropout=dropout_rate, kernel_initializer='glorot_uniform')
-        # specific building mechanism != built-in
-        self._built = False
 
     def _build(self, query_shape: tuple, key_shape: tuple, value_shape: tuple) -> None:
-        if not self._built:
+        if not self.built:
             # the input shape is progated / unchanged
             self._query_norm.build(query_shape)
             self._key_norm.build(key_shape)
@@ -207,7 +203,7 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
             else:
                 self._attention.build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
             # register
-            self.built, self._built = True, True
+            self.built = True
 
     def build(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> None:
         if (key_shape is not None) and (value_shape is not None):
@@ -275,16 +271,14 @@ class DecoderBlock(tf.keras.layers.Layer):
         # layers
         self._attention = AttentionBlock(head_num=head_num, key_dim=key_dim, value_dim=value_dim, attention_axes=attention_axes, dropout_rate=dropout_rate, epsilon=epsilon, use_bias=use_bias, center=center, scale=scale)
         self._ffn = FeedForwardBlock(hidden_dim=hidden_dim, dropout_rate=dropout_rate, epsilon=epsilon, center=center, scale=scale)
-        # specific building mechanism != built-in
-        self._built = False
 
     def _build(self, query_shape: tuple, key_shape: tuple, value_shape: tuple) -> None:
-        if not self._built:
+        if not self.built:
             # the input shape is propagated / unchanged
             self._attention._build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
             self._ffn.build(query_shape)
             # register
-            self.built, self._built = True, True
+            self.built = True
 
     def build(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> None:
         if (key_shape is not None) and (value_shape is not None):
