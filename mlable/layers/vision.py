@@ -35,19 +35,25 @@ class Patching(tf.keras.layers.Layer):
         self._swap_width = None
         self._swap_groups = None
 
-    def build(self, input_shape: tuple) -> None:
+    def _divide_args(self, axis: int, dim: int) -> dict:
+        return {'input_axis': axis, 'output_axis': axis + 1, 'factor': dim, 'insert': True,}
+
+    def _normalize_axes(self, input_shape: tuple) -> list:
         __rank = len(input_shape)
+        return [self._config['height_axis'] % __rank, self._config['width_axis'] % __rank]
+
+    def _normalize_dims(self, input_shape: tuple) -> list:
+        __axes_s = self._normalize_axes(input_shape)
+        return self._config['patch_dim'][::-1] if (__axes_s[-1] < __axes_s[0]) else self._config['patch_dim']
+
+    def build(self, input_shape: tuple) -> None:
         # normalize negative indexes
-        __axes_s = [self._config['height_axis'] % __rank, self._config['width_axis'] % __rank]
+        __axes_s = self._normalize_axes(input_shape)
         # match the ordering of the axes
-        __dim_p = self._config['patch_dim'][::-1] if (__axes_s[-1] < __axes_s[0]) else self._config['patch_dim']
-        # shortcuts
-        # several calls with the same args
-        __split_width = {'input_axis': max(__axes_s), 'output_axis': max(__axes_s) + 1, 'factor': __dim_p[-1], 'insert': True,}
-        __split_height = {'input_axis': min(__axes_s), 'output_axis': min(__axes_s) + 1, 'factor': __dim_p[0], 'insert': True,}
-        # shape after splitting both height and width axes
-        __shape = mlable.shaping.divide_shape(input_shape, **__split_width)
-        __shape = mlable.shaping.divide_shape(__shape, **__split_height)
+        __dim_p = self._normalize_dims(input_shape)
+        # common args
+        __split_width = self._divide_args(axis=max(__axes_s), dim=__dim_p[-1])
+        __split_height = self._divide_args(axis=min(__axes_s), dim=__dim_p[0])
         # init
         self._split_width = mlable.layers.reshaping.Divide(**__split_width)
         self._split_height = mlable.layers.reshaping.Divide(**__split_height)
@@ -58,12 +64,28 @@ class Patching(tf.keras.layers.Layer):
         # no weights
         self._split_height.build()
         self._split_width.build()
+        # shape after splitting both height and width axes
+        __shape = self._split_height.compute_output_shape(self._split_width.compute_output_shape(input_shape))
         # only the rank is used
         self._swap_height.build(__shape)
         self._swap_width.build(__shape)
         self._swap_groups.build(__shape)
         # register
         self.built = True
+
+    def compute_output_shape(self, input_shape) -> tuple:
+        # split width axis
+        __shape = self._split_width.compute_output_shape(input_shape)
+        # split height axis
+        __shape = self._split_height.compute_output_shape(__shape)
+        # move the patch axes before the space axes
+        if self._config['transpose']:
+            # swap the space and patch height axes
+            __shape = self._swap_height.compute_output_shape(__shape)
+            # swap the space and patch width axes
+            __shape = self._swap_width.compute_output_shape(__shape)
+        # swap the patch height and the space width axes
+        return self._swap_groups.compute_output_shape(__shape)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # split the last axis first, because it increases the position of the following axes
@@ -109,15 +131,20 @@ class Unpatching(tf.keras.layers.Layer):
         self._merge_width = None
         self._merge_height = None
 
+    def _normalize_config(self, input_shape: tuple) -> dict:
+        __rank = len(input_shape)
+        return {__k: __v % __rank for __k, __v in self._config.items()}
+
+    def _is_transposed(self, input_shape: tuple) -> bool:
+        __config = self._normalize_config(input_shape)
+        return max(__config['patch_height_axis'], __config['patch_width_axis']) < min(__config['space_height_axis'], __config['space_width_axis'])
+
     def build(self, input_shape: tuple) -> None:
         # normalize negative indexes, relative to the input rank
-        __rank = len(input_shape)
-        __config = {__k: __v % __rank for __k, __v in self._config.items()}
+        __config = self._normalize_config(input_shape)
         # by convention, the space axes come first and then the patch axes
         __space_axes = sorted(__config.values())[:2]
         __patch_axes = sorted(__config.values())[-2:]
-        # if the patch axes come first, swap then back
-        self._transpose = max(__config['patch_height_axis'], __config['patch_width_axis']) < min(__config['space_height_axis'], __config['space_width_axis'])
         # symmetric (space and patch can be swapped)
         self._swap_height = mlable.layers.reshaping.Swap(left_axis=min(__space_axes), right_axis=min(__patch_axes))
         self._swap_width = mlable.layers.reshaping.Swap(left_axis=max(__space_axes), right_axis=max(__patch_axes))
@@ -134,14 +161,27 @@ class Unpatching(tf.keras.layers.Layer):
         # register
         self.built = True
 
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        __shape = tuple(input_shape)
+        if self._is_transposed(input_shape):
+            # swap the space and patch axes
+            __shape = self._swap_height.compute_output_shape(__shape)
+            __shape = self._swap_width.compute_output_shape(__shape)
+        # group by height and width instead of space and patch
+        __shape = self._swap_groups.compute_output_shape(__shape)
+        # after swapping, the patch axes are now the width axes
+        __shape = self._merge_width.compute_output_shape(__shape)
+        # and the space axes are the height axes
+        return self._merge_height.compute_output_shape(__shape)
+
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         __outputs = inputs
         # space and patch axes need to be swapped first
-        if self._transpose:
+        if self._is_transposed(tuple(tf.shape(inputs))):
             __outputs = self._swap_width(self._swap_height(__outputs))
         # group by height and width instead of space and patch
         __outputs = self._swap_groups(__outputs)
-        # after transposing, the patch axes are now the width axes (unless transposed)
+        # after swapping, the patch axes are now the width axes
         __outputs = self._merge_width(__outputs)
         # and the space axes are the height axes
         return self._merge_height(__outputs)
@@ -187,6 +227,16 @@ class PixelPacking(tf.keras.layers.Layer):
         self._merge_patch.build()
         # register
         self.built = True
+
+    def compute_output_shape(self, input_shape) -> tuple:
+        # common args
+        __args = {'output_axis': -1, 'insert': False,}
+        # merge the height axes
+        __shape = mlable.shaping.divide_shape(input_shape, input_axis=self._config['height_axis'], factor=self._config['patch_dim'][0], **__args)
+        # merge the width axes
+        __shape = mlable.shaping.divide_shape(__shape, input_axis=self._config['width_axis'], factor=self._config['patch_dim'][-1], **__args)
+        # format
+        return tuple(__shape)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # split the space axes into patches
@@ -243,6 +293,16 @@ class PixelShuffle(tf.keras.layers.Layer):
         self._unpatch_space.build(__shape)
         # register
         self.built = True
+
+    def compute_output_shape(self, input_shape) -> tuple:
+        # common args
+        __args = {'input_axis': -1, 'insert': False,}
+        # merge the height axes
+        __shape = mlable.shaping.divide_shape(input_shape, output_axis=self._config['height_axis'], factor=self._config['patch_dim'][0], **__args)
+        # merge the width axes
+        __shape = mlable.shaping.divide_shape(__shape, output_axis=self._config['width_axis'], factor=self._config['patch_dim'][-1], **__args)
+        # format
+        return tuple(__shape)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # split the feature axis by chunks of patch size

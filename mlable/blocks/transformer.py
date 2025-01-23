@@ -44,6 +44,9 @@ class FeedForwardBlock(tf.keras.layers.Layer):
         # register
         self.built = True
 
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape)
+
     def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
         # normalize
         __outputs = self._norm(inputs, training=training)
@@ -120,6 +123,9 @@ class AttentionBlock(tf.keras.layers.Layer):
     def build(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> None:
         if (key_shape is not None) and (value_shape is not None):
             self._build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
+
+    def compute_output_shape(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> tuple:
+        return tuple(query_shape)
 
     def call(self, query: tf.Tensor, key: tf.Tensor, value: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
         # build
@@ -207,6 +213,9 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
         if (key_shape is not None) and (value_shape is not None):
             self._build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
 
+    def compute_output_shape(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> tuple:
+        return tuple(query_shape)
+
     def call(self, query: tf.Tensor, key: tf.Tensor, value: tf.Tensor, cache: tf.Tensor=None, position: int=None, training: bool=False, **kwargs) -> tf.Tensor:
         # build
         self._build(query_shape=tuple(query.shape), key_shape=tuple(key.shape), value_shape=tuple(value.shape))
@@ -280,6 +289,9 @@ class DecoderBlock(tf.keras.layers.Layer):
     def build(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> None:
         if (key_shape is not None) and (value_shape is not None):
             self._build(query_shape=query_shape, key_shape=key_shape, value_shape=value_shape)
+
+    def compute_output_shape(self, query_shape: tuple, key_shape: tuple=None, value_shape: tuple=None) -> tuple:
+        return tuple(query_shape)
 
     def call(self, query: tf.Tensor, key: tf.Tensor, value: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
         # build
