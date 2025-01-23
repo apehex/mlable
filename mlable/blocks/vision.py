@@ -31,6 +31,9 @@ class ConvolutionBlock(tf.keras.layers.Layer):
         # register
         self.built = True
 
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return functools.reduce(lambda __s, __l: __l.compute_output_shape(__s), self._layers, tuple(input_shape))
+
     def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
         return functools.reduce(lambda __t, __l: __l(__t, training=training, **kwargs), self._layers, inputs)
 
@@ -71,6 +74,9 @@ class TransposeConvolutionBlock(tf.keras.layers.Layer):
             __l.build(input_shape)
         # register
         self.built = True
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return functools.reduce(lambda __s, __l: __l.compute_output_shape(__s), self._layers, tuple(input_shape))
 
     def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
         return functools.reduce(lambda __t, __l: __l(__t, training=training, **kwargs), self._layers, inputs)

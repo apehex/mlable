@@ -15,6 +15,9 @@ class Reshape(tf.keras.layers.Layer):
         # save for import / export
         self._config = {'target_shape': target_shape}
 
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(self._config['target_shape'])
+
     def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
@@ -50,6 +53,9 @@ class Divide(tf.keras.layers.Layer):
             'factor': factor,
             'insert': insert,}
 
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return mlable.shaping.divide_shape(tuple(input_shape), **self._config)
+
     def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
@@ -84,6 +90,9 @@ class Merge(tf.keras.layers.Layer):
             'right_axis': right_axis,
             'left': left,}
 
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return mlable.shaping.merge_shape(tuple(input_shape), **self._config)
+
     def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
@@ -116,6 +125,13 @@ class Swap(tf.keras.layers.Layer):
         # the actual permutation depends on the rank of the input
         self._perm = []
 
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(mlable.shaping.swap_axes(
+            rank=len(input_shape),
+            left=self._config['left_axis'],
+            right=self._config['right_axis'],
+            perm=list(input_shape)))
+
     def build(self, input_shape: tuple) -> None:
         self._perm = mlable.shaping.swap_axes(rank=len(input_shape), left=self._config['left_axis'], right=self._config['right_axis'], perm=[])
         self.built = True
@@ -147,6 +163,13 @@ class Move(tf.keras.layers.Layer):
         self._config = {'from_axis': from_axis, 'to_axis': to_axis,}
         # the actual permutation depends on the rank of the input
         self._perm = []
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(mlable.shaping.move_axis(
+            rank=len(input_shape),
+            before=self._config['from_axis'],
+            after=self._config['to_axis'],
+            perm=list(input_shape)))
 
     def build(self, input_shape: tuple) -> None:
         self._perm = mlable.shaping.move_axis(rank=len(input_shape), before=self._config['from_axis'], after=self._config['to_axis'], perm=[])

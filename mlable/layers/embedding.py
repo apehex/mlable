@@ -88,6 +88,9 @@ class RotaryPositionalEmbedding(tf.keras.layers.Layer):
             'max_wavelength': max_wavelength,
             'scaling_factor': scaling_factor}
 
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape)
+
     def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
@@ -128,6 +131,9 @@ class SinePositionalEmbedding(tf.keras.layers.Layer):
         super(SinePositionalEmbedding, self).__init__(**kwargs)
         # save the config to init later
         self._config = {'sequence_axis': sequence_axis, 'feature_axis': feature_axis, 'wavelength_dim': wavelength_dim,}
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape)
 
     def build(self, input_shape: tuple=None) -> None:
         self.built = True
@@ -182,13 +188,13 @@ class GenericEmbedding(tf.keras.layers.Embedding):
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # this class lifts the limitation on tensor rank (<= 3) in the base class tf.keras.layers.Embedding
-        __shape = tuple(tf.shape(inputs))
+        __shape = tuple(inputs.shape)
         # merge all the intermediate axes
-        __outputs = tf.reshape(inputs, shape=self.compute_internal_shape(__shape))
+        __outputs = tf.reshape(inputs, shape=GenericEmbedding.compute_internal_shape(self, __shape))
         # embed each element separately
-        __outputs = super(GenericEmbedding, self).call(__outputs)
+        __outputs = tf.keras.layers.Embedding.call(self, __outputs)
         # split the intermediate axes back
-        return tf.reshape(__outputs, shape=self.compute_output_shape(__shape))
+        return tf.reshape(__outputs, shape=GenericEmbedding.compute_output_shape(self, __shape))
 
 # POSITION #####################################################################
 
@@ -200,6 +206,9 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         self._config = {'sequence_axis': sequence_axis, 'feature_axis': feature_axis,}
         # create when the input shape is knwon
         self._layer = None
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape)
 
     def build(self, input_shape: tuple) -> None:
         __shape = list(input_shape)
@@ -243,6 +252,12 @@ class PositionalEmbedding(tf.keras.layers.Layer):
 
 @tf.keras.utils.register_keras_serializable(package='layers')
 class TokunEmbedding(GenericEmbedding):
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        # add the embedding axis
+        __shape = super(TokunEmbedding, self).compute_output_shape(input_shape)
+        # merge the patch and feature axes
+        return mlable.shaping.merge_shape(__shape, left_axis=-2, right_axis=-1, left=True)
+
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # embed each element separately
         __outputs = super(TokunEmbedding, self).call(inputs)

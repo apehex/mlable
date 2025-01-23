@@ -32,6 +32,9 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
         self._dropout = None
         self._output = None
 
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape)
+
     def build(self, input_shape: tuple) -> None:
         __input_shape = tuple(input_shape)
         __hidden_shape = __input_shape[:-1] + (self._config['hidden_dim'],)
@@ -88,6 +91,9 @@ class GatedLinearUnit(tf.keras.layers.Layer):
         # layers
         self._gate = None
         self._linear = None
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape)[:-1] + (self._config['output_dim'],)
 
     def build(self, input_shape: tuple) -> None:
         # common args
