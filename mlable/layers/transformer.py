@@ -150,6 +150,9 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
         use_causal_mask: bool=True,
         **kwargs
     ) -> tf.Tensor:
+        # parent methods use a property rather than an arg...
+        self._return_attention_scores = return_attention_scores
+        # older versions
         if (hasattr(self, "_build_from_signature") and hasattr(self, "_built_from_signature") and not self._built_from_signature):
             self._build_from_signature(query=query, value=value, key=key)
         # attention mask
