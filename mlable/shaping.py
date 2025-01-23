@@ -31,7 +31,10 @@ def move_axis(rank: int, before: int, after: int, perm: list=[]) -> list:
 # DIMS ########################################################################
 
 def normalize_dim(dim: int) -> int:
-    return -1 if (dim is None or dim < 0) else dim
+    return 0 if (dim is None) else dim
+
+def symbolic_dim(dim: int) -> int:
+    return None if (dim == 0) else dim
 
 def multiply_dim(dim_l: int, dim_r: int) -> int:
     return -1 if (dim_l == -1 or dim_r == -1) else dim_l * dim_r
@@ -43,6 +46,9 @@ def divide_dim(dim_l: int, dim_r: int) -> int:
 
 def normalize_shape(shape: list) -> list:
     return [normalize_dim(dim=__d) for __d in list(shape)]
+
+def symbolic_shape(shape: list) -> list:
+    return [symbolic_dim(dim=__d) for __d in list(shape)]
 
 def filter_shape(shape: list, axes: list) -> list:
     __shape = normalize_shape(shape)
