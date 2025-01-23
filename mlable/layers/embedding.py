@@ -256,7 +256,9 @@ class TokunEmbedding(GenericEmbedding):
         # add the embedding axis
         __shape = super(TokunEmbedding, self).compute_output_shape(input_shape)
         # merge the patch and feature axes
-        return mlable.shaping.merge_shape(__shape, left_axis=-2, right_axis=-1, left=True)
+        __shape = mlable.shaping.merge_shape(__shape, left_axis=-2, right_axis=-1, left=True)
+        # format 0 dimensions as None in symbolic shapes
+        return tuple(mlable.shaping.symbolic_shape(__shape))
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # embed each element separately

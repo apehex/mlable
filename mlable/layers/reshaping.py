@@ -54,7 +54,10 @@ class Divide(tf.keras.layers.Layer):
             'insert': insert,}
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
-        return mlable.shaping.divide_shape(tuple(input_shape), **self._config)
+        # normalize all dims as ints and divide
+        __shape = mlable.shaping.divide_shape(input_shape, **self._config)
+        # interpret 0 dimensions as None in symbolic shapes
+        return tuple(mlable.shaping.symbolic_shape(__shape))
 
     def build(self, input_shape: tuple=None) -> None:
         self.built = True
@@ -91,7 +94,10 @@ class Merge(tf.keras.layers.Layer):
             'left': left,}
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
-        return mlable.shaping.merge_shape(tuple(input_shape), **self._config)
+        # normalize all dims as ints and divide
+        __shape = mlable.shaping.merge_shape(input_shape, **self._config)
+        # interpret 0 dimensions as None in symbolic shapes
+        return tuple(mlable.shaping.symbolic_shape(__shape))
 
     def build(self, input_shape: tuple=None) -> None:
         self.built = True

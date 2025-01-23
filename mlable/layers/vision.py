@@ -235,8 +235,8 @@ class PixelPacking(tf.keras.layers.Layer):
         __shape = mlable.shaping.divide_shape(input_shape, input_axis=self._config['height_axis'], factor=self._config['patch_dim'][0], **__args)
         # merge the width axes
         __shape = mlable.shaping.divide_shape(__shape, input_axis=self._config['width_axis'], factor=self._config['patch_dim'][-1], **__args)
-        # format
-        return tuple(__shape)
+        # interpret 0 dimensions as None in symbolic shapes
+        return tuple(mlable.shaping.symbolic_shape(__shape))
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # split the space axes into patches
@@ -301,8 +301,8 @@ class PixelShuffle(tf.keras.layers.Layer):
         __shape = mlable.shaping.divide_shape(input_shape, output_axis=self._config['height_axis'], factor=self._config['patch_dim'][0], **__args)
         # merge the width axes
         __shape = mlable.shaping.divide_shape(__shape, output_axis=self._config['width_axis'], factor=self._config['patch_dim'][-1], **__args)
-        # format
-        return tuple(__shape)
+        # interpret 0 dimensions as None in symbolic shapes
+        return tuple(mlable.shaping.symbolic_shape(__shape))
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # split the feature axis by chunks of patch size

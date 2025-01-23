@@ -14,7 +14,8 @@ class ReshapingTests(tf.test.TestCase):
             (4, 4, 4, 4),
             (None, 4, 16),
             [1, 8],
-            tf.ones((2, 16)).shape,]
+            tf.ones((2, 16)).shape,
+            tf.keras.Input((32, 32, 8)).shape]
 
     def test_filter(self):
         for __s in self._shapes:
@@ -27,6 +28,13 @@ class ReshapingTests(tf.test.TestCase):
         for __s in self._shapes:
             assert all([isinstance(__d, int) for __d in mlable.shaping.normalize_shape(shape=__s)])
             self.assertEqual(len(__s), len(mlable.shaping.normalize_shape(shape=__s)))
+
+    def test_symbolic(self):
+        for __s in self._shapes:
+            __integer_shape = mlable.shaping.normalize_shape(shape=__s)
+            __symbolic_shape = mlable.shaping.symbolic_shape(shape=__integer_shape)
+            assert tuple(__s) == tuple(__symbolic_shape)
+            assert all([isinstance(__d, (int, None.__class__)) for __d in __symbolic_shape])
 
     def test_divide(self):
         for __s in self._shapes:
