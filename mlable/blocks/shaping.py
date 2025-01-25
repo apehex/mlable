@@ -2,7 +2,7 @@ import math
 
 import tensorflow as tf
 
-import mlable.layers.reshaping
+import mlable.layers.shaping
 import mlable.shaping
 
 # CONSTANTS ####################################################################
@@ -55,12 +55,12 @@ class Patching(tf.keras.layers.Layer):
         __split_width = self._divide_args(axis=max(__axes_s), dim=__dim_p[-1])
         __split_height = self._divide_args(axis=min(__axes_s), dim=__dim_p[0])
         # init
-        self._split_width = mlable.layers.reshaping.Divide(**__split_width)
-        self._split_height = mlable.layers.reshaping.Divide(**__split_height)
+        self._split_width = mlable.layers.shaping.Divide(**__split_width)
+        self._split_height = mlable.layers.shaping.Divide(**__split_height)
         # the width axis has been pushed right by the insertion of the patch height axis
-        self._swap_height = mlable.layers.reshaping.Swap(left_axis=min(__axes_s), right_axis=min(__axes_s) + 1)
-        self._swap_width = mlable.layers.reshaping.Swap(left_axis=max(__axes_s) + 1, right_axis=max(__axes_s) + 2)
-        self._swap_groups = mlable.layers.reshaping.Swap(left_axis=min(__axes_s) + 1, right_axis=max(__axes_s) + 1)
+        self._swap_height = mlable.layers.shaping.Swap(left_axis=min(__axes_s), right_axis=min(__axes_s) + 1)
+        self._swap_width = mlable.layers.shaping.Swap(left_axis=max(__axes_s) + 1, right_axis=max(__axes_s) + 2)
+        self._swap_groups = mlable.layers.shaping.Swap(left_axis=min(__axes_s) + 1, right_axis=max(__axes_s) + 1)
         # no weights
         self._split_height.build()
         self._split_width.build()
@@ -146,12 +146,12 @@ class Unpatching(tf.keras.layers.Layer):
         __space_axes = sorted(__config.values())[:2]
         __patch_axes = sorted(__config.values())[-2:]
         # symmetric (space and patch can be swapped)
-        self._swap_height = mlable.layers.reshaping.Swap(left_axis=min(__space_axes), right_axis=min(__patch_axes))
-        self._swap_width = mlable.layers.reshaping.Swap(left_axis=max(__space_axes), right_axis=max(__patch_axes))
+        self._swap_height = mlable.layers.shaping.Swap(left_axis=min(__space_axes), right_axis=min(__patch_axes))
+        self._swap_width = mlable.layers.shaping.Swap(left_axis=max(__space_axes), right_axis=max(__patch_axes))
         # asymmetric (space and patch cannot be interverted)
-        self._swap_groups = mlable.layers.reshaping.Swap(left_axis=max(__space_axes), right_axis=min(__patch_axes))
-        self._merge_width = mlable.layers.reshaping.Merge(left_axis=min(__patch_axes), right_axis=max(__patch_axes), left=True)
-        self._merge_height = mlable.layers.reshaping.Merge(left_axis=min(__space_axes), right_axis=max(__space_axes), left=True)
+        self._swap_groups = mlable.layers.shaping.Swap(left_axis=max(__space_axes), right_axis=min(__patch_axes))
+        self._merge_width = mlable.layers.shaping.Merge(left_axis=min(__patch_axes), right_axis=max(__patch_axes), left=True)
+        self._merge_height = mlable.layers.shaping.Merge(left_axis=min(__space_axes), right_axis=max(__space_axes), left=True)
         # build
         self._swap_height.build(input_shape)
         self._swap_width.build(input_shape)
@@ -221,7 +221,7 @@ class PixelPacking(tf.keras.layers.Layer):
     def build(self, input_shape: tuple=None) -> None:
         # init
         self._patch_space = Patching(transpose=False, **self._config)
-        self._merge_patch = mlable.layers.reshaping.Merge(left_axis=-2, right_axis=-1, left=True)
+        self._merge_patch = mlable.layers.shaping.Merge(left_axis=-2, right_axis=-1, left=True)
         # no weights
         self._patch_space.build(input_shape)
         self._merge_patch.build()
@@ -284,8 +284,8 @@ class PixelShuffle(tf.keras.layers.Layer):
         __shape = mlable.shaping.divide_shape(input_shape, factor=self._config['patch_dim'][0], **__args)
         __shape = mlable.shaping.divide_shape(__shape, factor=self._config['patch_dim'][-1], **__args)
         # init
-        self._split_height = mlable.layers.reshaping.Divide(factor=self._config['patch_dim'][0], **__args)
-        self._split_width = mlable.layers.reshaping.Divide(factor=self._config['patch_dim'][-1], **__args)
+        self._split_height = mlable.layers.shaping.Divide(factor=self._config['patch_dim'][0], **__args)
+        self._split_width = mlable.layers.shaping.Divide(factor=self._config['patch_dim'][-1], **__args)
         self._unpatch_space = Unpatching(space_height_axis=self._config['height_axis'], space_width_axis=self._config['width_axis'], patch_height_axis=-3, patch_width_axis=-2)
         # no weights
         self._split_height.build()
