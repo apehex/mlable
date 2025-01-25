@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-import mlable.layers.vision
+import mlable.blocks.shaping
 
 # BOTH #########################################################################
 
@@ -91,7 +91,7 @@ class PatchingTest(tf.test.TestCase):
 
     def test_patching(self):
         for __case in self._test_cases:
-            __layer = mlable.layers.vision.Patching(**__case['init'])
+            __layer = mlable.blocks.shaping.Patching(**__case['init'])
             __outputs = __layer(**__case['input'])
             if 'shape' in __case['output']:
                 self.assertEqual(tuple(__outputs.shape), __case['output']['shape'])
@@ -100,8 +100,8 @@ class PatchingTest(tf.test.TestCase):
 
     def test_reciprocity(self):
         for __case in self._test_cases:
-            __patch = mlable.layers.vision.Patching(**__case['init'])
-            __unpatch = mlable.layers.vision.Unpatching(**__case['init_unpatching'])
+            __patch = mlable.blocks.shaping.Patching(**__case['init'])
+            __unpatch = mlable.blocks.shaping.Unpatching(**__case['init_unpatching'])
             __outputs = __unpatch(__patch(__case['input']['inputs']))
             self.assertAllEqual(__case['input']['inputs'], __outputs)
 
@@ -135,7 +135,7 @@ class PixelShuffleTest(tf.test.TestCase):
 
     def test_patching(self):
         for __case in self._test_cases:
-            __layer = mlable.layers.vision.PixelShuffle(**__case['init'])
+            __layer = mlable.blocks.shaping.PixelShuffle(**__case['init'])
             __outputs = __layer(**__case['input'])
             if 'shape' in __case['output']:
                 self.assertEqual(tuple(__outputs.shape), __case['output']['shape'])
@@ -144,7 +144,7 @@ class PixelShuffleTest(tf.test.TestCase):
 
     def test_reciprocity(self):
         for __case in self._test_cases:
-            __shuffle = mlable.layers.vision.PixelShuffle(**__case['init'])
-            __pack = mlable.layers.vision.PixelPacking(**__case['init_packing'])
+            __shuffle = mlable.blocks.shaping.PixelShuffle(**__case['init'])
+            __pack = mlable.blocks.shaping.PixelPacking(**__case['init_packing'])
             __outputs = __pack(__shuffle(__case['input']['inputs']))
             self.assertAllEqual(__case['input']['inputs'], __outputs)

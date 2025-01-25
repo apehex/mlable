@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-import mlable.blocks.vision
+import mlable.blocks.convolution
 
 # CONVOLUTION ##################################################################
 
@@ -19,7 +19,7 @@ class ConvolutionBlockTest(tf.test.TestCase):
 
     def test_null_on_constant_inputs(self): # because of the layer norm
         for __case in self._null_cases:
-            __layer = mlable.blocks.vision.ConvolutionBlock(**__case['args'])
+            __layer = mlable.blocks.convolution.ConvolutionBlock(**__case['args'])
             __outputs = __layer(__case['inputs'], training=False)
             # test
             if 'shape' in __case['outputs']:
@@ -40,7 +40,7 @@ class ResidualBlockTest(tf.test.TestCase):
 
     def test_null_on_constant_inputs(self): # because of the layer norm
         for __case in self._null_cases:
-            __layer = mlable.blocks.vision.ResidualBlock(**__case['args'])
+            __layer = mlable.blocks.convolution.ResidualBlock(**__case['args'])
             __outputs = __layer(__case['inputs'], training=False)
             # test
             if 'shape' in __case['outputs']:
@@ -65,7 +65,7 @@ class TransposeConvolutionBlockTest(tf.test.TestCase):
 
     def test_null_on_constant_inputs(self): # because of the layer norm
         for __case in self._null_cases:
-            __layer = mlable.blocks.vision.TransposeConvolutionBlock(**__case['args'])
+            __layer = mlable.blocks.convolution.TransposeConvolutionBlock(**__case['args'])
             __outputs = __layer(__case['inputs'], training=False)
             # test
             if 'shape' in __case['outputs']:
