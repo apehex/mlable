@@ -32,10 +32,10 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
-        # adapt the measure
-        __fn = __wrap(functools.partial(categorical_group_accuracy, depth=depth, groups=__groups, axes=__axes, dtype=dtype))
+        # specialize the measure
+        __fn = lambda y_true, y_pred: categorical_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, dtype=dtype)
         # init
-        super(CategoricalGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
+        super(CategoricalGroupAccuracy, self).__init__(fn=__wrap(__fn), name=name, dtype=dtype, **kwargs)
         # config
         self._config = {'group': group}
         # sould be maximized
@@ -71,10 +71,10 @@ class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
-        # adapt the measure
-        __fn = __wrap(functools.partial(binary_group_accuracy, depth=depth, groups=__groups, axes=__axes, threshold=threshold, dtype=dtype))
+        # specialize the measure
+        __fn = lambda y_true, y_pred: binary_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, threshold=threshold, dtype=dtype)
         # init
-        super(BinaryGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
+        super(BinaryGroupAccuracy, self).__init__(fn=__wrap(__fn), name=name, dtype=dtype, **kwargs)
         # config
         self._config = {'group': group, 'threshold': threshold}
         # sould be maximized
@@ -110,10 +110,10 @@ class RawGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
-        # adapt the measure
-        __fn = __wrap(functools.partial(raw_group_accuracy, factor=factor, groups=__groups, axes=__axes, dtype=dtype))
+        # specialize the measure
+        __fn = lambda y_true, y_pred: binary_group_accuracy(y_true=y_true, y_pred=y_pred, factor=factor, groups=__groups, axes=__axes, dtype=dtype)
         # init
-        super(RawGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
+        super(RawGroupAccuracy, self).__init__(fn=__wrap(__fn), name=name, dtype=dtype, **kwargs)
         # config
         self._config = {'group': group, 'factor': factor}
         # sould be maximized
