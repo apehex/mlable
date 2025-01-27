@@ -27,15 +27,15 @@ def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
     def __init__(self, depth: int=-1, group: int=4, axis: int=-1, name: str='categorical_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
-        # serialization wrapper
-        __wrap = tf.keras.utils.register_keras_serializable(package='metrics', name='categorical_group_accuracy')
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
         # specialize the measure
-        __fn = lambda y_true, y_pred: categorical_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, dtype=dtype)
+        @tf.keras.utils.register_keras_serializable(package='metrics', name='categorical_group_accuracy')
+        def __fn(y_true: tf.Tensor, y_pred:tf.Tensor) -> tf.Tensor:
+            return categorical_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, dtype=dtype)
         # init
-        super(CategoricalGroupAccuracy, self).__init__(fn=__wrap(__fn), name=name, dtype=dtype, **kwargs)
+        super(CategoricalGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
         self._config = {'group': group}
         # sould be maximized
@@ -66,15 +66,15 @@ def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, g
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
     def __init__(self, depth: int=-1, group: int=4, axis: int=-1, threshold: float=0.5, name: str='binary_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
-        # serialization wrapper
-        __wrap = tf.keras.utils.register_keras_serializable(package='metrics', name='binary_group_accuracy')
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
         # specialize the measure
-        __fn = lambda y_true, y_pred: binary_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, threshold=threshold, dtype=dtype)
+        @tf.keras.utils.register_keras_serializable(package='metrics', name='binary_group_accuracy')
+        def __fn(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+            return binary_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, threshold=threshold, dtype=dtype)
         # init
-        super(BinaryGroupAccuracy, self).__init__(fn=__wrap(__fn), name=name, dtype=dtype, **kwargs)
+        super(BinaryGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
         self._config = {'group': group, 'threshold': threshold}
         # sould be maximized
@@ -105,15 +105,15 @@ def raw_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, factor: float=256.0
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class RawGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
     def __init__(self, factor: float=256.0, group: int=1, axis: int=-1, name: str='raw_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
-        # serialization wrapper
-        __wrap = tf.keras.utils.register_keras_serializable(package='metrics', name='raw_group_accuracy')
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
         # specialize the measure
-        __fn = lambda y_true, y_pred: binary_group_accuracy(y_true=y_true, y_pred=y_pred, factor=factor, groups=__groups, axes=__axes, dtype=dtype)
+        @tf.keras.utils.register_keras_serializable(package='metrics', name='raw_group_accuracy')
+        def __fn(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+            return binary_group_accuracy(y_true=y_true, y_pred=y_pred, factor=factor, groups=__groups, axes=__axes, dtype=dtype)
         # init
-        super(RawGroupAccuracy, self).__init__(fn=__wrap(__fn), name=name, dtype=dtype, **kwargs)
+        super(RawGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
         self._config = {'group': group, 'factor': factor}
         # sould be maximized
