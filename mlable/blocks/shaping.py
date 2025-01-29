@@ -131,17 +131,17 @@ class Unpatching(tf.keras.layers.Layer):
         self._merge_width = None
         self._merge_height = None
 
-    def _normalize_config(self, input_shape: tuple) -> dict:
-        __rank = len(input_shape)
-        return {__k: __v % __rank for __k, __v in self._config.items()}
+    def _normalize_config(self, rank: int) -> dict:
+        return {__k: __v % rank for __k, __v in self._config.items()}
 
-    def _is_transposed(self, input_shape: tuple) -> bool:
-        __config = self._normalize_config(input_shape)
+    def _is_transposed(self, rank: int) -> bool:
+        __config = self._normalize_config(rank)
         return max(__config['patch_height_axis'], __config['patch_width_axis']) < min(__config['space_height_axis'], __config['space_width_axis'])
 
     def build(self, input_shape: tuple) -> None:
+        __rank = len(tuple(input_shape))
         # normalize negative indexes, relative to the input rank
-        __config = self._normalize_config(input_shape)
+        __config = self._normalize_config(__rank)
         # by convention, the space axes come first and then the patch axes
         __space_axes = sorted(__config.values())[:2]
         __patch_axes = sorted(__config.values())[-2:]
@@ -163,7 +163,8 @@ class Unpatching(tf.keras.layers.Layer):
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         __shape = tuple(input_shape)
-        if self._is_transposed(input_shape):
+        __rank = len(__shape)
+        if self._is_transposed(__rank):
             # swap the space and patch axes
             __shape = self._swap_height.compute_output_shape(__shape)
             __shape = self._swap_width.compute_output_shape(__shape)
@@ -176,8 +177,9 @@ class Unpatching(tf.keras.layers.Layer):
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         __outputs = inputs
+        __rank = len(tuple(inputs.shape))
         # space and patch axes need to be swapped first
-        if self._is_transposed(tuple(tf.shape(inputs))):
+        if self._is_transposed(__rank):
             __outputs = self._swap_width(self._swap_height(__outputs))
         # group by height and width instead of space and patch
         __outputs = self._swap_groups(__outputs)
