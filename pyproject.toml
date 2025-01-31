@@ -8,7 +8,7 @@ packages = [{include = "mlable"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10, <4"
-tensorflow = ">=2.15"
+tensorflow = ">=2.16, <2.19"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
