@@ -23,7 +23,6 @@ def write(data: any, path: str, tsv: bool=True) -> None:
 def stats(dataset: tf.data.Dataset, count: int=None, features: list=[]) -> dict:
     # init
     __min, __avg, __max, __cnt = 0, 0, 0, 0
-    __iter = iter(dataset)
     # scan the whole dataset
     for __sample in itertools.islice(dataset, 0, count):
         # preprocess
