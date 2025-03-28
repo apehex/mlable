@@ -1,7 +1,24 @@
+import numpy as np
 import tensorflow as tf
 
+import mlable.masking
 import mlable.ops
 import mlable.shaping
+
+# FILTER ###############################################################
+
+def filter_top_k(logits: tf.Tensor, count: int) -> tf.Tensor:
+    __dim = int(tuple(logits.shape)[-1])
+    # meaningful candidate count
+    __count = tf.clip_by_value(count, clip_value_min=1, clip_value_max=__dim)
+    # filter the top k
+    __values, __indices = tf.math.top_k(logits, k=__count)
+    # select the smallest logits
+    __lower = tf.gather(__values, axis=-1, indices=[__count - 1])
+    # mask the logits to remove
+    __mask = logits < __lower
+    # set the filtered logits to -inf
+    return mlable.masking.choose(left=logits, right=-np.inf, mask=__mask)
 
 # BINARY ###############################################################
 
