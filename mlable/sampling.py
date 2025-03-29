@@ -5,13 +5,26 @@ import mlable.masking
 import mlable.ops
 import mlable.shaping
 
+# UTILS ################################################################
+
+def scatter_values_on_batch_indices(indices: tf.Tensor, values: tf.Tensor) -> tf.Tensor:
+  tensor_shape = decoding_module.shape_list(batch_indices)
+  broad_casted_batch_dims = tf.reshape(
+      tf.broadcast_to(
+          tf.expand_dims(tf.range(tensor_shape[0]), axis=-1), tensor_shape),
+      [1, -1])
+  pair_indices = tf.transpose(
+      tf.concat([broad_casted_batch_dims,
+                 tf.reshape(batch_indices, [1, -1])], 0))
+  return tf.scatter_nd(pair_indices, tf.reshape(values, [-1]), tensor_shape)
+
 # FILTER ###############################################################
 
 def filter_top_k(logits: tf.Tensor, count: int) -> tf.Tensor:
     __dim = int(tuple(logits.shape)[-1])
     # meaningful candidate count
     __count = tf.clip_by_value(count, clip_value_min=1, clip_value_max=__dim)
-    # filter the top k
+    # filter and sort the top k values
     __values, __indices = tf.math.top_k(logits, k=__count)
     # select the smallest logits
     __lower = tf.gather(__values, axis=-1, indices=[__count - 1])
@@ -19,6 +32,27 @@ def filter_top_k(logits: tf.Tensor, count: int) -> tf.Tensor:
     __mask = logits < __lower
     # set the filtered logits to -inf
     return mlable.masking.choose(left=logits, right=-np.inf, mask=__mask)
+
+def filter_top_p(logits: tf.Tensor, threshold: tf.Tensor) -> tf.Tensor:
+    __dim = int(tuple(logits.shape)[-1])
+    # sort the logits descending
+    __values, __indices = tf.math.top_k(logits, k=__dim)
+    # compute the cumulative probabilities
+    __probs = tf.math.cumsum(tf.nn.softmax(__values, axis=-1), axis=-1)
+    # identify the probabilities to remove
+    __mask = __probs > threshold
+    # shift the mask to always keep at least one token
+    __mask = tf.roll(__mask, shift=1, axis=-1)
+    # replace the first column with False
+    __mask = tf.concat([tf.zeros_like(__mask[..., :1], dtype=tf.bool), __mask[..., 1:]], axis=-1)
+    # reorder the mask back to original indices
+    __scatter = tf.scatter_nd(
+        indices=tf.expand_dims(__indices, axis=-1),
+        updates=tf.cast(__mask, dtype=tf.bool),
+        shape=tf.shape(__logits))
+    # set filtered logits to -inf
+    return mlable.masking.choose(left=__logits, right=-np.inf, mask=__mask)
+
 
 # BINARY ###############################################################
 
