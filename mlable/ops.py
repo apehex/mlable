@@ -57,7 +57,7 @@ def _reduce_base(data: tf.Tensor, base: int, axis: int=-1, keepdims: bool=False,
     # recompose the number
     return tf.reduce_sum(data * __base, axis=axis, keepdims=keepdims)
 
-def expand_base(data: tf.Tensor, base: int, depth: int, bigendian: bool=True) -> tf.Tensor:
+def expand_base(data: tf.Tensor, base: int, depth: int, bigendian: bool=False) -> tf.Tensor:
     __shape = len(list(data.shape)) * [1] + [depth]
     # base indexes
     __idx = range(depth)[::-1] if bigendian else range(depth)
@@ -69,6 +69,14 @@ def expand_base(data: tf.Tensor, base: int, depth: int, bigendian: bool=True) ->
     __mod = tf.reshape(__mod, shape=__shape)
     # Euclidean algorithm
     __digits = tf.math.floordiv(x=tf.math.floormod(x=tf.expand_dims(data, axis=-1), y=__mod), y=__div)
+    # format
+    return tf.cast(__digits, dtype=data.dtype)
+
+def expand_binary(data: tf.Tensor, depth: int, bigendian: bool=False) -> tf.Tensor:
+    # base indexes
+    __idx = range(depth)[::-1] if bigendian else range(depth)
+    # decompose with a bitwise and
+    __digits = 1 & tf.bitwise.right_shift(tf.expand_dims(data, axis=-1), __idx)
     # format
     return tf.cast(__digits, dtype=data.dtype)
 
