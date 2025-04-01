@@ -42,6 +42,24 @@ def filter_top_p(logits: tf.Tensor, threshold: tf.Tensor) -> tf.Tensor:
 
 # BINARY #######################################################################
 
+def binary_to_categorical(logits: tf.Tensor, depth: int=8) -> tf.Tensor:
+    __bin_rank = int(tf.rank(logits))
+    __cat_dim = 2 ** depth # C
+    # actually group the bits together
+    __logits = mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
+    # reshape to allow broadcasting: add an axis for the categories (..., N, 1, D)
+    __logits = tf.expand_dims(__logits, axis=-2)
+    # enumerate all possible binary combinations for the given depth
+    __categories = tf.range(__cat_dim, dtype=tf.int32)
+    # decompose each category in binary bits
+    __categories = mlable.ops.expand_binary(__categories, depth=depth, bigendian=False)
+    # match the shape of the logits (..., 1, C, D)
+    __categories = tf.reshape(__categories, shape=__bin_rank * (1,) + (__cat_dim, depth))
+    # select the logits depending on the bit decomposition
+    __joint = tf.where(__categories == 1, __logits, -__logits)
+    # compute the joint log probabilities for each category (probability that the decomposition match on each bit)
+    return tf.reduce_sum(__joint, axis=-1, keepdims=False)
+
 def binary(logits: tf.Tensor, depth: int=-1, threshold: float=0.0, random: bool=False) -> tf.Tensor:
     # meta
     __threshold = tf.cast(threshold, logits.dtype)
