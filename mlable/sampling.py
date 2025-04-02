@@ -40,37 +40,7 @@ def filter_top_p(logits: tf.Tensor, threshold: tf.Tensor) -> tf.Tensor:
     # set filtered logits to -inf
     return mlable.masking.choose(left=logits, right=-np.inf, mask=__mask)
 
-# BINARY #######################################################################
-
-def binary_to_categorical(logits: tf.Tensor, depth: int=8) -> tf.Tensor:
-    __bin_rank = int(tf.rank(logits))
-    __cat_dim = 2 ** depth # C
-    # actually group the bits together
-    __logits = mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
-    # reshape to allow broadcasting: add an axis for the categories (..., N, 1, D)
-    __logits = tf.expand_dims(__logits, axis=-2)
-    # enumerate all possible binary combinations for the given depth
-    __categories = tf.range(__cat_dim, dtype=tf.int32)
-    # decompose each category in binary bits
-    __categories = mlable.ops.expand_binary(__categories, depth=depth, bigendian=False)
-    # match the shape of the logits (..., 1, C, D)
-    __categories = tf.reshape(__categories, shape=__bin_rank * (1,) + (__cat_dim, depth))
-    # select the logits depending on the bit decomposition
-    __joint = tf.where(__categories == 1, __logits, -__logits)
-    # compute the joint log probabilities for each category (probability that the decomposition match on each bit)
-    return tf.reduce_sum(__joint, axis=-1, keepdims=False)
-
-def binary(logits: tf.Tensor, depth: int=-1, threshold: float=0.0, random: bool=False) -> tf.Tensor:
-    # meta
-    __threshold = tf.cast(threshold, logits.dtype)
-    # group the bits of each encoded value
-    __logits = logits if (depth < 2) else mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
-    # binary tensor
-    __bits = tf.cast(__logits > __threshold, dtype=tf.int32)
-    # expand to match the input rank
-    return mlable.ops._reduce_base(data=__bits, base=2, axis=-1, keepdims=False)
-
-# CATEGORICAL #################################################################
+# CATEGORICAL ##################################################################
 
 def categorical(logits: tf.Tensor, depth: int=-1, random: bool=False) -> tf.Tensor:
     # isolate each one-hot vector
@@ -78,7 +48,33 @@ def categorical(logits: tf.Tensor, depth: int=-1, random: bool=False) -> tf.Tens
     # return the index with the highest probability
     return tf.argmax(input=__logits, axis=-1, output_type=tf.int32)
 
-# RAW #########################################################################
+# BINARY #######################################################################
 
-def raw(logits: tf.Tensor, factor: float=256., dtype: tf.dtypes.DType=tf.int32, random: bool=False) -> tf.Tensor:
+def _combine(logits: tf.Tensor, unit: int=8) -> tf.Tensor:
+    __bin_rank = int(tf.rank(logits))
+    __cat_dim = 2 ** unit # U
+    # actually group the bits together
+    __logits = mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=unit, insert=True)
+    # reshape to allow broadcasting: add an axis for the categories (..., N, 1, U)
+    __logits = tf.expand_dims(__logits, axis=-2)
+    # enumerate all possible binary combinations for the given unit
+    __categories = tf.range(__cat_dim, dtype=tf.int32)
+    # decompose each category in binary bits
+    __categories = mlable.ops.expand_binary(__categories, depth=unit, bigendian=False)
+    # match the shape of the logits (..., 1, C, U)
+    __categories = tf.reshape(__categories, shape=__bin_rank * (1,) + (__cat_dim, unit))
+    # select the logits depending on the bit decomposition
+    __joint = tf.where(__categories == 1, __logits, -__logits)
+    # compute the joint log probabilities for each category (probability that the decomposition match on each bit)
+    return tf.reduce_sum(__joint, axis=-1, keepdims=False)
+
+def binary(logits: tf.Tensor, depth: int=-1, unit: int=8, random: bool=False) -> tf.Tensor:
+    # combine the bits by logical unit (typically 8 bit to sample from bytes)
+    __logits = _combine(logits=logits, unit=unit)
+    # apply categorical sampling on the units
+    return categorical(logits=__logits, depth=depth, random=random)
+
+# RAW ##########################################################################
+
+def raw(logits: tf.Tensor, factor: float=256., dtype: tf.dtypes.DType=tf.int32) -> tf.Tensor:
     return tf.cast(tf.round(tf.cast(factor, logits.dtype) * logits), dtype)
