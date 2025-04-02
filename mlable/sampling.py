@@ -52,11 +52,21 @@ def _categorical(logits: tf.Tensor, num_samples: int=1, seed: int=None, name: st
     # return to the original shape
     return tf.reshape(__samples, shape=__shape[:-1] + (num_samples,))
 
-def categorical(logits: tf.Tensor, topk: int, topp: float, depth: int=-1, random: bool=False) -> tf.Tensor:
+def categorical(logits: tf.Tensor, topp: float=-1.0, topk: int=-1, depth: int=-1) -> tf.Tensor:
     # isolate each one-hot vector
     __logits = logits if (depth < 2) else mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
-    # return the index with the highest probability
-    return tf.argmax(input=__logits, axis=-1, output_type=tf.int32)
+    # greedy sampling by default (deterministic)
+    __samples = tf.argmax(input=__logits, axis=-1, output_type=tf.int32)
+    # nucleus sampling
+    if topp > 0.0:
+        __logits = filter_top_p(logits=__logits, threshold=topp)
+        __samples = _categorical(logits=__logits, num_samples=1, dtype=tf.int32)
+    # limit to the top probabilities
+    if topk > 0:
+        __logits = filter_top_k(logits=__logits, count=topk)
+        __samples = _categorical(logits=__logits, num_samples=1, dtype=tf.int32)
+    # tensor of integer indexes
+    return __samples
 
 # BINARY #######################################################################
 
@@ -78,11 +88,11 @@ def _combine(logits: tf.Tensor, depth: int=8) -> tf.Tensor:
     # compute the joint log probabilities for each category (probability that the decomposition match on each bit)
     return tf.reduce_sum(__joint, axis=-1, keepdims=False)
 
-def binary(logits: tf.Tensor, depth: int=8, random: bool=False) -> tf.Tensor:
+def binary(logits: tf.Tensor, topp: float=-1.0, topk: int=-1, depth: int=8) -> tf.Tensor:
     # combine the bits by logical unit (typically 8 bit to sample from bytes)
     __logits = _combine(logits=logits, depth=depth)
-    # apply categorical sampling on the units
-    return categorical(logits=__logits, depth=-1, random=random)
+    # no need to split the tensor further, it already has a depth of 2 ** depth
+    return categorical(logits=__logits, topp=topp, topk=topk, depth=-1)
 
 # RAW ##########################################################################
 
