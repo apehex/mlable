@@ -42,6 +42,16 @@ def filter_top_p(logits: tf.Tensor, threshold: tf.Tensor) -> tf.Tensor:
 
 # CATEGORICAL ##################################################################
 
+def _categorical(logits: tf.Tensor, num_samples: int=1, seed: int=None, name: str=None, dtype: tf.DType=None) -> tf.Tensor:
+    # save the original shape
+    __shape = tuple(logits.shape)
+    # flatten all the axes except the categories
+    __logits = tf.reshape(logits, shape=(-1, int(__shape[-1])))
+    # take random samples (requires a 2D tensor, hence the wrapper)
+    __samples = tf.random.categorical(__logits, num_samples=num_samples, seed=seed, name=name, dtype=dtype)
+    # return to the original shape
+    return tf.reshape(__samples, shape=__shape[:-1] + (num_samples,))
+
 def categorical(logits: tf.Tensor, topk: int, topp: float, depth: int=-1, random: bool=False) -> tf.Tensor:
     # isolate each one-hot vector
     __logits = logits if (depth < 2) else mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
