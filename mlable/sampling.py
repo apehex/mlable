@@ -76,18 +76,20 @@ def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0
 # BINARY #######################################################################
 
 def _combine(logits: tf.Tensor, depth: int=8) -> tf.Tensor:
-    __bin_rank = int(tf.rank(logits))
-    __cat_dim = 2 ** depth # D
-    # actually group the bits together
-    __logits = mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
-    # reshape to allow broadcasting: add an axis for the categories (..., N, 1, D)
+    # group the bits together if necessary
+    __logits = logits if (depth < 1) else mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
+    # parse the shape
+    __bin_rank = int(tf.rank(__logits))
+    __bin_dim = int(__logits.shape[-1])
+    __cat_dim = 2 ** __bin_dim # B
+    # reshape to allow broadcasting: add an axis for the categories (..., N, 1, B)
     __logits = tf.expand_dims(__logits, axis=-2)
     # enumerate all possible binary combinations for the given depth
     __categories = tf.range(__cat_dim, dtype=tf.int32)
     # decompose each category in binary bits
-    __categories = mlable.ops.expand_binary(__categories, depth=depth, bigendian=False)
-    # match the shape of the logits (..., 1, C, D)
-    __categories = tf.reshape(__categories, shape=__bin_rank * (1,) + (__cat_dim, depth))
+    __categories = mlable.ops.expand_binary(__categories, depth=__bin_dim, bigendian=False)
+    # match the shape of the logits (..., 1, C, B)
+    __categories = tf.reshape(__categories, shape=(__bin_rank - 1) * (1,) + (__cat_dim, __bin_dim))
     # select the logits depending on the bit decomposition
     __joint = tf.where(__categories == 1, __logits, -__logits)
     # compute the joint log probabilities for each category (probability that the decomposition match on each bit)
