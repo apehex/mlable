@@ -52,7 +52,7 @@ def _categorical(logits: tf.Tensor, num_samples: int=1, seed: int=None, name: st
     # return to the original shape
     return tf.reshape(__samples, shape=__shape[:-1] + (num_samples,))
 
-def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=-1) -> tf.Tensor:
+def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0, depth: int=-1, seed: int=None) -> tf.Tensor:
     # isolate each one-hot vector
     __logits = logits if (depth < 2) else mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
     # greedy sampling by default (deterministic)
@@ -63,12 +63,12 @@ def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=
     # nucleus sampling
     if topp > 0.0:
         __logits = filter_top_p(logits=__logits, threshold=topp)
-        __samples = _categorical(logits=__logits, num_samples=1, dtype=tf.int32)
+        __samples = _categorical(logits=__logits, num_samples=1, seed=seed, dtype=tf.int32)
         __samples = tf.squeeze(__samples, axis=-1)
     # limit to the top probabilities
     if topk > 0:
         __logits = filter_top_k(logits=__logits, count=topk)
-        __samples = _categorical(logits=__logits, num_samples=1, dtype=tf.int32)
+        __samples = _categorical(logits=__logits, num_samples=1, seed=seed, dtype=tf.int32)
         __samples = tf.squeeze(__samples, axis=-1)
     # tensor of integer indexes
     return __samples
@@ -93,11 +93,11 @@ def _combine(logits: tf.Tensor, depth: int=8) -> tf.Tensor:
     # compute the joint log probabilities for each category (probability that the decomposition match on each bit)
     return tf.reduce_sum(__joint, axis=-1, keepdims=False)
 
-def binary(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=8) -> tf.Tensor:
+def binary(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=8, seed: int=None) -> tf.Tensor:
     # combine the bits by logical unit (typically 8 bit to sample from bytes)
     __logits = _combine(logits=logits, depth=depth)
     # no need to split the tensor further, it already has a depth of 2 ** depth
-    return categorical(logits=__logits, temp=temp, topp=topp, topk=topk, depth=-1)
+    return categorical(logits=__logits, temp=temp, topp=topp, topk=topk, depth=-1, seed=seed)
 
 # RAW ##########################################################################
 
