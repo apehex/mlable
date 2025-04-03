@@ -273,16 +273,16 @@ class BinaryGroupAccuracyTest(tf.test.TestCase):
         __accuracy = mlable.metrics.BinaryGroupAccuracy(group=__group_dim)
         # single evaluation
         __accuracy.reset_state()
-        __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
-        __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
+        __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32) # probs
+        __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=-1., maxval=1., dtype=tf.dtypes.float32) # logits
         __accuracy.update_state(y_true=__yt, y_pred=__yp)
         self.assertLessEqual(0., __accuracy.result().numpy())
         self.assertLessEqual(__accuracy.result().numpy(), 1.)
         # iterative updates
         __accuracy.reset_state()
         for _ in range(__iterations):
-            __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
-            __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
+            __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32) # probs
+            __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=-1., maxval=1., dtype=tf.dtypes.float32) # logits
             __accuracy.update_state(y_true=__yt, y_pred=__yp)
         self.assertLessEqual(0., __accuracy.result().numpy())
         self.assertLessEqual(__accuracy.result().numpy(), 1.)
@@ -296,15 +296,15 @@ class BinaryGroupAccuracyTest(tf.test.TestCase):
 
     def test_byte_accuracy_different_from_character_accuracy(self):
         # init
-        __batch_dim, __seq_dim, __encoding_dim, __iterations = 3, 32, 8, 128
+        __batch_dim, __seq_dim, __encoding_dim, __iterations = 3, 32, 4, 128
         # init
         __byte_acc = mlable.metrics.BinaryGroupAccuracy(group=1)
         __char_acc = mlable.metrics.BinaryGroupAccuracy(group=4)
         # single evaluation
         __byte_acc.reset_state()
         __char_acc.reset_state()
-        __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
-        __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32)
+        __yt = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=0., maxval=1., dtype=tf.dtypes.float32) # probs
+        __yp = tf.random.uniform(shape=(__batch_dim, __seq_dim, __encoding_dim), minval=-1., maxval=1., dtype=tf.dtypes.float32) # logits
         # evaluate
         __byte_acc.update_state(y_true=__yt, y_pred=__yp)
         __char_acc.update_state(y_true=__yt, y_pred=__yp)

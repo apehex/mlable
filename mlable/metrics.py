@@ -10,11 +10,11 @@ import mlable.utils
 # CATEGORICAL ##################################################################
 
 @tf.keras.utils.register_keras_serializable(package='metrics', name='categorical_group_accuracy')
-def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], dtype: tf.dtypes.DType=None) -> tf.Tensor:
+def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], dtype: tf.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
-    # category indexes
-    __yt = mlable.sampling.categorical(prediction=y_true, depth=depth, random=False)
-    __yp = mlable.sampling.categorical(prediction=y_pred, depth=depth, random=False)
+    # greedy sampling (argmax) along axis -1 (after split)
+    __yt = mlable.sampling.categorical(logits=y_true, depth=depth, temp=1.0, topp=0.0, topk=0, seed=None)
+    __yp = mlable.sampling.categorical(logits=y_pred, depth=depth, temp=1.0, topp=0.0, topk=0, seed=None)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -26,7 +26,7 @@ def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=
 
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, name: str='categorical_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
+    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, name: str='categorical_group_accuracy', dtype: tf.DType=None, **kwargs):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
@@ -49,11 +49,13 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 # BINARY #######################################################################
 
 @tf.keras.utils.register_keras_serializable(package='metrics', name='binary_group_accuracy')
-def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], threshold: float=0.5, dtype: tf.dtypes.DType=None) -> tf.Tensor:
+def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], dtype: tf.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
-    # category indexes
-    __yt = mlable.sampling.binary(prediction=y_true, depth=depth, threshold=threshold, random=False)
-    __yp = mlable.sampling.binary(prediction=y_pred, depth=depth, threshold=threshold, random=False)
+    # replace binary probabilities with logits
+    __yt = tf.where(tf.cast(y_true, dtype=y_pred.dtype) < 0.5, -1.0, 1.0)
+    # greedy sampling (argmax) after combining the binary predictions by chunks of depth
+    __yt = mlable.sampling.binary(logits=__yt, depth=depth, temp=1.0, topp=0.0, topk=0, seed=None)
+    __yp = mlable.sampling.binary(logits=y_pred, depth=depth, temp=1.0, topp=0.0, topk=0, seed=None)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -65,14 +67,14 @@ def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, g
 
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, threshold: float=0.5, name: str='binary_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
+    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, name: str='binary_group_accuracy', dtype: tf.DType=None, **kwargs):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
         # specialize the measure
         @tf.keras.utils.register_keras_serializable(package='metrics', name='binary_group_accuracy')
         def __fn(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-            return binary_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, threshold=threshold, dtype=dtype)
+            return binary_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, dtype=dtype)
         # init
         super(BinaryGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
@@ -88,11 +90,11 @@ class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 # BINARY #######################################################################
 
 @tf.keras.utils.register_keras_serializable(package='metrics', name='raw_group_accuracy')
-def raw_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, factor: float=256.0, groups: iter=[1], axes: iter=[-1], dtype: tf.dtypes.DType=None) -> tf.Tensor:
+def raw_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, factor: float=256.0, groups: iter=[1], axes: iter=[-1], dtype: tf.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
     # category indexes
-    __yt = mlable.sampling.raw(prediction=y_true, factor=factor, random=False)
-    __yp = mlable.sampling.raw(prediction=y_pred, factor=factor, random=False)
+    __yt = mlable.sampling.raw(data=y_true, factor=factor)
+    __yp = mlable.sampling.raw(data=y_pred, factor=factor)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -104,7 +106,7 @@ def raw_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, factor: float=256.0
 
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class RawGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, factor: float=256.0, group: int=1, axis: int=-1, name: str='raw_group_accuracy', dtype: tf.dtypes.DType=None, **kwargs):
+    def __init__(self, factor: float=256.0, group: int=1, axis: int=-1, name: str='raw_group_accuracy', dtype: tf.DType=None, **kwargs):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
