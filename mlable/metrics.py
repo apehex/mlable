@@ -37,7 +37,7 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
         # init
         super(CategoricalGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
-        self._config = {'group': group}
+        self._config = {'depth': depth, 'group': group, 'axis': axis}
         # sould be maximized
         self._direction = 'up'
 
@@ -76,7 +76,7 @@ class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
         # init
         super(BinaryGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
-        self._config = {'group': group, 'threshold': threshold}
+        self._config = {'depth': depth, 'group': group, 'axis': axis,}
         # sould be maximized
         self._direction = 'up'
 
@@ -115,7 +115,7 @@ class RawGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
         # init
         super(RawGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
-        self._config = {'group': group, 'factor': factor}
+        self._config = {'factor': factor, 'group': group, 'axis': axis,}
         # sould be maximized
         self._direction = 'up'
 
