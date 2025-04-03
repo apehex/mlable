@@ -183,9 +183,9 @@ class BaseDecompositionTest(tf.test.TestCase):
         self._bytes = tf.constant([3, 73, 0, 366, 0, 32, 2560, 0], dtype=tf.int32)
 
     def test_decomposition_values(self):
-        __number_10 = mlable.ops.expand_base(self._digits_10, base=10, depth=3)
-        __number_2 = mlable.ops.expand_base(self._digits_2, base=2, depth=4)
-        __number_256 = mlable.ops.expand_base(self._bytes, base=256, depth=2)
-        self.assertAllEqual(__number_10, tf.constant([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=tf.int32))
+        __number_10 = mlable.ops.expand_base(self._digits_10, base=10, depth=3, bigendian=False)
+        __number_2 = mlable.ops.expand_base(self._digits_2, base=2, depth=4, bigendian=True)
+        __number_256 = mlable.ops.expand_base(self._bytes, base=256, depth=2, bigendian=True)
+        self.assertAllEqual(__number_10, tf.constant([[3, 2, 1], [6, 5, 4], [9, 8, 7]], dtype=tf.int32))
         self.assertAllEqual(__number_2, tf.constant([[0, 1, 0, 1], [0, 0, 0, 1], [1, 1, 1, 1], [0, 0, 0, 0]], dtype=tf.int32))
         self.assertAllEqual(__number_256, tf.constant([[0, 3], [0, 73], [0, 0], [1, 110], [0, 0], [0, 32], [10, 0], [0, 0]], dtype=tf.int32))
