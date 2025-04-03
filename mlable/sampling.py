@@ -101,5 +101,5 @@ def binary(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, d
 
 # RAW ##########################################################################
 
-def raw(logits: tf.Tensor, factor: float=256., dtype: tf.dtypes.DType=tf.int32) -> tf.Tensor:
-    return tf.cast(tf.round(tf.cast(factor, logits.dtype) * logits), dtype)
+def raw(data: tf.Tensor, factor: float=256., dtype: tf.dtypes.DType=tf.int32) -> tf.Tensor:
+    return tf.cast(tf.round(tf.cast(factor, data.dtype) * data), dtype)
