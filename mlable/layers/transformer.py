@@ -150,10 +150,14 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
         use_causal_mask: bool=True,
         **kwargs
     ) -> tf.Tensor:
-        # parent methods use a property rather than an arg...
-        self._return_attention_scores = return_attention_scores
+        __kwargs = {}
+        # in older versions, the parent methods use a property rather than an arg...
+        if hasattr(self, '_return_attention_scores'):
+            self._return_attention_scores = return_attention_scores
+        else:
+            __kwargs = {'return_attention_scores': return_attention_scores}
         # older versions
-        if (hasattr(self, "_build_from_signature") and hasattr(self, "_built_from_signature") and not self._built_from_signature):
+        if (hasattr(self, '_build_from_signature') and hasattr(self, '_built_from_signature') and not self._built_from_signature):
             self._build_from_signature(query=query, value=value, key=key)
         # attention mask
         __mask = self._compute_attention_mask(query=query, value=value, attention_mask=attention_mask, use_causal_mask=use_causal_mask) # TODO here or after the cache update??
@@ -172,7 +176,7 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
             __value = mlable.utils.update_cache(tensor=__value, cache=cache[1], step=step, axis=self._attention_axes[0]) # custom seq axis?
             __cache = tf.stack(values=(__key, __value), axis=0)
         # use the parent functionalities
-        __outputs, __scores = self._compute_attention(query=__query, key=__key, value=__value, attention_mask=__mask, training=training)
+        __outputs, __scores = self._compute_attention(query=__query, key=__key, value=__value, attention_mask=__mask, training=training, **__kwargs)
         # projection
         __outputs = self._output_dense(__outputs)
         # output
