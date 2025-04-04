@@ -18,7 +18,7 @@ def filter_top_k(logits: tf.Tensor, count: int) -> tf.Tensor:
     # mask the logits to remove
     __mask = logits < __lower
     # set the filtered logits to -inf
-    return mlable.masking.choose(left=logits, right=-np.inf, mask=__mask)
+    return tf.where(__mask, x=tf.cast(-np.inf, dtype=logits.dtype), y=logits)
 
 def filter_top_p(logits: tf.Tensor, threshold: tf.Tensor) -> tf.Tensor:
     __dim = int(tuple(logits.shape)[-1])
@@ -38,7 +38,7 @@ def filter_top_p(logits: tf.Tensor, threshold: tf.Tensor) -> tf.Tensor:
     # mask the logits to remove, in the original (scattered) order
     __mask = logits < __lower
     # set filtered logits to -inf
-    return mlable.masking.choose(left=logits, right=-np.inf, mask=__mask)
+    return tf.where(__mask, x=tf.cast(-np.inf, dtype=logits.dtype), y=logits)
 
 # CATEGORICAL ##################################################################
 
