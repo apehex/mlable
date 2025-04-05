@@ -200,17 +200,97 @@ class CategoricalTest(tf.test.TestCase):
 
 # BINARY #######################################################################
 
-# RAW ##########################################################################
+class BinaryTest(tf.test.TestCase):
+    def setUp(self):
+        super(BinaryTest, self).setUp()
+        self._random_cases = [
+            {
+                'inputs': {
+                    'logits': tf.random.uniform((4, 8, 16), minval=-1.0, maxval=1.0, dtype=tf.float32, seed=42),
+                    'temp': 1.0,
+                    'topp': 0.0,
+                    'topk': 0,
+                    'depth': 4,
+                    'seed': 42,},
+                'outputs': {
+                    'shape': (4, 8, 4),},},
+            {
+                'inputs': {
+                    'logits': tf.random.uniform((2, 512), minval=-2.0, maxval=2.0, dtype=tf.float32, seed=101),
+                    'temp': 1.0,
+                    'topp': 0.0,
+                    'topk': 4,
+                    'depth': 8,
+                    'seed': 101,},
+                'outputs': {
+                    'shape': (2, 64),},},
+            {
+                'inputs': {
+                    'logits': tf.random.uniform((8,), minval=-1.0, maxval=1.0, dtype=tf.float32, seed=32),
+                    'temp': 1.0,
+                    'topp': 0.9,
+                    'topk': 0,
+                    'depth': -1,
+                    'seed': 32,},
+                'outputs': {
+                    'shape': (),},},]
+        self._specific_cases = [
+            {
+                'inputs': {
+                    'logits': tf.where(tf.linalg.diag([8 * [1.]]) == 1.0, 1.0, -1.0),
+                    'temp': 0.1,
+                    'topp': 0.9,
+                    'topk': 0,
+                    'depth': 4,
+                    'seed': 42,},
+                'outputs': {
+                    'shape': (1, 4, 2,),
+                    'values': tf.cast([[[1, 0], [2, 0], [4, 0], [8, 0], [0, 1], [0, 2], [0, 4], [0, 8]]], dtype=tf.int32),},},
+            {
+                'inputs': {
+                    'logits': tf.cast([[0.55, -0.08,  0.51, -0.10,  0.66, 0.47, -0.58, -0.60]], dtype=tf.float32),
+                    'temp': 1.0,
+                    'topp': 0.0,
+                    'topk': 0,
+                    'depth': -1,
+                    'seed': 42,},
+                'outputs': {
+                    'shape': (1,),
+                    'values': tf.cast([53], dtype=tf.int32),},},
+            {
+                'inputs': {
+                    'logits': tf.cast(4 * [[-16.0, -16.0, -16.0, -16.0, -16.0, -16.0, 16.0, -16.0,]], dtype=tf.float32),
+                    'temp': 1.0,
+                    'topp': 0.0,
+                    'topk': 4,
+                    'depth': -1,
+                    'seed': 42,},
+                'outputs': {
+                    'shape': (4,),
+                    'values': tf.cast(4 * [64], dtype=tf.int32),},},]
 
-# __diag = tf.linalg.diag([4 * [1.], 4 * [1.]])
-# _categorical(__diag)
-# <tf.Tensor: shape=(2, 4, 1), dtype=int64, numpy=
-# array([[[0],
-#         [1],
-#         [2],
-#         [3]],
+    def test_shape_and_dtype(self):
+        for __case in self._random_cases:
+            __outputs = mlable.sampling.binary(**__case['inputs'])
+            self.assertEqual(tuple(__outputs.shape), __case['outputs']['shape'])
+            self.assertEqual(__outputs.dtype, tf.int32)
 
-#        [[0],
-#         [1],
-#         [2],
-#         [3]]])>
+    def test_greedy_sampling_is_the_same_regardless_of_the_algorithm(self):
+        for __case in self._random_cases:
+            __args = dict(__case['inputs'])
+            __args['topp'] = 0.0
+            __args['topk'] = 0
+            __argmax = mlable.sampling.binary(**__args)
+            __args['topp'] = 0.0001
+            __args['topk'] = 0
+            __topp = mlable.sampling.binary(**__args)
+            __args['topp'] = 0.0
+            __args['topk'] = 1
+            __topk = mlable.sampling.binary(**__args)
+            self.assertAllEqual(__argmax, __topp)
+            self.assertAllEqual(__argmax, __topk)
+
+    def test_sampling_with_definitive_outcome(self):
+        for __case in self._specific_cases:
+            __outputs = mlable.sampling.binary(**__case['inputs'])
+            self.assertAllEqual(__outputs, __case['outputs']['values'])
