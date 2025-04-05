@@ -1,6 +1,5 @@
 import math
 
-import numpy as np
 import tensorflow as tf
 
 import mlable.sampling
@@ -114,6 +113,90 @@ class FilterTopkTest(tf.test.TestCase):
             self.assertAllEqual(__count, tf.ones_like(__count))
 
 # CATEGORICAL ##################################################################
+
+class CategoricalTest(tf.test.TestCase):
+    def setUp(self):
+        super(CategoricalTest, self).setUp()
+        self._random_cases = [
+            {
+                'inputs': {
+                    'logits': tf.random.uniform((4, 8, 16), minval=-1.0, maxval=1.0, dtype=tf.float32, seed=42),
+                    'temp': 1.0,
+                    'topp': 0.0,
+                    'topk': 0,
+                    'depth': -1,
+                    'seed': 42,},
+                'outputs': {
+                    'shape': (4, 8),},},
+            {
+                'inputs': {
+                    'logits': tf.random.uniform((2, 512), minval=-2.0, maxval=2.0, dtype=tf.float32, seed=101),
+                    'temp': 1.0,
+                    'topp': 0.0,
+                    'topk': 4,
+                    'depth': 32,
+                    'seed': 101,},
+                'outputs': {
+                    'shape': (2, 16),},},
+            {
+                'inputs': {
+                    'logits': tf.random.uniform((256,), minval=-1.0, maxval=1.0, dtype=tf.float32, seed=32),
+                    'temp': 1.0,
+                    'topp': 0.9,
+                    'topk': 0,
+                    'depth': -1,
+                    'seed': 32,},
+                'outputs': {
+                    'shape': (),},},]
+        self._specific_cases = [
+            {
+                'inputs': {
+                    'logits': tf.where(tf.linalg.diag([256 * [1.]]) == 1.0, 16.0, -16.0),
+                    'temp': 1.0,
+                    'topp': 0.8,
+                    'topk': 0,
+                    'depth': -1,
+                    'seed': 42,},
+                'outputs': {
+                    'shape': (1, 256,),
+                    'values': tf.expand_dims(tf.range(256), axis=0),},},
+            {
+                'inputs': {
+                    'logits': tf.cast(4 * [[-16.0, -16.0, -16.0, -16.0, -16.0, -16.0, 16.0, -16.0,]], dtype=tf.float32),
+                    'temp': 1.0,
+                    'topp': 0.0,
+                    'topk': 4,
+                    'depth': -1,
+                    'seed': 42,},
+                'outputs': {
+                    'shape': (4,),
+                    'values': tf.cast(4 * [6], dtype=tf.int32),},},]
+
+    def test_shape_and_dtype(self):
+        for __case in self._random_cases:
+            __outputs = mlable.sampling.categorical(**__case['inputs'])
+            self.assertEqual(tuple(__outputs.shape), __case['outputs']['shape'])
+            self.assertEqual(__outputs.dtype, tf.int32)
+
+    def test_greedy_sampling_is_the_same_regardless_of_the_algorithm(self):
+        for __case in self._random_cases:
+            __args = dict(__case['inputs'])
+            __args['topp'] = 0.0
+            __args['topk'] = 0
+            __argmax = mlable.sampling.categorical(**__args)
+            __args['topp'] = 0.0001
+            __args['topk'] = 0
+            __topp = mlable.sampling.categorical(**__args)
+            __args['topp'] = 0.0
+            __args['topk'] = 1
+            __topk = mlable.sampling.categorical(**__args)
+            self.assertAllEqual(__argmax, __topp)
+            self.assertAllEqual(__argmax, __topk)
+
+    def test_random_sampling_with_definitive_probabilities(self):
+        for __case in self._specific_cases:
+            __outputs = mlable.sampling.categorical(**__case['inputs'])
+            self.assertAllEqual(__outputs, __case['outputs']['values'])
 
 # BINARY #######################################################################
 
