@@ -79,8 +79,9 @@ def _combine(logits: tf.Tensor, depth: int=8) -> tf.Tensor:
     # group the bits together if necessary
     __logits = logits if (depth < 1) else mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
     # parse the shape
-    __bin_rank = int(tf.rank(__logits))
-    __bin_dim = int(__logits.shape[-1])
+    __bin_shape = tuple(__logits.shape)
+    __bin_rank = len(__bin_shape)
+    __bin_dim = int(__bin_shape[-1])
     __cat_dim = 2 ** __bin_dim # B
     # reshape to allow broadcasting: add an axis for the categories (..., N, 1, B)
     __logits = tf.expand_dims(__logits, axis=-2)
