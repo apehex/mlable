@@ -106,21 +106,28 @@ def _combine(logits: tf.Tensor) -> tf.Tensor:
     # compute the joint log probabilities for each category (probability that the decomposition match on each bit)
     return tf.reduce_sum(__joint, axis=-1, keepdims=False)
 
-def _binary(logits: tf.Tensor, threshold: float=0.0, depth: int=-1) -> tf.Tensor:
-    # group the bits together if necessary
-    __logits = _group(logits=logits, depth=depth)
+def _binary_bit_by_bit(logits: tf.Tensor, threshold: float=0.0) -> tf.Tensor:
     # convert the probabilities to bits
-    __bits = tf.cast(__logits > tf.cast(threshold, dtype=__logits.dtype), dtype=tf.int32)
+    __bits = tf.cast(logits > tf.cast(threshold, dtype=logits.dtype), dtype=tf.int32)
     # combine the bits into numbers
     return mlable.ops.reduce_base(__bits, base=2, axis=-1, group=-1, keepdims=False, bigendian=False)
 
-def binary(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=-1, seed: int=None) -> tf.Tensor:
-    # group the bits together if necessary
-    __logits = _group(logits=logits, depth=depth)
+def _binary_group_by_group(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, seed: int=None) -> tf.Tensor:
     # combine the bits by logical unit (typically 8 bit to sample from bytes)
-    __logits = _combine(logits=__logits)
+    __logits = _combine(logits=logits)
     # no need to split the tensor further, it already has a depth of 2 ** depth
     return categorical(logits=__logits, temp=temp, topp=topp, topk=topk, depth=-1, seed=seed)
+
+def binary(logits: tf.Tensor, threshold: float=0.0, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=-1, seed: int=None) -> tf.Tensor:
+    # group the bits together if necessary
+    __logits = _group(logits=logits, depth=depth)
+    # greedy sampling bit by bit by default
+    __samples = _binary_bit_by_bit(logits=__logits, threshold=threshold)
+    # group the bit predictions by categories
+    if (topp > 0.0) or (topk > 0):
+        __samples = _binary_group_by_group(__logits, temp=temp, topp=topp, topk=topk, seed=seed)
+    # index predictions
+    return __samples
 
 # RAW ##########################################################################
 
