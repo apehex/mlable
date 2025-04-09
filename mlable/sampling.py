@@ -5,6 +5,18 @@ import mlable.masking
 import mlable.ops
 import mlable.shaping
 
+# SHAPING ######################################################################
+
+def _group(logits: tf.Tensor, depth: int=-1) -> tf.Tensor:
+    return (
+        logits if (depth < 2)
+        else mlable.shaping.divide(
+            logits,
+            input_axis=-2,
+            output_axis=-1,
+            factor=depth,
+            insert=True))
+
 # FILTER #######################################################################
 
 def filter_top_k(logits: tf.Tensor, count: int) -> tf.Tensor:
@@ -54,7 +66,7 @@ def _categorical(logits: tf.Tensor, num_samples: int=1, seed: int=None, name: st
 
 def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0, depth: int=-1, seed: int=None) -> tf.Tensor:
     # isolate each one-hot vector
-    __logits = logits if (depth < 2) else mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
+    __logits = _group(logits=logits, depth=depth)
     # greedy sampling by default (deterministic)
     __samples = tf.argmax(input=__logits, axis=-1, output_type=tf.int32)
     # tweak the distribution
@@ -66,7 +78,7 @@ def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0
         __samples = _categorical(logits=__logits, num_samples=1, seed=seed, dtype=tf.int32)
         __samples = tf.squeeze(__samples, axis=-1)
     # limit to the top probabilities
-    if topk > 0:
+    if topk > 0: # top-p and top-k can be combined
         __logits = filter_top_k(logits=__logits, count=topk)
         __samples = _categorical(logits=__logits, num_samples=1, seed=seed, dtype=tf.int32)
         __samples = tf.squeeze(__samples, axis=-1)
@@ -75,16 +87,14 @@ def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0
 
 # BINARY #######################################################################
 
-def _combine(logits: tf.Tensor, depth: int=8) -> tf.Tensor:
-    # group the bits together if necessary
-    __logits = logits if (depth < 1) else mlable.shaping.divide(logits, input_axis=-2, output_axis=-1, factor=depth, insert=True)
+def _combine(logits: tf.Tensor) -> tf.Tensor:
     # parse the shape
-    __bin_shape = tuple(__logits.shape)
+    __bin_shape = tuple(logits.shape)
     __bin_rank = len(__bin_shape)
     __bin_dim = int(__bin_shape[-1])
     __cat_dim = 2 ** __bin_dim # B
     # reshape to allow broadcasting: add an axis for the categories (..., N, 1, B)
-    __logits = tf.expand_dims(__logits, axis=-2)
+    __logits = tf.expand_dims(logits, axis=-2)
     # enumerate all possible binary combinations for the given depth
     __categories = tf.range(__cat_dim, dtype=tf.int32)
     # decompose each category in binary bits
@@ -97,8 +107,10 @@ def _combine(logits: tf.Tensor, depth: int=8) -> tf.Tensor:
     return tf.reduce_sum(__joint, axis=-1, keepdims=False)
 
 def binary(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=8, seed: int=None) -> tf.Tensor:
+    # group the bits together if necessary
+    __logits = _group(logits=logits, depth=depth)
     # combine the bits by logical unit (typically 8 bit to sample from bytes)
-    __logits = _combine(logits=logits, depth=depth)
+    __logits = _combine(logits=__logits)
     # no need to split the tensor further, it already has a depth of 2 ** depth
     return categorical(logits=__logits, temp=temp, topp=topp, topk=topk, depth=-1, seed=seed)
 
