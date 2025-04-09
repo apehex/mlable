@@ -10,11 +10,10 @@ import mlable.utils
 # CATEGORICAL ##################################################################
 
 @tf.keras.utils.register_keras_serializable(package='metrics', name='categorical_group_accuracy')
-def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], dtype: tf.DType=None) -> tf.Tensor:
-    __dtype = dtype or y_true.dtype
+def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], dtype: tf.DType=tf.int32) -> tf.Tensor:
     # greedy sampling (argmax) along axis -1 (after split)
-    __yt = mlable.sampling.categorical(logits=y_true, depth=depth, temp=1.0, topp=0.0, topk=0, seed=None)
-    __yp = mlable.sampling.categorical(logits=y_pred, depth=depth, temp=1.0, topp=0.0, topk=0, seed=None)
+    __yt = mlable.sampling.categorical(logits=y_true, depth=depth, temp=1.0, topp=0.0, topk=0, seed=None, dtype=dtype)
+    __yp = mlable.sampling.categorical(logits=y_pred, depth=depth, temp=1.0, topp=0.0, topk=0, seed=None, dtype=dtype)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -22,11 +21,11 @@ def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=
         # repeat values so that the reduced tensor has the same shape as the original
         __match = mlable.ops.reduce_all(data=__match, group=__g, axis=__a, keepdims=True)
     # cast
-    return tf.cast(__match, dtype=__dtype)
+    return tf.cast(__match, dtype=y_true.dtype)
 
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, name: str='categorical_group_accuracy', dtype: tf.DType=None, **kwargs):
+    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, dtype: tf.DType=tf.int32, name: str='categorical_group_accuracy', **kwargs):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
@@ -35,7 +34,7 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
         def __fn(y_true: tf.Tensor, y_pred:tf.Tensor) -> tf.Tensor:
             return categorical_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, dtype=dtype)
         # init
-        super(CategoricalGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
+        super(CategoricalGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=None, **kwargs)
         # config
         self._config = {'depth': depth, 'group': group, 'axis': axis}
         # sould be maximized
@@ -49,11 +48,10 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 # BINARY #######################################################################
 
 @tf.keras.utils.register_keras_serializable(package='metrics', name='binary_group_accuracy')
-def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], logits: bool=True, dtype: tf.DType=None) -> tf.Tensor:
-    __dtype = dtype or y_true.dtype
+def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], logits: bool=True, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # greedy sampling by thresholding bit by bit
-    __yt = mlable.sampling.binary(logits=y_true, depth=depth, threshold=0.5, topp=0.0, topk=0)
-    __yp = mlable.sampling.binary(logits=y_pred, depth=depth, threshold=0.0 if logits else 0.5, topp=0.0, topk=0)
+    __yt = mlable.sampling.binary(logits=y_true, depth=depth, threshold=0.5, topp=0.0, topk=0, dtype=dtype)
+    __yp = mlable.sampling.binary(logits=y_pred, depth=depth, threshold=0.0 if logits else 0.5, topp=0.0, topk=0, dtype=dtype)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -61,11 +59,11 @@ def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, g
         # repeat values so that the reduced tensor has the same shape as the original
         __match = mlable.ops.reduce_all(data=__match, group=__g, axis=__a, keepdims=True)
     # mean over sequence axis
-    return tf.cast(__match, dtype=__dtype)
+    return tf.cast(__match, dtype=y_true.dtype)
 
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, from_logits: bool=True, dtype: tf.DType=None, name: str='binary_group_accuracy', **kwargs):
+    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, from_logits: bool=True, dtype: tf.DType=tf.int32, name: str='binary_group_accuracy', **kwargs):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
@@ -74,7 +72,7 @@ class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
         def __fn(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
             return binary_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, logits=from_logits, dtype=dtype)
         # init
-        super(BinaryGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
+        super(BinaryGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=None, **kwargs)
         # config
         self._config = {'depth': depth, 'group': group, 'axis': axis, 'from_logits': from_logits,}
         # sould be maximized
@@ -88,11 +86,10 @@ class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 # BINARY #######################################################################
 
 @tf.keras.utils.register_keras_serializable(package='metrics', name='raw_group_accuracy')
-def raw_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, factor: float=256.0, groups: iter=[1], axes: iter=[-1], dtype: tf.DType=None) -> tf.Tensor:
-    __dtype = dtype or y_true.dtype
+def raw_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, factor: float=256.0, groups: iter=[1], axes: iter=[-1], dtype: tf.DType=tf.int32) -> tf.Tensor:
     # category indexes
-    __yt = mlable.sampling.raw(data=y_true, factor=factor)
-    __yp = mlable.sampling.raw(data=y_pred, factor=factor)
+    __yt = mlable.sampling.raw(data=y_true, factor=factor, dtype=dtype)
+    __yp = mlable.sampling.raw(data=y_pred, factor=factor, dtype=dtype)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -100,11 +97,11 @@ def raw_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, factor: float=256.0
         # repeat values so that the reduced tensor has the same shape as the original
         __match = mlable.ops.reduce_all(data=__match, group=__g, axis=__a, keepdims=True)
     # mean over sequence axis
-    return tf.cast(__match, dtype=__dtype)
+    return tf.cast(__match, dtype=y_true.dtype)
 
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class RawGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, factor: float=256.0, group: int=1, axis: int=-1, name: str='raw_group_accuracy', dtype: tf.DType=None, **kwargs):
+    def __init__(self, factor: float=256.0, group: int=1, axis: int=-1, name: str='raw_group_accuracy', dtype: tf.DType=tf.int32, **kwargs):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
@@ -113,7 +110,7 @@ class RawGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
         def __fn(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
             return binary_group_accuracy(y_true=y_true, y_pred=y_pred, factor=factor, groups=__groups, axes=__axes, dtype=dtype)
         # init
-        super(RawGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
+        super(RawGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=None, **kwargs)
         # config
         self._config = {'factor': factor, 'group': group, 'axis': axis,}
         # sould be maximized

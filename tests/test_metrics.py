@@ -99,7 +99,7 @@ class CategoricalGroupAccuracyTest(tf.test.TestCase):
         # 0. <= a <= 1.
         __batch_dim, __seq_dim, __encoding_dim, __group_dim, __iterations = 3, 16, 16, 4, 128
         # init
-        __accuracy = mlable.metrics.CategoricalGroupAccuracy(group=__group_dim)
+        __accuracy = mlable.metrics.CategoricalGroupAccuracy(group=__group_dim, dtype=tf.int16)
         # single evaluation
         __accuracy.reset_state()
         __yt = tf.one_hot(indices=tf.random.uniform(shape=(__batch_dim, __seq_dim), minval=0, maxval=__encoding_dim, dtype=tf.dtypes.int32), depth=__encoding_dim)
@@ -211,8 +211,8 @@ class BinaryGroupAccuracyTest(tf.test.TestCase):
     def test_specific_values(self):
         __iterations = 16
         # init
-        __byte_acc = mlable.metrics.BinaryGroupAccuracy(group=1)
-        __char_acc = mlable.metrics.BinaryGroupAccuracy(group=4)
+        __byte_acc = mlable.metrics.BinaryGroupAccuracy(group=1, dtype=tf.uint8)
+        __char_acc = mlable.metrics.BinaryGroupAccuracy(group=4, dtype=tf.uint8)
         # test on ascii => leading zeroes match but not the characters
         __yt = tf.convert_to_tensor([
             [float(__b) for __b in '11111111' + '11111111'+ '11111111'+ '11111111'],
