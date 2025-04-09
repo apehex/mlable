@@ -45,7 +45,7 @@ def _reduce_group_by_group_all(data: tf.Tensor, group: int, axis: int=-1, keepdi
 
 # BASE ########################################################################
 
-def _reduce_base(data: tf.Tensor, base: int, axis: int=-1, keepdims: bool=False, bigendian: bool=True) -> tf.Tensor:
+def _reduce_base(data: tf.Tensor, base: int, axis: int=-1, keepdims: bool=False, bigendian: bool=False) -> tf.Tensor:
     # select the dimension of the given axis
     __shape = mlable.shaping.filter_shape(shape=data.shape, axes=[axis])
     # exponents
@@ -94,6 +94,6 @@ def reduce_any(data: tf.Tensor, group: int=0, axis: int=-1, keepdims: bool=True)
 def reduce_all(data: tf.Tensor, group: int=0, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
     return reduce(data=data, operation=tf.reduce_all, group=group, axis=axis, keepdims=keepdims)
 
-def reduce_base(data: tf.Tensor, base: int, group: int=0, axis: int=-1, keepdims: bool=False) -> tf.Tensor:
-    __operation = functools.partial(_reduce_base, base=base)
+def reduce_base(data: tf.Tensor, base: int, group: int=0, axis: int=-1, keepdims: bool=False, bigendian: bool=False) -> tf.Tensor:
+    __operation = functools.partial(_reduce_base, base=base, bigendian=bigendian)
     return reduce(data=data, operation=__operation, group=group, axis=axis, keepdims=keepdims)

@@ -142,31 +142,31 @@ class BaseCompositionTest(tf.test.TestCase):
         self._bytes_flat = tf.reshape(self._bytes, shape=(-1,))
 
     def test_bidimensional_compositions(self):
-        __number_10 = mlable.ops.reduce_base(self._digits_10, base=10, axis=-1)
-        __number_2 = mlable.ops.reduce_base(self._digits_2, base=2, axis=-1)
-        __number_256 = mlable.ops.reduce_base(self._bytes, base=256, axis=-1)
-        self.assertAllEqual(__number_10, tf.constant([123, 456, 789], dtype=tf.int32))
+        __number_10 = mlable.ops.reduce_base(self._digits_10, base=10, axis=-1, bigendian=False)
+        __number_2 = mlable.ops.reduce_base(self._digits_2, base=2, axis=-1, bigendian=True)
+        __number_256 = mlable.ops.reduce_base(self._bytes, base=256, axis=-1, bigendian=True)
+        self.assertAllEqual(__number_10, tf.constant([321, 654, 987], dtype=tf.int32))
         self.assertAllEqual(__number_2, tf.constant([10, 6, 4], dtype=tf.int32))
         self.assertAllEqual(__number_256, tf.constant([196681, 366, 32, 167772160], dtype=tf.int32))
 
     def test_flat_compositions(self):
-        __number_10 = mlable.ops.reduce_base(self._digits_10_flat, base=10, axis=-1)
-        __number_2 = mlable.ops.reduce_base(self._digits_2_flat, base=2, axis=-1)
-        self.assertAllEqual(__number_10, tf.constant(123_456_789, dtype=tf.int32))
+        __number_10 = mlable.ops.reduce_base(self._digits_10_flat, base=10, axis=-1, bigendian=False)
+        __number_2 = mlable.ops.reduce_base(self._digits_2_flat, base=2, axis=-1, bigendian=True)
+        self.assertAllEqual(__number_10, tf.constant(987_654_321, dtype=tf.int32))
         self.assertAllEqual(__number_2, tf.constant(2660, dtype=tf.int32))
 
     def test_grouped_compositions(self):
-        __number_10 = mlable.ops.reduce_base(self._digits_10_flat, base=10, axis=-1, group=3)
-        __number_2 = mlable.ops.reduce_base(self._digits_2_flat, base=2, axis=-1, group=3)
-        __number_256 = mlable.ops.reduce_base(self._bytes_flat, base=256, axis=-1, group=2)
-        self.assertAllEqual(__number_10, tf.constant([123, 456, 789], dtype=tf.int32))
+        __number_10 = mlable.ops.reduce_base(self._digits_10_flat, base=10, axis=-1, group=3, bigendian=False)
+        __number_2 = mlable.ops.reduce_base(self._digits_2_flat, base=2, axis=-1, group=3, bigendian=True)
+        __number_256 = mlable.ops.reduce_base(self._bytes_flat, base=256, axis=-1, group=2, bigendian=True)
+        self.assertAllEqual(__number_10, tf.constant([321, 654, 987], dtype=tf.int32))
         self.assertAllEqual(__number_2, tf.constant([5, 1, 4, 4], dtype=tf.int32))
         self.assertAllEqual(__number_256, tf.constant([3, 73, 0, 366, 0, 32, 2560, 0], dtype=tf.int32))
 
     def test_compositions_along_axis_0(self):
-        __number_10 = mlable.ops.reduce_base(self._digits_10, base=10, axis=0)
-        __number_2 = mlable.ops.reduce_base(self._digits_2, base=2, axis=0)
-        __number_256 = mlable.ops.reduce_base(self._bytes, base=256, axis=0)
+        __number_10 = mlable.ops.reduce_base(self._digits_10, base=10, axis=0, bigendian=True)
+        __number_2 = mlable.ops.reduce_base(self._digits_2, base=2, axis=0, bigendian=True)
+        __number_256 = mlable.ops.reduce_base(self._bytes, base=256, axis=0, bigendian=True)
         self.assertAllEqual(__number_10, tf.constant([147, 258, 369], dtype=tf.int32))
         self.assertAllEqual(__number_2, tf.constant([4, 3, 6, 0], dtype=tf.int32))
         self.assertAllEqual(__number_256, tf.constant([10, 50331648, 65536, 1231953920], dtype=tf.int32))
