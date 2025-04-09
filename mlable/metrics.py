@@ -52,8 +52,8 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], logits: bool=True, dtype: tf.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
     # greedy sampling by thresholding bit by bit
-    __yt = mlable.sampling._binary(logits=y_true, depth=depth, threshold=0.5)
-    __yp = mlable.sampling._binary(logits=y_pred, depth=depth, threshold=0.0 if logits else 0.5)
+    __yt = mlable.sampling.binary(logits=y_true, depth=depth, threshold=0.5, topp=0.0, topk=0)
+    __yp = mlable.sampling.binary(logits=y_pred, depth=depth, threshold=0.0 if logits else 0.5, topp=0.0, topk=0)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
