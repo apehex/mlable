@@ -64,30 +64,30 @@ def _categorical(logits: tf.Tensor, num_samples: int=1, seed: int=None, name: st
     # return to the original shape
     return tf.reshape(__samples, shape=__shape[:-1] + (num_samples,))
 
-def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0, depth: int=-1, seed: int=None) -> tf.Tensor:
+def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0, depth: int=-1, seed: int=None, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # isolate each one-hot vector
     __logits = _group(logits=logits, depth=depth)
     # greedy sampling by default (deterministic)
-    __samples = tf.argmax(input=__logits, axis=-1, output_type=tf.int32)
+    __samples = tf.argmax(input=__logits, axis=-1, output_type=dtype)
     # tweak the distribution
     if temp > 0.0:
         __logits = (1. / temp) * __logits
     # nucleus sampling
     if topp > 0.0:
         __logits = filter_top_p(logits=__logits, threshold=topp)
-        __samples = _categorical(logits=__logits, num_samples=1, seed=seed, dtype=tf.int32)
+        __samples = _categorical(logits=__logits, num_samples=1, seed=seed, dtype=dtype)
         __samples = tf.squeeze(__samples, axis=-1)
     # limit to the top probabilities
     if topk > 0: # top-p and top-k can be combined
         __logits = filter_top_k(logits=__logits, count=topk)
-        __samples = _categorical(logits=__logits, num_samples=1, seed=seed, dtype=tf.int32)
+        __samples = _categorical(logits=__logits, num_samples=1, seed=seed, dtype=dtype)
         __samples = tf.squeeze(__samples, axis=-1)
     # tensor of integer indexes
     return __samples
 
 # BINARY #######################################################################
 
-def _combine(logits: tf.Tensor) -> tf.Tensor:
+def _combine(logits: tf.Tensor, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # parse the shape
     __bin_shape = tuple(logits.shape)
     __bin_rank = len(__bin_shape)
@@ -96,7 +96,7 @@ def _combine(logits: tf.Tensor) -> tf.Tensor:
     # reshape to allow broadcasting: add an axis for the categories (..., N, 1, B)
     __logits = tf.expand_dims(logits, axis=-2)
     # enumerate all possible binary combinations for the given depth
-    __categories = tf.range(__cat_dim, dtype=tf.int32)
+    __categories = tf.range(__cat_dim, dtype=dtype)
     # decompose each category in binary bits
     __categories = mlable.ops.expand_binary(__categories, depth=__bin_dim, bigendian=False)
     # match the shape of the logits (..., 1, C, B)
@@ -106,30 +106,30 @@ def _combine(logits: tf.Tensor) -> tf.Tensor:
     # compute the joint log probabilities for each category (probability that the decomposition match on each bit)
     return tf.reduce_sum(__joint, axis=-1, keepdims=False)
 
-def _binary_bit_by_bit(logits: tf.Tensor, threshold: float=0.0) -> tf.Tensor:
+def _binary_bit_by_bit(logits: tf.Tensor, threshold: float=0.0, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # convert the probabilities to bits
-    __bits = tf.cast(logits > tf.cast(threshold, dtype=logits.dtype), dtype=tf.int32)
+    __bits = tf.cast(logits > tf.cast(threshold, dtype=logits.dtype), dtype=dtype)
     # combine the bits into numbers
     return mlable.ops.reduce_base(__bits, base=2, axis=-1, group=-1, keepdims=False, bigendian=False)
 
-def _binary_group_by_group(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, seed: int=None) -> tf.Tensor:
+def _binary_group_by_group(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, seed: int=None, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # combine the bits by logical unit (typically 8 bit to sample from bytes)
-    __logits = _combine(logits=logits)
+    __logits = _combine(logits=logits, dtype=dtype)
     # no need to split the tensor further, it already has a depth of 2 ** depth
-    return categorical(logits=__logits, temp=temp, topp=topp, topk=topk, depth=-1, seed=seed)
+    return categorical(logits=__logits, temp=temp, topp=topp, topk=topk, depth=-1, seed=seed, dtype=dtype)
 
-def binary(logits: tf.Tensor, threshold: float=0.0, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=-1, seed: int=None) -> tf.Tensor:
+def binary(logits: tf.Tensor, threshold: float=0.0, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=-1, seed: int=None, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # group the bits together if necessary
     __logits = _group(logits=logits, depth=depth)
     # greedy sampling bit by bit by default
-    __samples = _binary_bit_by_bit(logits=__logits, threshold=threshold)
+    __samples = _binary_bit_by_bit(logits=__logits, threshold=threshold, dtype=dtype)
     # group the bit predictions by categories
     if (topp > 0.0) or (topk > 0):
-        __samples = _binary_group_by_group(__logits, temp=temp, topp=topp, topk=topk, seed=seed)
+        __samples = _binary_group_by_group(__logits, temp=temp, topp=topp, topk=topk, seed=seed, dtype=dtype)
     # index predictions
     return __samples
 
 # RAW ##########################################################################
 
-def raw(data: tf.Tensor, factor: float=256., dtype: tf.dtypes.DType=tf.int32) -> tf.Tensor:
+def raw(data: tf.Tensor, factor: float=256., dtype: tf.DType=tf.int32) -> tf.Tensor:
     return tf.cast(tf.round(tf.cast(factor, data.dtype) * data), dtype)
