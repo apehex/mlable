@@ -49,11 +49,11 @@ class CategoricalGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
 # BINARY #######################################################################
 
 @tf.keras.utils.register_keras_serializable(package='metrics', name='binary_group_accuracy')
-def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], dtype: tf.DType=None) -> tf.Tensor:
+def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, groups: iter=[4], axes: iter=[-1], logits: bool=True, dtype: tf.DType=None) -> tf.Tensor:
     __dtype = dtype or y_true.dtype
-    # greedy sampling (threshold) after combining the binary predictions by chunks of depth
+    # greedy sampling by thresholding bit by bit
     __yt = mlable.sampling._binary(logits=y_true, depth=depth, threshold=0.5)
-    __yp = mlable.sampling._binary(logits=y_pred, depth=depth, threshold=0.0)
+    __yp = mlable.sampling._binary(logits=y_pred, depth=depth, threshold=0.0 if logits else 0.5)
     # matching
     __match = tf.equal(__yt, __yp)
     # group all the predictions for a given token
@@ -65,18 +65,18 @@ def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, g
 
 @tf.keras.utils.register_keras_serializable(package='metrics')
 class BinaryGroupAccuracy(tf.keras.metrics.MeanMetricWrapper):
-    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, name: str='binary_group_accuracy', dtype: tf.DType=None, **kwargs):
+    def __init__(self, depth: int=-1, group: int=4, axis: int=-1, from_logits: bool=True, dtype: tf.DType=None, name: str='binary_group_accuracy', **kwargs):
         # allow to specify several groups / axes
         __axes = [axis] if isinstance(axis, int) else list(axis)
         __groups = [group] if isinstance(group, int) else list(group)
         # specialize the measure
         @tf.keras.utils.register_keras_serializable(package='metrics', name='binary_group_accuracy')
         def __fn(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-            return binary_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, dtype=dtype)
+            return binary_group_accuracy(y_true=y_true, y_pred=y_pred, depth=depth, groups=__groups, axes=__axes, logits=from_logits, dtype=dtype)
         # init
         super(BinaryGroupAccuracy, self).__init__(fn=__fn, name=name, dtype=dtype, **kwargs)
         # config
-        self._config = {'depth': depth, 'group': group, 'axis': axis,}
+        self._config = {'depth': depth, 'group': group, 'axis': axis, 'from_logits': from_logits,}
         # sould be maximized
         self._direction = 'up'
 
