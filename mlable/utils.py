@@ -1,4 +1,5 @@
 import functools
+import itertools
 
 import tensorflow as tf
 
@@ -15,6 +16,9 @@ distribute = lambda __f: (lambda *__t: tuple(map(__f, __t)))
 def chunk(seq: list, size: int, repeats: bool=True) -> list:
     __chunks = (seq[__i:__i + size] for __i in range(0, len(seq), size))
     return list(__chunks if repeats else set(__chunks))
+
+def merge(chunks: list) -> list:
+    return list(itertools.chain.from_iterable(chunks))
 
 # CACHE ########################################################################
 
