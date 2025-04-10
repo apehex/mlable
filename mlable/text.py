@@ -34,13 +34,11 @@ def offset(data: tf.Tensor, ticks: int=1) -> tf.Tensor:
 
 # ENCODE #######################################################################
 
-def encode(data: tf.Tensor, token_dim: int, sample_dim: int, output_dtype: tf.DType=tf.uint8, output_encoding: str='UTF-32-BE') -> tf.Tensor:
-    # factor 4 because of the UTF-32 encoding
-    __dim = math.ceil(sample_dim / token_dim) * token_dim
+def encode(data: tf.Tensor, sample_dim: int, output_dtype: tf.DType=tf.uint8, output_encoding: str='UTF-32-BE') -> tf.Tensor:
     # decode bytes from UTF-8
     __bytes = tf.strings.unicode_transcode(input=data, input_encoding='UTF-8', output_encoding=output_encoding) # (B,)
     # decode byte strings to arrays of byte integers
-    return tf.io.decode_raw(__bytes, out_type=output_dtype, fixed_length=__dim, little_endian=False) # (B, 4 * S) or (B, S) depending on the dtype (1 or 4 bytes)
+    return tf.io.decode_raw(__bytes, out_type=output_dtype, fixed_length=sample_dim, little_endian=False) # (B, 4 * S) or (B, S) depending on the dtype (1 or 4 bytes)
 
 # TRIM #########################################################################
 
