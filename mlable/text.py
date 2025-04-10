@@ -1,5 +1,3 @@
-"""Pre and post processing pipelines for tokun."""
-
 import functools
 import itertools
 import math
