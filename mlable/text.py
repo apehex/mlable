@@ -102,19 +102,8 @@ def preprocess(text: str, token_dim: int, output_dtype: tf.DType=tf.uint8, outpu
 
 # < ############################################################################
 
-def postprocess(logits: tf.Tensor, threshold: float=0.0, temp: float=1.0, topp: float=0.0, topk: int=0, dtype: tf.DType=tf.uint8) -> tf.Tensor:
-    __outputs = mlable.sampling.binary(logits=logits, threshold=threshold, temp=temp, topp=topp, topk=topk, dtype=dtype)
+def postprocess(data: tf.Tensor, encoding: str='UTF-32-BE') -> tf.Tensor:
     # merge the bytes into codepoints
-    __outputs = codepoint(data=__outputs)
+    __outputs = codepoint(data=data) if ('32' in encoding) else data
     # decode the UTF-32-BE codepoints
-    return decode(data=__outputs)
-
-# SAMPLING #####################################################################
-
-def sample(model: tf.keras.models.Model, text: str, **kwargs) -> tuple:
-    __x = preprocess(text=text, token_dim=kwargs.get('token_dim', 16), expand_dims=kwargs.get('expand_dims', [1]), output_dtype=kwargs.get('output_dtype', tf.uint8))
-    __e = model.encode(__x)
-    __p = model.decode(__e)
-    __y = postprocess(__p, threshold=kwargs.get('threshold', 0.5), random=kwargs.get('random', False))
-    __o = unpack(__y)
-    return (__x, __e, __p, __y, __o)
+    return decode(data=__outputs, encoding=encoding)
