@@ -79,12 +79,11 @@ def decode(data: tf.Tensor, encoding: str='UTF-32-BE') -> tf.Tensor:
 
 # CLEAN ########################################################################
 
-def unpack(data: tf.Tensor) -> list:
-    __data = data.numpy().tolist()
-    return [__s.decode('utf-8') for __s in __data]
+def unpad(data: tf.Tensor) -> tf.Tensor:
+    return tf.strings.regex_replace(data, pattern='\x00', rewrite='')
 
-def unpad(text: str) -> str:
-    return text.strip('\x00')
+def unpack(data: tf.Tensor) -> list:
+    return [__s.decode('utf-8') for __s in data.numpy().tolist()]
 
 # > ############################################################################
 
@@ -100,6 +99,8 @@ def preprocess(text: str, sample_dim: int, output_dtype: tf.DType=tf.uint8, outp
 
 def postprocess(data: tf.Tensor, encoding: str='UTF-32-BE') -> tf.Tensor:
     # merge the bytes into codepoints
-    __outputs = codepoint(data=data) if ('32' in encoding) else data
+    __outputs = codepoint(data=data, bigendian=True) if ('32' in encoding) and (data.dtype == tf.uint8) else data
     # decode the UTF-32-BE codepoints
-    return decode(data=__outputs, encoding=encoding)
+    __outputs = decode(data=__outputs, encoding=encoding)
+    # remove the null padding
+    return unpad(__outputs)
