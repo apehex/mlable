@@ -27,43 +27,31 @@ def decode_gray(number: int) -> int:
         lambda __a, __b: __a ^ __b,
         [number >> __i for __i in range(len(format(number, 'b')))])
 
-# TANGLE #######################################################################
+# ENTANGLE #####################################################################
+
+def _entangle(coords: list, order: int, rank: int, step: int=1) -> list:
+    __coords = list(coords)
+    # undo the extra rotations
+    for __j in range(1, order)[::-step]:
+        # q is a single bit mask and (q - 1) is a string of ones
+        __q = 2 ** __j
+        for __i in range(0, rank)[::step]:
+            # invert the least significant bits
+            if __coords[__i] & __q:
+                __coords[0] ^= __q - 1
+            # exchange the least significant bits
+            else:
+                __t = (__coords[0] ^ __coords[__i]) & (__q - 1)
+                __coords[0] ^= __t
+                __coords[__i] ^= __t
+    # list of rank coordinates
+    return __coords
 
 def entangle(coords: list, order: int, rank: int) -> list:
-    __coords = list(coords)
-    # undo the extra rotations
-    for __j in range(order - 1, 0, -1):
-        # q is a single bit mask and (q -1) is a string of ones
-        __q = 2 ** __j
-        for __i in range(0, rank):
-            # invert the least significant bits
-            if __coords[__i] & __q:
-                __coords[0] ^= __q - 1
-            # exchange the least significant bits
-            else:
-                __t = (__coords[0] ^ __coords[__i]) & (__q - 1)
-                __coords[0] ^= __t
-                __coords[__i] ^= __t
-    # list of rank coordinates
-    return __coords
+    return _entangle(coords=coords, order=order, rank=rank, step=1)
 
 def untangle(coords: list, order: int, rank: int) -> list:
-    __coords = list(coords)
-    # undo the extra rotations
-    for __j in range(1, order):
-        # q is a single bit mask and (q -1) is a string of ones
-        __q = 2 ** __j
-        for __i in range(rank - 1, -1, -1):
-            # invert the least significant bits
-            if __coords[__i] & __q:
-                __coords[0] ^= __q - 1
-            # exchange the least significant bits
-            else:
-                __t = (__coords[0] ^ __coords[__i]) & (__q - 1)
-                __coords[0] ^= __t
-                __coords[__i] ^= __t
-    # list of rank coordinates
-    return __coords
+    return _entangle(coords=coords, order=order, rank=rank, step=-1)
 
 # 1D => 2D #####################################################################
 
