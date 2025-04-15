@@ -88,13 +88,13 @@ def unpad(text: str) -> str:
 
 # > ############################################################################
 
-def preprocess(text: str, token_dim: int, output_dtype: tf.DType=tf.uint8, output_encoding: str='UTF-32-BE') -> tf.Tensor:
+def preprocess(text: str, sample_dim: int, output_dtype: tf.DType=tf.uint8, output_encoding: str='UTF-32-BE') -> tf.Tensor:
     # as tensor
     __data = tf.convert_to_tensor(text, dtype=tf.string)
     # list of bytes / codepoints
-    __bytes = encode(data=__data, token_dim=token_dim, sample_dim=4 * len(text), output_dtype=output_dtype, output_encoding=output_encoding)
-    # expand with unitary batch dim + cast
-    return tf.cast(tf.expand_dims(__bytes, axis=0), dtype=output_dtype)
+    __bytes = encode(data=__data, sample_dim=sample_dim, output_dtype=output_dtype, output_encoding=output_encoding)
+    # expand with unitary batch dim
+    return tf.expand_dims(__bytes, axis=0)
 
 # < ############################################################################
 
