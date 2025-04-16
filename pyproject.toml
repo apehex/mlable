@@ -2,13 +2,15 @@
 name = "mlable"
 version = "0.17.0"
 description = "Tensorflow libs: layers, metrics, ops, etc."
-authors = ["apehex <apehex@protonmail.com>"]
+license = ".github/LICENSE.md"
 readme = ".github/README.md"
-packages = [{include = "mlable"}]
+authors = ["apehex <apehex@protonmail.com>"]
+packages = [{include="mlable"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10, <4"
 tensorflow = ">=2.16, <2.19"
+densecurves = ">=0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
