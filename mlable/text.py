@@ -4,7 +4,7 @@ import math
 
 import tensorflow as tf
 
-import mlable.ops
+import mlable.math.ops
 import mlable.sampling
 import mlable.shaping
 
@@ -68,7 +68,7 @@ def codepoint(data: tf.Tensor, bigendian: bool=True) -> tf.Tensor:
     # group the bytes 4 by 4
     __bytes = mlable.shaping.divide(data=__data, input_axis=-2, output_axis=-1, factor=4, insert=True)
     # compute the UTF-32-BE codepoints
-    return mlable.ops.reduce_base(data=__bytes, base=256, axis=-1, keepdims=False, bigendian=bigendian)
+    return mlable.math.ops.reduce_base(data=__bytes, base=256, axis=-1, keepdims=False, bigendian=bigendian)
 
 def decode(data: tf.Tensor, encoding: str='UTF-32-BE') -> tf.Tensor:
     __data = tf.cast(data, dtype=tf.int32)
