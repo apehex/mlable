@@ -3,9 +3,8 @@ import math
 
 import tensorflow as tf
 
-import mlable.math.ops
+import mlable.maths.ops
 import mlable.sampling
-import mlable.utils
 
 # CATEGORICAL ##################################################################
 
@@ -19,7 +18,7 @@ def categorical_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=
     # group all the predictions for a given token
     for __g, __a in zip(groups, axes):
         # repeat values so that the reduced tensor has the same shape as the original
-        __match = mlable.math.ops.reduce_all(data=__match, group=__g, axis=__a, keepdims=True)
+        __match = mlable.maths.ops.reduce_all(data=__match, group=__g, axis=__a, keepdims=True)
     # cast
     return tf.cast(__match, dtype=y_true.dtype)
 
@@ -57,7 +56,7 @@ def binary_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, depth: int=-1, g
     # group all the predictions for a given token
     for __g, __a in zip(groups, axes):
         # repeat values so that the reduced tensor has the same shape as the original
-        __match = mlable.math.ops.reduce_all(data=__match, group=__g, axis=__a, keepdims=True)
+        __match = mlable.maths.ops.reduce_all(data=__match, group=__g, axis=__a, keepdims=True)
     # mean over sequence axis
     return tf.cast(__match, dtype=y_true.dtype)
 
@@ -95,7 +94,7 @@ def raw_group_accuracy(y_true: tf.Tensor, y_pred: tf.Tensor, factor: float=256.0
     # group all the predictions for a given token
     for __g, __a in zip(groups, axes):
         # repeat values so that the reduced tensor has the same shape as the original
-        __match = mlable.math.ops.reduce_all(data=__match, group=__g, axis=__a, keepdims=True)
+        __match = mlable.maths.ops.reduce_all(data=__match, group=__g, axis=__a, keepdims=True)
     # mean over sequence axis
     return tf.cast(__match, dtype=y_true.dtype)
 

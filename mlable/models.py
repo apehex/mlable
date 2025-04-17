@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 import mlable.masking
-import mlable.math.probs
+import mlable.maths.probs
 import mlable.schedules
 
 # CONTRAST #####################################################################
@@ -64,8 +64,8 @@ class VaeModel(tf.keras.Model):
         return self.decode(__z, training=training, **kwargs)
 
     def compute_kl(self, sample: tf.Tensor, mean: tf.Tensor, logvar: tf.Tensor) -> tf.Tensor:
-        __log_pz = mlable.math.probs.log_normal_pdf(sample, tf.cast(0., dtype=sample.dtype), tf.cast(0., dtype=sample.dtype))
-        __log_qz_x = mlable.math.probs.log_normal_pdf(sample, mean, logvar)
+        __log_pz = mlable.maths.probs.log_normal_pdf(sample, tf.cast(0., dtype=sample.dtype), tf.cast(0., dtype=sample.dtype))
+        __log_qz_x = mlable.maths.probs.log_normal_pdf(sample, mean, logvar)
         return __log_qz_x - __log_pz
 
     # def train_step(self, data: tf.Tensor) -> dict:
