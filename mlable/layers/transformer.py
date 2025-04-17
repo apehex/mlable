@@ -2,7 +2,7 @@ import math
 
 import tensorflow as tf
 
-import mlable.utils
+import mlable.caching
 
 # CONSTANTS ####################################################################
 
@@ -172,8 +172,8 @@ class CachedMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
         __value = self._value_dense(value)
         # update the key + value caches
         if not training and cache is not None:
-            __key = mlable.utils.update_cache(tensor=__key, cache=cache[0], step=step, axis=self._attention_axes[0]) # custom seq axis?
-            __value = mlable.utils.update_cache(tensor=__value, cache=cache[1], step=step, axis=self._attention_axes[0]) # custom seq axis?
+            __key = mlable.caching.update(tensor=__key, cache=cache[0], step=step, axis=self._attention_axes[0]) # custom seq axis?
+            __value = mlable.caching.update(tensor=__value, cache=cache[1], step=step, axis=self._attention_axes[0]) # custom seq axis?
             __cache = tf.stack(values=(__key, __value), axis=0)
         # use the parent functionalities
         __outputs, __scores = self._compute_attention(query=__query, key=__key, value=__value, attention_mask=__mask, training=training, **__kwargs)

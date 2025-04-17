@@ -2,7 +2,8 @@ import math
 
 import tensorflow as tf
 
-import mlable.shaping
+import mlable.shapes
+import mlable.shaping.axes
 
 # CONSTANTS #####################################################################
 
@@ -42,7 +43,7 @@ def compute_rotation_embedding(inputs: tf.Tensor, cos_emb: tf.Tensor, sin_emb: t
 def reshape_embedding(embeddings: tf.Tensor, shape: list, sequence_axis: int=1, feature_axis: int=-1) -> tf.Tensor:
     __rank = len(shape)
     __axes = [sequence_axis % __rank, feature_axis % __rank]
-    __shape = mlable.shaping.filter_shape(shape=shape, axes=__axes)
+    __shape = mlable.shapes.filter(shape=shape, axes=__axes)
     return tf.reshape(tensor=embeddings, shape=__shape)
 
 def swap_to_default(rank: int, sequence_axis: int, feature_axis: int) -> list:
@@ -66,7 +67,7 @@ def transpose_axes(tensor: tf.Tensor, swaps: list) -> tf.Tensor:
     __rank = len(list(tensor.shape))
     __perm = list(range(__rank))
     for __s in swaps:
-        __perm = mlable.shaping.swap_axes(rank=__rank, left=__s[0], right=__s[1], perm=__perm)
+        __perm = mlable.shapes.swap_axes(rank=__rank, left=__s[0], right=__s[1], perm=__perm)
     return tf.transpose(tensor, perm=__perm)
 
 @tf.keras.utils.register_keras_serializable(package='layers')
@@ -146,7 +147,7 @@ class SinePositionalEmbedding(tf.keras.layers.Layer):
         __axis_s = self._config['sequence_axis'] % __rank
         __axis_f = self._config['feature_axis'] % __rank
         # keep only the sequence and feature dimensions, eg (1, S, 1, F)
-        __shape = mlable.shaping.filter_shape(shape=inputs.shape, axes=[__axis_s, __axis_f])
+        __shape = mlable.shapes.filter(shape=inputs.shape, axes=[__axis_s, __axis_f])
         # parse
         __dim_s = __shape[__axis_s]
         __dim_f = __shape[__axis_f]
@@ -229,7 +230,7 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         __axis_s = self._config['sequence_axis'] % __rank
         __axis_f = self._config['feature_axis'] % __rank
         # keep only the sequence and feature dimensions, eg (1, S, 1, F)
-        __shape = mlable.shaping.filter_shape(shape=inputs.shape, axes=[__axis_s, __axis_f])
+        __shape = mlable.shapes.filter(shape=inputs.shape, axes=[__axis_s, __axis_f])
         # flat range up to sequence dim
         __embed = tf.range(__shape[__axis_s])
         # could just output the kernel, but it might not be built
@@ -256,12 +257,12 @@ class TokunEmbedding(GenericEmbedding):
         # add the embedding axis
         __shape = super(TokunEmbedding, self).compute_output_shape(input_shape)
         # merge the patch and feature axes
-        __shape = mlable.shaping.merge_shape(__shape, left_axis=-2, right_axis=-1, left=True)
+        __shape = mlable.shapes.merge(__shape, left_axis=-2, right_axis=-1, left=True)
         # format 0 dimensions as None in symbolic shapes
-        return tuple(mlable.shaping.symbolic_shape(__shape))
+        return tuple(mlable.shapes.symbolic(__shape))
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # embed each element separately
         __outputs = super(TokunEmbedding, self).call(inputs)
         # concatenate the embeddings
-        return mlable.shaping.merge(__outputs, left_axis=-2, right_axis=-1, left=True)
+        return mlable.shaping.axes.merge(__outputs, left_axis=-2, right_axis=-1, left=True)

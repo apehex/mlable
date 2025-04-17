@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-import mlable.shaping
+import mlable.shapes
 
 # CREATE #######################################################################
 
@@ -13,7 +13,7 @@ def create(batch_dim: int, cache_dim: int, head_dim: int, num_heads: int=None) -
 def update(tensor: tf.Tensor, cache: tf.Tensor, axis: int=1, step: int=None) -> tf.Tensor:
     if step is not None:
     	# expand the sequence axis with 1-dim axes
-        __shape = mlable.shaping.filter_shape(shape=list(cache.shape), axes=[axis])
+        __shape = mlable.shapes.filter(shape=list(cache.shape), axes=[axis])
         # index of the updated row
         __indices = tf.reshape(tf.one_hot(indices=step, depth=__shape[axis], dtype=tensor.dtype), shape=__shape)
         # updated cache
