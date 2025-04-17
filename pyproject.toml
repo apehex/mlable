@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mlable"
-version = "0.17.0"
+version = "0.18.0"
 description = "Tensorflow libs: layers, metrics, ops, etc."
 license = ".github/LICENSE.md"
 readme = ".github/README.md"
@@ -8,9 +8,9 @@ authors = ["apehex <apehex@protonmail.com>"]
 packages = [{include="mlable"}]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <4"
-tensorflow = ">=2.16, <2.19"
 densecurves = ">=0.1"
+python = ">=3.10,<4.0"
+tensorflow = ">=2.16, <2.19"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

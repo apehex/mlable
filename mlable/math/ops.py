@@ -2,16 +2,17 @@ import functools
 
 import tensorflow as tf
 
-import mlable.shaping
+import mlable.shapes
+import mlable.shaping.axes
 
 # REDUCE ######################################################################
 
 def _reduce(data: tf.Tensor, operation: callable, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
     # original shape
-    __shape = mlable.shaping.normalize_shape(shape=list(data.shape))
+    __shape = mlable.shapes.normalize(shape=list(data.shape))
     # reduction factor on each axis
     __axes = list(range(len(__shape))) if axis is None else [axis % len(__shape)]
-    __repeats = mlable.shaping.filter_shape(shape=__shape, axes=__axes)
+    __repeats = mlable.shapes.filter(shape=__shape, axes=__axes)
     # actually reduce
     __data = operation(data, axis=axis, keepdims=keepdims)
     # repeat the value along the reduced axis
@@ -27,15 +28,15 @@ def _reduce_all(data: tf.Tensor, axis: int=-1, keepdims: bool=True) -> tf.Tensor
 
 def _reduce_group_by_group(data: tf.Tensor, operation: callable, group: int, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
     # original shape
-    __shape = mlable.shaping.normalize_shape(data.shape)
+    __shape = mlable.shapes.normalize(data.shape)
     # interpret negative axis index / orginal shape
     __axis = axis % len(__shape)
     # split the last axis
-    __data = mlable.shaping.divide(data=data, input_axis=__axis, output_axis=__axis + 1, factor=group, insert=True)
+    __data = mlable.shaping.axes.divide(data=data, input_axis=__axis, output_axis=__axis + 1, factor=group, insert=True)
     # repeat values to keep the same shape as the original tensor
     __data = _reduce(data=__data, operation=operation, axis=__axis + 1, keepdims=keepdims)
     # merge the new axis back
-    return mlable.shaping.merge(data=__data, left_axis=__axis, right_axis=__axis + 1, left=True) if keepdims else __data
+    return mlable.shaping.axes.merge(data=__data, left_axis=__axis, right_axis=__axis + 1, left=True) if keepdims else __data
 
 def _reduce_group_by_group_any(data: tf.Tensor, group: int, axis: int=-1, keepdims: bool=True) -> tf.Tensor:
     return _reduce_group_by_group(data=data, operation=tf.reduce_any, group=group, axis=axis, keepdims=keepdims)
@@ -47,7 +48,7 @@ def _reduce_group_by_group_all(data: tf.Tensor, group: int, axis: int=-1, keepdi
 
 def _reduce_base(data: tf.Tensor, base: int, axis: int=-1, keepdims: bool=False, bigendian: bool=False) -> tf.Tensor:
     # select the dimension of the given axis
-    __shape = mlable.shaping.filter_shape(shape=data.shape, axes=[axis])
+    __shape = mlable.shapes.filter(shape=data.shape, axes=[axis])
     # exponents
     __exp = range(__shape[axis])[::-1] if bigendian else range(__shape[axis])
     # base, in big endian

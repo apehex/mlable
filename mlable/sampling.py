@@ -3,14 +3,14 @@ import tensorflow as tf
 
 import mlable.masking
 import mlable.math.ops
-import mlable.shaping
+import mlable.shaping.axes
 
 # SHAPING ######################################################################
 
 def _group(logits: tf.Tensor, depth: int=-1) -> tf.Tensor:
     return (
         logits if (depth < 2)
-        else mlable.shaping.divide(
+        else mlable.shaping.axes.divide(
             logits,
             input_axis=-2,
             output_axis=-1,

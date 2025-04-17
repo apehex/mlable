@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 import mlable.layers.transformer
-import mlable.utils
+import mlable.caching
 
 # FF ###########################################################################
 
@@ -112,7 +112,7 @@ class CachedAttentionTest(tf.test.TestCase):
         __batch_dim, __seq_dim, __embed_dim, __num_heads, __head_dim = 2, 4, 6, 2, 3
         # training mode
         __training = True
-        __cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
+        __cache = mlable.caching.create(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
         __mask = None
         __step = 0
         # basic attention
@@ -129,7 +129,7 @@ class CachedAttentionTest(tf.test.TestCase):
     def test_sequential_decode_update(self):
         __batch_dim, __seq_dim, __embed_dim, __num_heads, __head_dim = 1, 4, 6, 2, 3
         # sampling mode
-        __cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
+        __cache = mlable.caching.create(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
         # random mask
         __mask = tf.random.uniform(shape=(__batch_dim, 1, __seq_dim), minval=0, maxval=2, dtype=tf.dtypes.int32)
         # update index
@@ -148,7 +148,7 @@ class CachedAttentionTest(tf.test.TestCase):
     def test_sequential_decode_append(self):
         __batch_dim, __seq_dim, __embed_dim, __num_heads, __head_dim = 1, 4, 6, 2, 3
         # sampling mode
-        __cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
+        __cache = mlable.caching.create(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
         # random mask
         __mask = tf.random.uniform(shape=(__batch_dim, 1, __seq_dim + 1), minval=0, maxval=2, dtype=tf.dtypes.int32)
         # update index
@@ -167,7 +167,7 @@ class CachedAttentionTest(tf.test.TestCase):
     # def test_batch_decode_equivalence_to_sequential_decode(self):
     #     __batch_dim, __seq_dim, __embed_dim, __num_heads, __head_dim = 2, 5, 8, 2, 4
     #     # sampling mode
-    #     __input_cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
+    #     __input_cache = mlable.caching.create(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
     #     # random mask
     #     __input_mask = tf.ones((__seq_dim, __seq_dim))
     #     # update index
@@ -180,7 +180,7 @@ class CachedAttentionTest(tf.test.TestCase):
     #     __output_values, __output_scores, __output_cache = __layer(query=__input_x, value=__input_x, cache=__input_cache, attention_mask=__input_mask, step=0, return_attention_scores=True, use_causal_mask=True, training=True)
     #     # loop decode
     #     __loop_values = tf.zeros(shape=(__batch_dim, __seq_dim, __embed_dim), dtype=tf.dtypes.float32)
-    #     __iteration_cache = mlable.utils.create_cache(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
+    #     __iteration_cache = mlable.caching.create(batch_dim=__batch_dim, cache_dim=__seq_dim, num_heads=__num_heads, head_dim=__head_dim)
     #     for __i in range(__seq_dim):
     #         __iteration_x = tf.slice(__input_x, (0, __i, 0), (__batch_dim, 1, __embed_dim))
     #         __iteration_mask = __input_mask # tf.slice(__input_mask, (__i, 0), (1, __seq_dim))

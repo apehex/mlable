@@ -36,26 +36,26 @@ def multiply_dim(dim_l: int, dim_r: int) -> int:
     return -1 if (dim_l == -1 or dim_r == -1) else dim_l * dim_r
 
 def divide_dim(dim_l: int, dim_r: int) -> int:
-    return -1 if (dim_l == -1 or dim_r == -1) else dim_l // dim_r
+    return -1 if (dim_l == -1 or dim_r == -1 or dim_r == 0) else dim_l // dim_r
 
 # NORMALIZE ###################################################################
 
-def normalize_shape(shape: list) -> list:
+def normalize(shape: list) -> list:
     return [normalize_dim(dim=__d) for __d in list(shape)]
 
-def symbolic_shape(shape: list) -> list:
+def symbolic(shape: list) -> list:
     return [symbolic_dim(dim=__d) for __d in list(shape)]
 
-def filter_shape(shape: list, axes: list) -> list:
-    __shape = normalize_shape(shape)
+def filter(shape: list, axes: list) -> list:
+    __shape = normalize(shape)
     __axes = [__a % len(__shape) for __a in axes] # interpret negative indexes
     return [__d if __i in __axes else 1 for __i, __d in enumerate(__shape)]
 
 # DIVIDE ######################################################################
 
-def divide_shape(shape: list, input_axis: int, output_axis: int, factor: int, insert: bool=False) -> list:
+def divide(shape: list, input_axis: int, output_axis: int, factor: int, insert: bool=False) -> list:
     # copy
-    __shape = normalize_shape(shape)
+    __shape = normalize(shape)
     # rank, according to the new shape
     __rank = len(__shape) + int(insert)
     # axes, taken from the new shape
@@ -69,17 +69,11 @@ def divide_shape(shape: list, input_axis: int, output_axis: int, factor: int, in
     # return
     return __shape
 
-def divide(data: tf.Tensor, input_axis: int, output_axis: int, factor: int, insert: bool=False) -> tf.Tensor:
-    # move data from input axis to output axis
-    __shape = divide_shape(shape=list(data.shape), input_axis=input_axis, output_axis=output_axis, factor=factor, insert=insert)
-    # actually reshape
-    return tf.reshape(tensor=data, shape=__shape)
-
 # MERGE #######################################################################
 
-def merge_shape(shape: list, left_axis: int, right_axis: int, left: bool=True) -> list:
+def merge(shape: list, left_axis: int, right_axis: int, left: bool=True) -> list:
     # copy
-    __shape = normalize_shape(shape)
+    __shape = normalize(shape)
     __rank = len(__shape)
     # normalize (negative indexes)
     __axis_l = left_axis % __rank
@@ -94,9 +88,3 @@ def merge_shape(shape: list, left_axis: int, right_axis: int, left: bool=True) -
     __shape.pop(__axis_d)
     # return
     return __shape
-
-def merge(data: tf.Tensor, left_axis: int, right_axis: int, left: bool=True) -> tf.Tensor:
-    # new shape
-    __shape = merge_shape(shape=list(data.shape), left_axis=left_axis, right_axis=right_axis, left=left)
-    # actually merge the two axes
-    return tf.reshape(tensor=data, shape=__shape)

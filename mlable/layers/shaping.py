@@ -1,6 +1,7 @@
 import tensorflow as tf
 
-import mlable.shaping
+import mlable.shapes
+import mlable.shaping.axes
 
 # GENERIC ######################################################################
 
@@ -55,16 +56,16 @@ class Divide(tf.keras.layers.Layer):
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         # normalize all dims as ints and divide
-        __shape = mlable.shaping.divide_shape(input_shape, **self._config)
+        __shape = mlable.shapes.divide(input_shape, **self._config)
         # interpret 0 dimensions as None in symbolic shapes
-        return tuple(mlable.shaping.symbolic_shape(__shape))
+        return tuple(mlable.shapes.symbolic(__shape))
 
     def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # move data from axis 0 to axis 1
-        return mlable.shaping.divide(data=inputs, **self._config)
+        return mlable.shaping.axes.divide(data=inputs, **self._config)
 
     def get_config(self) -> dict:
         __config = super(Divide, self).get_config()
@@ -95,16 +96,16 @@ class Merge(tf.keras.layers.Layer):
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         # normalize all dims as ints and divide
-        __shape = mlable.shaping.merge_shape(input_shape, **self._config)
+        __shape = mlable.shapes.merge(input_shape, **self._config)
         # interpret 0 dimensions as None in symbolic shapes
-        return tuple(mlable.shaping.symbolic_shape(__shape))
+        return tuple(mlable.shapes.symbolic(__shape))
 
     def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # merge the two axes
-        return mlable.shaping.merge(data=inputs, **self._config)
+        return mlable.shaping.axes.merge(data=inputs, **self._config)
 
     def get_config(self) -> dict:
         __config = super(Merge, self).get_config()
@@ -132,14 +133,14 @@ class Swap(tf.keras.layers.Layer):
         self._perm = []
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
-        return tuple(mlable.shaping.swap_axes(
+        return tuple(mlable.shapes.swap_axes(
             rank=len(input_shape),
             left=self._config['left_axis'],
             right=self._config['right_axis'],
             perm=list(input_shape)))
 
     def build(self, input_shape: tuple) -> None:
-        self._perm = mlable.shaping.swap_axes(rank=len(input_shape), left=self._config['left_axis'], right=self._config['right_axis'], perm=[])
+        self._perm = mlable.shapes.swap_axes(rank=len(input_shape), left=self._config['left_axis'], right=self._config['right_axis'], perm=[])
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
@@ -171,14 +172,14 @@ class Move(tf.keras.layers.Layer):
         self._perm = []
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
-        return tuple(mlable.shaping.move_axis(
+        return tuple(mlable.shapes.move_axis(
             rank=len(input_shape),
             before=self._config['from_axis'],
             after=self._config['to_axis'],
             perm=list(input_shape)))
 
     def build(self, input_shape: tuple) -> None:
-        self._perm = mlable.shaping.move_axis(rank=len(input_shape), before=self._config['from_axis'], after=self._config['to_axis'], perm=[])
+        self._perm = mlable.shapes.move_axis(rank=len(input_shape), before=self._config['from_axis'], after=self._config['to_axis'], perm=[])
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
