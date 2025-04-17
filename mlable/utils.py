@@ -20,6 +20,12 @@ def chunk(seq: list, size: int, repeats: bool=True) -> list:
 def merge(chunks: list) -> list:
     return list(itertools.chain.from_iterable(chunks))
 
+# PERMUTATION ##################################################################
+
+def rotate(sequence: list, ticks: int) -> list:
+    __n = ticks % len(sequence)
+    return sequence[__n:] + sequence[:__n] # shift left if ticks > 0 right otherwise
+
 # CACHE ########################################################################
 
 def create_cache(batch_dim: int, cache_dim: int, head_dim: int, num_heads: int=None) -> tf.Tensor:
