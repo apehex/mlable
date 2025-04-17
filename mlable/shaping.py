@@ -1,10 +1,6 @@
 import tensorflow as tf
 
-# PERMUTATION ##################################################################
-
-def rotate(sequence: list, ticks: int) -> list:
-    __n = ticks % len(sequence)
-    return sequence[__n:] + sequence[:__n] # shift left if ticks > 0 right otherwise
+import mlable.utils
 
 # AXES ########################################################################
 
@@ -23,7 +19,7 @@ def move_axis(rank: int, before: int, after: int, perm: list=[]) -> list:
     __dir = 1 if __from < __to else -1
     # split the sequence
     __left = __perm[:min(__from, __to)]
-    __shift = rotate(__perm[min(__from, __to):max(__from, __to) + 1], ticks=__dir)
+    __shift = mlable.utils.rotate(__perm[min(__from, __to):max(__from, __to) + 1], ticks=__dir)
     __right = __perm[max(__from, __to) + 1:]
     # recompose
     return __left + __shift + __right
