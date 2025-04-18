@@ -47,7 +47,8 @@ class AttentionBlockTest(tf.test.TestCase):
                 'args': {
                     'head_num': 2,
                     'key_dim': 4,
-                    'attention_axes': [1],},
+                    'attention_axes': [1],
+                    'use_position': True,},
                 'outputs': {
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},
@@ -58,7 +59,8 @@ class AttentionBlockTest(tf.test.TestCase):
                 'args': {
                     'head_num': 2,
                     'key_dim': 4,
-                    'attention_axes': [1],},
+                    'attention_axes': [1],
+                    'use_position': False,},
                 'outputs': {
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},]
@@ -87,7 +89,8 @@ class DecoderBLockTest(tf.test.TestCase):
                     'head_num': 2,
                     'hidden_dim': 64,
                     'key_dim': 4,
-                    'attention_axes': [1],},
+                    'attention_axes': [1],
+                    'use_position': True,},
                 'outputs': {
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},
@@ -99,7 +102,8 @@ class DecoderBLockTest(tf.test.TestCase):
                     'head_num': 2,
                     'hidden_dim': 64,
                     'key_dim': 4,
-                    'attention_axes': [1],},
+                    'attention_axes': [1],
+                    'use_position': False,},
                 'outputs': {
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},]
