@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 import densecurves.hilbert
+import mlable.shapes
 
 # 1D PERMUTATION ###############################################################
 
@@ -25,8 +26,19 @@ def permutation(order: int, rank: int) -> list:
 
 # 1D => ND #####################################################################
 
-def fold() -> tf.Tensor:
-    pass
+def fold(data: tf.Tensor, order: int, rank: int, axis: int) -> tf.Tensor:
+    # only integer dimension (0 for None)
+    __shape = mlable.shapes.normalize(data.shape)
+    # avoid negative indices => axis + 1 != 0
+    __axis = axis % len(__shape)
+    # insert the new axes
+    __shape = __shape[:__axis] + rank * [1 << order] + __shape[__axis + 1:]
+    # 1D reordering of the indexes according to the Hilbert curve
+    __perm = permutation(order=order, rank=rank)
+    # actually swap the elements along the target axis
+    __data = tf.gather(data, indices=__perm, axis=__axis)
+    # split the sequence axis
+    return tf.reshape(__data, shape=__shape)
 
 # ND => 1D #####################################################################
 
