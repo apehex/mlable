@@ -1,5 +1,8 @@
 """Map a flat dimension with points of rank N, according to the Hilbert curve."""
 
+import functools
+import math
+
 import numpy as np
 import tensorflow as tf
 
@@ -8,7 +11,7 @@ import mlable.shapes
 
 # 1D PERMUTATION ###############################################################
 
-def permutation(order: int, rank: int) -> list:
+def permutation(order: int, rank: int, flatten: bool=False) -> list:
     # 1D dimension of the curve: 2 ** (order * rank)
     __dim = 1 << (order * rank)
     # target shape: (2 ** order, 2 ** order, ...) rank times
@@ -20,7 +23,7 @@ def permutation(order: int, rank: int) -> list:
     # permutation: __flat[i] contains the destination index of i
     __flat = np.ravel_multi_index(__indices, dims=__shape, mode='wrap', order='C')
     # mapping between destination and origin indices
-    __map = {__d: __o for __o, __d in enumerate(__flat.tolist())}
+    __map = {(__o if flatten else __d): (__d if flatten else __o) for __o, __d in enumerate(__flat.tolist())}
     # match the format of gather: __perm[i] contains the origin of index i
     return [__map[__d] for __d in sorted(__map.keys())]
 
@@ -34,7 +37,7 @@ def fold(data: tf.Tensor, order: int, rank: int, axis: int) -> tf.Tensor:
     # insert the new axes
     __shape = __shape[:__axis] + rank * [1 << order] + __shape[__axis + 1:]
     # 1D reordering of the indexes according to the Hilbert curve
-    __perm = permutation(order=order, rank=rank)
+    __perm = permutation(order=order, rank=rank, flatten=False)
     # actually swap the elements along the target axis
     __data = tf.gather(data, indices=__perm, axis=__axis)
     # split the sequence axis
@@ -42,5 +45,16 @@ def fold(data: tf.Tensor, order: int, rank: int, axis: int) -> tf.Tensor:
 
 # ND => 1D #####################################################################
 
-def unfold() -> tf.Tensor:
-    pass
+def unfold(data: tf.Tensor, order: int, rank: int, axes: iter) -> tf.Tensor:
+    # only integer dimension (0 for None)
+    __shape = mlable.shapes.normalize(data.shape)
+    # positive indexes to allow comparisons
+    __axes = sorted([__a % len(__shape) for __a in axes], reverse=True)
+    # merge from right to left so that the remaining axes are not impacted
+    __shape = functools.reduce(lambda __s, __a: mlable.shapes.merge(__s, left_axis=min(__axes), right_axis=__a, left=True), __axes[:-1], __shape)
+    # 1D permutation of the indexes along the merged axis
+    __perm = permutation(order=order, rank=rank, flatten=True)
+    # merge all the axes of the hypercube
+    __data = tf.reshape(data, shape=__shape)
+    # actually swap the elements along the target axis
+    return tf.gather(__data, indices=__perm, axis=min(__axes))
