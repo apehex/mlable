@@ -1,5 +1,3 @@
-import tensorflow as tf
-
 import mlable.utils
 
 # AXES ########################################################################
