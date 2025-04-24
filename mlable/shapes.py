@@ -82,7 +82,8 @@ def merge(shape: list, left_axis: int, right_axis: int, left: bool=True) -> list
     __axis_k = __axis_l if left else __axis_r # kept axis
     __axis_d = __axis_r if left else __axis_l # deleted axis
     # new shape
-    __shape[__axis_k] = __dim
-    __shape.pop(__axis_d)
+    if __axis_k != __axis_d:
+        __shape[__axis_k] = __dim
+        __shape.pop(__axis_d)
     # return
     return __shape

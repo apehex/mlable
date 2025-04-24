@@ -39,9 +39,12 @@ class ReshapingTests(tf.test.TestCase):
     def test_divide(self):
         for __s in self._shapes:
             __d_same_rank = mlable.shapes.divide(shape=__s, input_axis=-1, output_axis=0, factor=4, insert=False)
+            __d_same_axis = mlable.shapes.divide(shape=__s, input_axis=-1, output_axis=-1, factor=4, insert=False)
             __d_add_axis = mlable.shapes.divide(shape=__s, input_axis=-1, output_axis=0, factor=4, insert=True)
             # same rank
             self.assertEqual(len(__s), len(__d_same_rank))
+            # same axis
+            self.assertEqual(mlable.shapes.normalize(__s), mlable.shapes.normalize(__d_same_axis))
             # add an axis
             self.assertEqual(len(__s) + 1, len(__d_add_axis))
             # keeps cardinality
@@ -51,12 +54,15 @@ class ReshapingTests(tf.test.TestCase):
 
     def test_merge(self):
         for __s in self._shapes:
-            __m = mlable.shapes.merge(shape=__s, left_axis=-2, right_axis=-1, left=True)
+            __m_adjacent = mlable.shapes.merge(shape=__s, left_axis=-2, right_axis=-1, left=True)
+            __m_same = mlable.shapes.merge(shape=__s, left_axis=-1, right_axis=-1, left=True)
             # one less axis
-            self.assertEqual(len(__s) - 1, len(__m))
+            self.assertEqual(len(__s) - 1, len(__m_adjacent))
+            # untouched
+            self.assertEqual(mlable.shapes.normalize(__s), mlable.shapes.normalize(__m_same))
             # keeps cardinality
             if all(isinstance(__d, int) for __d in list(__s)):
-                self.assertEqual(math.prod(list(__s)), math.prod(__m))
+                self.assertEqual(math.prod(list(__s)), math.prod(__m_adjacent))
 
     def test_reciprocity(self):
         for __s in self._shapes:
