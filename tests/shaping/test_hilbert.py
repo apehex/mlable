@@ -19,11 +19,11 @@ class FoldTest(tf.test.TestCase):
                 'shape': (4, 16, 16, 16, 3),},
             {
                 'args': {
-                    'data': tf.cast(tf.random.uniform((1, 2 ** (3 * 3), 1), minval=0, maxval=256, dtype=tf.int32), dtype=tf.uint8),
+                    'data': tf.cast(tf.random.uniform((1, 1, 2 ** (3 * 3)), minval=0, maxval=256, dtype=tf.int32), dtype=tf.uint8),
                     'order': 3,
                     'rank': 3,
-                    'axis': 1,},
-                'shape': (1, 8, 8, 8, 1),},]
+                    'axis': -1,},
+                'shape': (1, 1, 8, 8, 8),},]
 
     def test_shape_and_dtype(self):
         for __case in self._cases:
