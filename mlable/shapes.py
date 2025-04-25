@@ -69,21 +69,18 @@ def divide(shape: list, input_axis: int, output_axis: int, factor: int, insert: 
 
 # MERGE #######################################################################
 
-def merge(shape: list, left_axis: int, right_axis: int, left: bool=True) -> list:
+def merge(shape: list, axis: int, right: bool=True) -> list:
     # copy
     __shape = normalize(shape)
     __rank = len(__shape)
-    # normalize (negative indexes)
-    __axis_l = left_axis % __rank
-    __axis_r = right_axis % __rank
+    # avoid negative indexes for comparisons
+    __axis0 = axis % __rank
+    # the destination axis is right beside the origin
+    __axis1 = (__axis0 + int(right) - int(not right)) % __rank
     # new dimension
-    __dim = multiply_dim(__shape[__axis_l], __shape[__axis_r])
-    # select axes
-    __axis_k = __axis_l if left else __axis_r # kept axis
-    __axis_d = __axis_r if left else __axis_l # deleted axis
+    __dim = multiply_dim(__shape[__axis0], __shape[__axis1])
     # new shape
-    if __axis_k != __axis_d:
-        __shape[__axis_k] = __dim
-        __shape.pop(__axis_d)
+    __shape[min(__axis0, __axis1)] = __dim
+    __shape.pop(max(__axis0, __axis1))
     # return
     return __shape
