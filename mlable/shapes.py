@@ -51,20 +51,19 @@ def filter(shape: list, axes: list) -> list:
 
 # DIVIDE ######################################################################
 
-def divide(shape: list, input_axis: int, output_axis: int, factor: int, insert: bool=False) -> list:
-    # copy
+def divide(shape: list, axis: int, factor: int, insert: bool=False, right: bool=True) -> list:
+    # cast all dims to int
     __shape = normalize(shape)
-    # rank, according to the new shape
-    __rank = len(__shape) + int(insert)
-    # axes, taken from the new shape
-    __axis0 = input_axis % __rank
-    __axis1 = output_axis % __rank
+    # the source axis is positioned according to the original shape
+    __axis0 = (axis % len(__shape)) + int(insert) * int(not right)
+    # the destination axis is right before or right after
+    __axis1 = __axis0 + int(right) - int(not right)
     # option to group data on a new axis
     if insert: __shape.insert(__axis1, 1)
     # move data from axis 0 to axis 1
     __shape[__axis0] = divide_dim(__shape[__axis0], factor)
     __shape[__axis1] = multiply_dim(__shape[__axis1], factor)
-    # return
+    # list of ints
     return __shape
 
 # MERGE #######################################################################
@@ -82,5 +81,5 @@ def merge(shape: list, axis: int, right: bool=True) -> list:
     # new shape
     __shape[min(__axis0, __axis1)] = __dim
     __shape.pop(max(__axis0, __axis1))
-    # return
+    # list of ints
     return __shape
