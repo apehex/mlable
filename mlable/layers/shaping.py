@@ -131,7 +131,7 @@ class Swap(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         return tuple(mlable.shapes.swap(input_shape, left=self._config['left_axis'], right=self._config['right_axis']))
 
-    def build(self, input_shape: tuple) -> None:
+    def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
@@ -163,7 +163,7 @@ class Move(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         return tuple(mlable.shapes.move(input_shape, before=self._config['from_axis'], after=self._config['to_axis']))
 
-    def build(self, input_shape: tuple) -> None:
+    def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
