@@ -1,27 +1,5 @@
 import mlable.utils
 
-# AXES ########################################################################
-
-def swap_axes(rank: int, left: int, right: int, perm: list=[]) -> list:
-    __perm = perm if perm else list(range(rank))
-    __left, __right = left % rank, right % rank
-    __perm[__left], __perm[__right] = __perm[__right], __perm[__left]
-    return __perm
-
-def move_axis(rank: int, before: int, after: int, perm: list=[]) -> list:
-    __perm = perm if perm else list(range(rank))
-    # indexes
-    __from = before % len(__perm)
-    __to = after % len(__perm)
-    # rotate left to right if from < to and vice-versa
-    __dir = 1 if __from < __to else -1
-    # split the sequence
-    __left = __perm[:min(__from, __to)]
-    __shift = mlable.utils.rotate(__perm[min(__from, __to):max(__from, __to) + 1], ticks=__dir)
-    __right = __perm[max(__from, __to) + 1:]
-    # recompose
-    return __left + __shift + __right
-
 # DIMS ########################################################################
 
 def normalize_dim(dim: int) -> int:
@@ -83,3 +61,27 @@ def merge(shape: list, axis: int, right: bool=True) -> list:
     __shape.pop(max(__axis0, __axis1))
     # list of ints
     return __shape
+
+# SWAP #########################################################################
+
+def swap(shape: list, left: int, right: int) -> list:
+    __shape = normalize(shape)
+    __left, __right = left % len(__shape), right % len(__shape)
+    __shape[__left], __shape[__right] = __shape[__right], __shape[__left]
+    return __shape
+
+# MOVE #########################################################################
+
+def move(shape: list, before: int, after: int) -> list:
+    __shape = normalize(shape)
+    # indexes
+    __from = before % len(__shape)
+    __to = after % len(__shape)
+    # rotate left to right if from < to and vice-versa
+    __dir = 1 if __from < __to else -1
+    # split the sequence
+    __left = __shape[:min(__from, __to)]
+    __shift = mlable.utils.rotate(__shape[min(__from, __to):max(__from, __to) + 1], ticks=__dir)
+    __right = __shape[max(__from, __to) + 1:]
+    # recompose
+    return __left + __shift + __right
