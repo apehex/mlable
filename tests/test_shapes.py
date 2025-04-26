@@ -284,4 +284,124 @@ class MergeTests(tf.test.TestCase):
 
 # SWAP #########################################################################
 
+class SwapTests(tf.test.TestCase):
+    def setUp(self):
+        super(SwapTests, self).setUp()
+        self._cases = [
+            {
+                'args': {
+                    'shape': range(4, 9),
+                    'left': 1,
+                    'right': 2,},
+                'outputs': [4, 6, 5, 7, 8],},
+            {
+                'args': {
+                    'shape': (None, 4, 16),
+                    'left': 1,
+                    'right': 1,},
+                'outputs': [0, 4, 16],},
+            {
+                'args': {
+                    'shape': [-1, 8],
+                    'left': 10,
+                    'right': 11,},
+                'outputs': [8, -1],},
+            {
+                'args': {
+                    'shape': tf.ones((2, 16)).shape,
+                    'left': 1,
+                    'right': 0,},
+                'outputs': [16, 2],},
+            {
+                'args': {
+                    'shape': tf.keras.Input((32, 32, 8)).shape,
+                    'left': -2,
+                    'right': -1,},
+                'outputs': [0, 32, 8, 32],},
+            {
+                'args': {
+                    'shape': tf.keras.Input((32, 32, 8)).shape,
+                    'left': -10,
+                    'right': 0,},
+                'outputs': [32, 32, 0, 8],},]
+
+    def test_rank_unchanged(self):
+        for __c in self._cases:
+            __s = __c['args']['shape']
+            __u = mlable.shapes.swap(__s, left=0, right=-1)
+            self.assertEqual(len(__s), len(__u))
+
+    def test_unchanged_when_left_equals_right(self):
+        for __c in self._cases:
+            __s = __c['args']['shape']
+            __u = mlable.shapes.swap(__s, left=0, right=0)
+            self.assertEqual(mlable.shapes.normalize(__s), __u)
+
+    def test_specific_cases(self):
+        for __c in self._cases:
+            self.assertEqual(__c['outputs'], mlable.shapes.swap(**__c['args']))
+
 # MOVE #########################################################################
+
+class MoveTests(tf.test.TestCase):
+    def setUp(self):
+        super(MoveTests, self).setUp()
+        self._cases = [
+            {
+                'args': {
+                    'shape': range(4, 9),
+                    'before': 1,
+                    'after': 2,},
+                'outputs': [4, 6, 5, 7, 8],},
+            {
+                'args': {
+                    'shape': range(8),
+                    'before': 1,
+                    'after': 4,},
+                'outputs': [0, 2, 3, 4, 1, 5, 6, 7],},
+            {
+                'args': {
+                    'shape': (None, 4, 16),
+                    'before': 1,
+                    'after': 1,},
+                'outputs': [0, 4, 16],},
+            {
+                'args': {
+                    'shape': [-1, 8],
+                    'before': 10,
+                    'after': 11,},
+                'outputs': [8, -1],},
+            {
+                'args': {
+                    'shape': tf.ones((2, 16)).shape,
+                    'before': 1,
+                    'after': 0,},
+                'outputs': [16, 2],},
+            {
+                'args': {
+                    'shape': range(4),
+                    'before': -1,
+                    'after': 1,},
+                'outputs': [0, 3, 1, 2],},
+            {
+                'args': {
+                    'shape': tf.keras.Input((32, 32, 8)).shape,
+                    'before': -10,
+                    'after': 0,},
+                'outputs': [32, 0, 32, 8],},]
+
+    def test_rank_unchanged(self):
+        for __c in self._cases:
+            __s = __c['args']['shape']
+            __u = mlable.shapes.move(__s, before=0, after=-1)
+            self.assertEqual(len(__s), len(__u))
+
+    def test_unchanged_when_source_and_destination_axes_are_equal(self):
+        for __c in self._cases:
+            __s = __c['args']['shape']
+            __u = mlable.shapes.move(__s, before=0, after=0)
+            self.assertEqual(mlable.shapes.normalize(__s), __u)
+
+    def test_specific_cases(self):
+        for __c in self._cases:
+            self.assertEqual(__c['outputs'], mlable.shapes.move(**__c['args']))
