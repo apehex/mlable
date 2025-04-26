@@ -67,7 +67,7 @@ def transpose_axes(tensor: tf.Tensor, swaps: list) -> tf.Tensor:
     __rank = len(list(tensor.shape))
     __perm = list(range(__rank))
     for __s in swaps:
-        __perm = mlable.shapes.swap_axes(rank=__rank, left=__s[0], right=__s[1], perm=__perm)
+        __perm = mlable.shapes.swap(shape=__perm, left=__s[0], right=__s[1])
     return tf.transpose(tensor, perm=__perm)
 
 @tf.keras.utils.register_keras_serializable(package='layers')

@@ -22,14 +22,14 @@ def merge(data: tf.Tensor, axis: int, right: bool=True) -> tf.Tensor:
 
 def swap(data: tf.Tensor, left_axis: int, right_axis: int) -> tf.Tensor:
     # mapping from the new axis indices to the old indices
-    __perm = mlable.shapes.swap_axes(rank=len(data.shape), left=left_axis, right=right_axis, perm=[])
+    __perm = mlable.shapes.swap(shape=range(len(data.shape)), left=left_axis, right=right_axis)
     # transpose the data instead of just reshaping
     return tf.transpose(data, perm=__perm, conjugate=False)
 
 # MOVE #########################################################################
 
-def move(data: tf.Tensor, from_axis: int, to_axis: int, left: bool=True) -> tf.Tensor:
+def move(data: tf.Tensor, from_axis: int, to_axis: int) -> tf.Tensor:
     # mapping from the new axis indices to the old indices
-    __perm = mlable.shapes.move_axis(rank=len(data.shape), before=from_axis, after=to_axis, perm=[])
+    __perm = mlable.shapes.move(shape=range(len(data.shape)), before=from_axis, after=to_axis)
     # transpose the data instead of just reshaping
     return tf.transpose(data, perm=__perm, conjugate=False)

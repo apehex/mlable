@@ -127,22 +127,15 @@ class Swap(tf.keras.layers.Layer):
         super(Swap, self).__init__(**kwargs)
         # save for import / export
         self._config = {'left_axis': left_axis, 'right_axis': right_axis,}
-        # the actual permutation depends on the rank of the input
-        self._perm = []
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
-        return tuple(mlable.shapes.swap_axes(
-            rank=len(input_shape),
-            left=self._config['left_axis'],
-            right=self._config['right_axis'],
-            perm=list(input_shape)))
+        return tuple(mlable.shapes.swap(input_shape, left=self._config['left_axis'], right=self._config['right_axis']))
 
     def build(self, input_shape: tuple) -> None:
-        self._perm = mlable.shapes.swap_axes(rank=len(input_shape), left=self._config['left_axis'], right=self._config['right_axis'], perm=[])
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        return tf.transpose(inputs, perm=self._perm, conjugate=False)
+        return mlable.shaping.axes.swap(inputs, **self._config)
 
     def get_config(self) -> dict:
         __config = super(Swap, self).get_config()
@@ -166,22 +159,15 @@ class Move(tf.keras.layers.Layer):
         super(Move, self).__init__(**kwargs)
         # save for import / export
         self._config = {'from_axis': from_axis, 'to_axis': to_axis,}
-        # the actual permutation depends on the rank of the input
-        self._perm = []
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
-        return tuple(mlable.shapes.move_axis(
-            rank=len(input_shape),
-            before=self._config['from_axis'],
-            after=self._config['to_axis'],
-            perm=list(input_shape)))
+        return tuple(mlable.shapes.move(input_shape, before=self._config['from_axis'], after=self._config['to_axis']))
 
     def build(self, input_shape: tuple) -> None:
-        self._perm = mlable.shapes.move_axis(rank=len(input_shape), before=self._config['from_axis'], after=self._config['to_axis'], perm=[])
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        return tf.transpose(inputs, perm=self._perm, conjugate=False)
+        return mlable.shaping.axes.move(inputs, **self._config)
 
     def get_config(self) -> dict:
         __config = super(Move, self).get_config()
