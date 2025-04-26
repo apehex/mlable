@@ -77,7 +77,7 @@ class UnfoldTest(tf.test.TestCase):
                     'data': tf.random.uniform((4, 16, 16, 16, 3), minval=-1.0, maxval=1.0, dtype=tf.bfloat16),
                     'order': 4,
                     'rank': 3,
-                    'axes': [1, 2, -2],},
+                    'axes': range(1, 4),},
                 'shape': (4, 4096, 3),},
             {
                 'args': {

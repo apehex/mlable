@@ -10,12 +10,7 @@ import mlable.shaping.axes
 def _group(logits: tf.Tensor, depth: int=-1) -> tf.Tensor:
     return (
         logits if (depth < 2)
-        else mlable.shaping.axes.divide(
-            logits,
-            input_axis=-2,
-            output_axis=-1,
-            factor=depth,
-            insert=True))
+        else mlable.shaping.axes.divide(logits, axis=-1, factor=depth, insert=True, right=True))
 
 # FILTER #######################################################################
 

@@ -3,7 +3,6 @@ import math
 import tensorflow as tf
 
 import mlable.layers.shaping
-import mlable.shapes
 
 # CONSTANTS ####################################################################
 
@@ -35,9 +34,6 @@ class Patching(tf.keras.layers.Layer):
         self._swap_width = None
         self._swap_groups = None
 
-    def _divide_args(self, axis: int, dim: int) -> dict:
-        return {'input_axis': axis, 'output_axis': axis + 1, 'factor': dim, 'insert': True,}
-
     def _normalize_axes(self, input_shape: tuple) -> list:
         __rank = len(input_shape)
         return [self._config['height_axis'] % __rank, self._config['width_axis'] % __rank]
@@ -51,12 +47,9 @@ class Patching(tf.keras.layers.Layer):
         __axes_s = self._normalize_axes(input_shape)
         # match the ordering of the axes
         __dim_p = self._normalize_dims(input_shape)
-        # common args
-        __split_width = self._divide_args(axis=max(__axes_s), dim=__dim_p[-1])
-        __split_height = self._divide_args(axis=min(__axes_s), dim=__dim_p[0])
         # init
-        self._split_width = mlable.layers.shaping.Divide(**__split_width)
-        self._split_height = mlable.layers.shaping.Divide(**__split_height)
+        self._split_width = mlable.layers.shaping.Divide(axis=max(__axes_s), factor=__dim_p[-1], insert=True, right=True)
+        self._split_height = mlable.layers.shaping.Divide(axis=min(__axes_s), factor=__dim_p[0], insert=True, right=True)
         # the width axis has been pushed right by the insertion of the patch height axis
         self._swap_height = mlable.layers.shaping.Swap(left_axis=min(__axes_s), right_axis=min(__axes_s) + 1)
         self._swap_width = mlable.layers.shaping.Swap(left_axis=max(__axes_s) + 1, right_axis=max(__axes_s) + 2)
@@ -150,8 +143,8 @@ class Unpatching(tf.keras.layers.Layer):
         self._swap_width = mlable.layers.shaping.Swap(left_axis=max(__space_axes), right_axis=max(__patch_axes))
         # asymmetric (space and patch cannot be interverted)
         self._swap_groups = mlable.layers.shaping.Swap(left_axis=max(__space_axes), right_axis=min(__patch_axes))
-        self._merge_width = mlable.layers.shaping.Merge(left_axis=min(__patch_axes), right_axis=max(__patch_axes), left=True)
-        self._merge_height = mlable.layers.shaping.Merge(left_axis=min(__space_axes), right_axis=max(__space_axes), left=True)
+        self._merge_width = mlable.layers.shaping.Merge(axis=min(__patch_axes), right=True)
+        self._merge_height = mlable.layers.shaping.Merge(axis=min(__space_axes), right=True)
         # build
         self._swap_height.build(input_shape)
         self._swap_width.build(input_shape)
@@ -223,7 +216,7 @@ class PixelPacking(tf.keras.layers.Layer):
     def build(self, input_shape: tuple=None) -> None:
         # init
         self._patch_space = Patching(transpose=False, **self._config)
-        self._merge_patch = mlable.layers.shaping.Merge(left_axis=-2, right_axis=-1, left=True)
+        self._merge_patch = mlable.layers.shaping.Merge(axis=-1, right=False)
         # no weights
         self._patch_space.build(input_shape)
         self._merge_patch.build()
@@ -231,14 +224,9 @@ class PixelPacking(tf.keras.layers.Layer):
         self.built = True
 
     def compute_output_shape(self, input_shape) -> tuple:
-        # common args
-        __args = {'output_axis': -1, 'insert': False,}
-        # merge the height axes
-        __shape = mlable.shapes.divide(input_shape, input_axis=self._config['height_axis'], factor=self._config['patch_dim'][0], **__args)
-        # merge the width axes
-        __shape = mlable.shapes.divide(__shape, input_axis=self._config['width_axis'], factor=self._config['patch_dim'][-1], **__args)
-        # interpret 0 dimensions as None in symbolic shapes
-        return tuple(mlable.shapes.symbolic(__shape))
+        __shape = self._patch_space.compute_output_shape(input_shape)
+        __shape = self._merge_patch.compute_output_shape(__shape)
+        return self._merge_patch.compute_output_shape(__shape)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # split the space axes into patches
@@ -281,30 +269,24 @@ class PixelShuffle(tf.keras.layers.Layer):
 
     def build(self, input_shape: tuple=None) -> None:
         # common args
-        __args = {'input_axis': -1, 'output_axis': -2, 'insert': True,}
+        __args = {'axis': -1, 'insert': True, 'right': False,}
         # shape after splitting the feature axis
-        __shape = mlable.shapes.divide(input_shape, factor=self._config['patch_dim'][0], **__args)
-        __shape = mlable.shapes.divide(__shape, factor=self._config['patch_dim'][-1], **__args)
+        __shape = tuple(input_shape)
         # init
         self._split_height = mlable.layers.shaping.Divide(factor=self._config['patch_dim'][0], **__args)
         self._split_width = mlable.layers.shaping.Divide(factor=self._config['patch_dim'][-1], **__args)
         self._unpatch_space = Unpatching(space_height_axis=self._config['height_axis'], space_width_axis=self._config['width_axis'], patch_height_axis=-3, patch_width_axis=-2)
-        # no weights
-        self._split_height.build()
-        self._split_width.build()
-        self._unpatch_space.build(__shape)
+        # build
+        for __l in [self._split_height, self._split_width, self._unpatch_space]:
+            __l.build(__shape)
+            __shape = __l.compute_output_shape(__shape)
         # register
         self.built = True
 
     def compute_output_shape(self, input_shape) -> tuple:
-        # common args
-        __args = {'input_axis': -1, 'insert': False,}
-        # merge the height axes
-        __shape = mlable.shapes.divide(input_shape, output_axis=self._config['height_axis'], factor=self._config['patch_dim'][0], **__args)
-        # merge the width axes
-        __shape = mlable.shapes.divide(__shape, output_axis=self._config['width_axis'], factor=self._config['patch_dim'][-1], **__args)
-        # interpret 0 dimensions as None in symbolic shapes
-        return tuple(mlable.shapes.symbolic(__shape))
+        __shape = self._split_height.compute_output_shape(input_shape)
+        __shape = self._split_width.compute_output_shape(__shape)
+        return self._unpatch_space.compute_output_shape(__shape)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # split the feature axis by chunks of patch size

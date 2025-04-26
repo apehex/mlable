@@ -9,21 +9,21 @@ import mlable.shaping.axes
 class Reshape(tf.keras.layers.Layer):
     def __init__(
         self,
-        target_shape: tuple,
+        shape: tuple,
         **kwargs
     ) -> None:
         super(Reshape, self).__init__(**kwargs)
         # save for import / export
-        self._config = {'target_shape': target_shape}
+        self._config = {'shape': shape}
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
-        return tuple(self._config['target_shape'])
+        return tuple(self._config['shape'])
 
     def build(self, input_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        return tf.reshape(inputs, self._config['target_shape'])
+        return tf.reshape(inputs, self._config['shape'])
 
     def get_config(self) -> dict:
         __config = super(Reshape, self).get_config()
@@ -40,19 +40,19 @@ class Reshape(tf.keras.layers.Layer):
 class Divide(tf.keras.layers.Layer):
     def __init__(
         self,
-        input_axis: int, # relative to the NEW shape / rank
-        output_axis: int, # same
+        axis: int, # relative to the original shape
         factor: int,
         insert: bool=False,
+        right: bool=True,
         **kwargs
     ) -> None:
         super(Divide, self).__init__(**kwargs)
         # save for import / export
         self._config = {
-            'input_axis': input_axis,
-            'output_axis': output_axis,
+            'axis': axis,
             'factor': factor,
-            'insert': insert,}
+            'insert': insert,
+            'right': right,}
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         # normalize all dims as ints and divide
@@ -82,17 +82,15 @@ class Divide(tf.keras.layers.Layer):
 class Merge(tf.keras.layers.Layer):
     def __init__(
         self,
-        left_axis: int=-2,
-        right_axis: int=-1,
-        left: bool=True,
+        axis: int,
+        right: bool=True,
         **kwargs
     ) -> None:
         super(Merge, self).__init__(**kwargs)
         # save for import / export
         self._config = {
-            'left_axis': left_axis,
-            'right_axis': right_axis,
-            'left': left,}
+            'axis': axis,
+            'right': right,}
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         # normalize all dims as ints and divide
