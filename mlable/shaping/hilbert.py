@@ -1,6 +1,5 @@
 """Map a flat dimension with points of rank N, according to the Hilbert curve."""
 
-import functools
 import math
 
 import numpy as np
@@ -48,13 +47,13 @@ def fold(data: tf.Tensor, order: int, rank: int, axis: int) -> tf.Tensor:
 def unfold(data: tf.Tensor, order: int, rank: int, axes: iter) -> tf.Tensor:
     # only integer dimension (0 for None)
     __shape = mlable.shapes.normalize(data.shape)
-    # positive indexes to allow comparisons
-    __axes = sorted([__a % len(__shape) for __a in axes], reverse=True)
-    # merge from right to left so that the remaining axes are not impacted
-    __shape = functools.reduce(lambda __s, __a: mlable.shapes.merge(__s, left_axis=min(__axes), right_axis=__a, left=True), __axes[:-1], __shape)
+    # only positive indexes
+    __axes = sorted([__a % len(__shape) for __a in axes])
+    # merge all the axes on the first one
+    __shape = __shape[:min(__axes)] + [math.prod(__shape[min(__axes):max(__axes) + 1])] + __shape[max(__axes) + 1:]
     # 1D permutation of the indexes along the merged axis
     __perm = permutation(order=order, rank=rank, flatten=True)
     # merge all the axes of the hypercube
     __data = tf.reshape(data, shape=__shape)
     # actually swap the elements along the target axis
-    return tf.gather(__data, indices=__perm, axis=min(__axes))
+    return tf.gather(__data, indices=__perm, axis=min(axes))

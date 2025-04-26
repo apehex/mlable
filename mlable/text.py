@@ -44,21 +44,21 @@ def encode(data: tf.Tensor, sample_dim: int, output_dtype: tf.DType=tf.uint8, ou
 
 def trim(data: tf.Tensor, count: int=1, outof: int=4) -> tf.Tensor:
     # group the bytes 4 by 4 (one UTF-32 character)
-    __outputs = mlable.shaping.axes.divide(data, input_axis=-2, output_axis=-1, factor=outof, insert=True)
+    __outputs = mlable.shaping.axes.divide(data, axis=-1, factor=outof, insert=True, right=True)
     # remove the most significant bytes (most often 0 in UTF-32)
     __outputs = tf.gather(__outputs, indices=range(count, outof), axis=-1)
     # flatten the data back
-    return mlable.shaping.axes.merge(__outputs, left_axis=-2, right_axis=-1, left=True)
+    return mlable.shaping.axes.merge(__outputs, axis=-1, right=False)
 
 def untrim(data: tf.Tensor, count: int=1, outof: int=4) -> tf.Tensor:
     # group the bytes codepoint by codepoint (4 bytes minus the ones that were trimmed)
-    __outputs = mlable.shaping.axes.divide(data, input_axis=-2, output_axis=-1, factor=outof - count, insert=True)
+    __outputs = mlable.shaping.axes.divide(data, axis=-1, factor=outof - count, insert=True, right=True)
     # there may be more zeros than data => the data can't just be sliced
     __zeros = tf.zeros(tuple(__outputs.shape)[:-1] + (count,), dtype=__outputs.dtype)
     # add leading 0s to each group / codepoint
     __outputs = tf.concat([__zeros, __outputs], axis=-1)
     # flatten the data back
-    return mlable.shaping.axes.merge(__outputs, left_axis=-2, right_axis=-1, left=True)
+    return mlable.shaping.axes.merge(__outputs, axis=-1, right=False)
 
 # DECODE #######################################################################
 
@@ -66,7 +66,7 @@ def codepoint(data: tf.Tensor, bigendian: bool=True) -> tf.Tensor:
     # make sure the dtype is large enough for UTF-32 codepoints
     __data = tf.cast(data, dtype=tf.int32)
     # group the bytes 4 by 4
-    __bytes = mlable.shaping.axes.divide(data=__data, input_axis=-2, output_axis=-1, factor=4, insert=True)
+    __bytes = mlable.shaping.axes.divide(data=__data, axis=-1, factor=4, insert=True, right=True)
     # compute the UTF-32-BE codepoints
     return mlable.maths.ops.reduce_base(data=__bytes, base=256, axis=-1, keepdims=False, bigendian=bigendian)
 

@@ -257,7 +257,7 @@ class TokunEmbedding(GenericEmbedding):
         # add the embedding axis
         __shape = super(TokunEmbedding, self).compute_output_shape(input_shape)
         # merge the patch and feature axes
-        __shape = mlable.shapes.merge(__shape, left_axis=-2, right_axis=-1, left=True)
+        __shape = mlable.shapes.merge(__shape, axis=-1, right=False)
         # format 0 dimensions as None in symbolic shapes
         return tuple(mlable.shapes.symbolic(__shape))
 
@@ -265,4 +265,4 @@ class TokunEmbedding(GenericEmbedding):
         # embed each element separately
         __outputs = super(TokunEmbedding, self).call(inputs)
         # concatenate the embeddings
-        return mlable.shaping.axes.merge(__outputs, left_axis=-2, right_axis=-1, left=True)
+        return mlable.shaping.axes.merge(__outputs, axis=-1, right=False)
