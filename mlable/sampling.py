@@ -66,7 +66,7 @@ def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0
     __samples = tf.argmax(input=__logits, axis=-1, output_type=dtype)
     # tweak the distribution
     if temp > 0.0:
-        __logits = (1. / temp) * __logits
+        __logits = tf.cast(1. / temp, dtype=__logits.dtype) * __logits
     # nucleus sampling
     if topp > 0.0:
         __logits = filter_top_p(logits=__logits, threshold=topp)
@@ -82,7 +82,7 @@ def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0
 
 # BINARY #######################################################################
 
-def _combine(logits: tf.Tensor, dtype: tf.DType=tf.int32) -> tf.Tensor:
+def _combine(logits: tf.Tensor) -> tf.Tensor:
     # parse the shape
     __bin_shape = tuple(logits.shape)
     __bin_rank = len(__bin_shape)
@@ -91,7 +91,7 @@ def _combine(logits: tf.Tensor, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # reshape to allow broadcasting: add an axis for the categories (..., N, 1, B)
     __logits = tf.expand_dims(logits, axis=-2)
     # enumerate all possible binary combinations for the given depth
-    __categories = tf.range(__cat_dim, dtype=dtype)
+    __categories = tf.range(__cat_dim, dtype=tf.int32)
     # decompose each category in binary bits
     __categories = mlable.maths.ops.expand_binary(__categories, depth=__bin_dim, bigendian=True)
     # match the shape of the logits (..., 1, C, B)
@@ -109,7 +109,7 @@ def _binary_bit_by_bit(logits: tf.Tensor, threshold: float=0.0, dtype: tf.DType=
 
 def _binary_group_by_group(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, seed: int=None, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # combine the bits by logical unit (typically 8 bit to sample from bytes)
-    __logits = _combine(logits=logits, dtype=dtype)
+    __logits = _combine(logits=logits)
     # no need to split the tensor further, it already has a depth of 2 ** depth
     return categorical(logits=__logits, temp=temp, topp=topp, topk=topk, depth=-1, seed=seed, dtype=dtype)
 
