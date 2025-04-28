@@ -55,7 +55,7 @@ class VaeModel(tf.keras.Model):
             # track the training step
             self._step.assign_add(1)
             # compute the KL divergence estimate
-            __kl = tf.reduce_mean(self.compute_kl(sample=__z, mean=__m, logvar=__v))
+            __kl = tf.reduce_mean(self.compute_kl(mean=__m, logvar=__v))
             # compute the matching schedule rate
             __rate = tf.cast(self._rate(self._step), dtype=__kl.dtype)
             # register the extra loss term
@@ -63,10 +63,8 @@ class VaeModel(tf.keras.Model):
         # reconstruct the input from the latent encoding
         return self.decode(__z, training=training, **kwargs)
 
-    def compute_kl(self, sample: tf.Tensor, mean: tf.Tensor, logvar: tf.Tensor) -> tf.Tensor:
-        __log_pz = mlable.maths.probs.log_normal_pdf(sample, tf.cast(0., dtype=sample.dtype), tf.cast(0., dtype=sample.dtype))
-        __log_qz_x = mlable.maths.probs.log_normal_pdf(sample, mean, logvar)
-        return __log_qz_x - __log_pz
+    def compute_kl(self, mean: tf.Tensor, logvar: tf.Tensor) -> tf.Tensor:
+        return -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
 
     # def train_step(self, data: tf.Tensor) -> dict:
     #     return super(VaeModel, self).train_step((data, data))
