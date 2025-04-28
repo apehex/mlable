@@ -93,7 +93,7 @@ def _combine(logits: tf.Tensor, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # enumerate all possible binary combinations for the given depth
     __categories = tf.range(__cat_dim, dtype=dtype)
     # decompose each category in binary bits
-    __categories = mlable.maths.ops.expand_binary(__categories, depth=__bin_dim, bigendian=False)
+    __categories = mlable.maths.ops.expand_binary(__categories, depth=__bin_dim, bigendian=True)
     # match the shape of the logits (..., 1, C, B)
     __categories = tf.reshape(__categories, shape=(__bin_rank - 1) * (1,) + (__cat_dim, __bin_dim))
     # select the logits depending on the bit decomposition
@@ -105,7 +105,7 @@ def _binary_bit_by_bit(logits: tf.Tensor, threshold: float=0.0, dtype: tf.DType=
     # convert the probabilities to bits
     __bits = tf.cast(logits > tf.cast(threshold, dtype=logits.dtype), dtype=dtype)
     # combine the bits into numbers
-    return mlable.maths.ops.reduce_base(__bits, base=2, axis=-1, group=-1, keepdims=False, bigendian=False)
+    return mlable.maths.ops.reduce_base(__bits, base=2, axis=-1, group=-1, keepdims=False, bigendian=True)
 
 def _binary_group_by_group(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, seed: int=None, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # combine the bits by logical unit (typically 8 bit to sample from bytes)
