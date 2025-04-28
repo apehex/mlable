@@ -211,7 +211,8 @@ class BinaryTest(tf.test.TestCase):
                     'topp': 0.0,
                     'topk': 0,
                     'depth': 4,
-                    'seed': 42,},
+                    'seed': 42,
+                    'bigendian': False,},
                 'outputs': {
                     'shape': (4, 8, 4),},},
             {
@@ -221,7 +222,8 @@ class BinaryTest(tf.test.TestCase):
                     'topp': 0.0,
                     'topk': 4,
                     'depth': 8,
-                    'seed': 101,},
+                    'seed': 101,
+                    'bigendian': False,},
                 'outputs': {
                     'shape': (2, 64),},},
             {
@@ -231,7 +233,8 @@ class BinaryTest(tf.test.TestCase):
                     'topp': 0.9,
                     'topk': 0,
                     'depth': -1,
-                    'seed': 32,},
+                    'seed': 32,
+                    'bigendian': True,},
                 'outputs': {
                     'shape': (),},},]
         self._specific_cases = [
@@ -242,10 +245,11 @@ class BinaryTest(tf.test.TestCase):
                     'topp': 0.9,
                     'topk': 0,
                     'depth': 4,
-                    'seed': 42,},
+                    'seed': 42,
+                    'bigendian': True,},
                 'outputs': {
-                    'shape': (1, 4, 2,),
-                    'values': tf.cast([[[1, 0], [2, 0], [4, 0], [8, 0], [0, 1], [0, 2], [0, 4], [0, 8]]], dtype=tf.int32),},},
+                    'shape': (1, 8, 2,),
+                    'values': tf.cast([[[8, 0], [4, 0], [2, 0], [1, 0], [0, 8], [0, 4], [0, 2], [0, 1]]], dtype=tf.int32),},},
             {
                 'inputs': {
                     'logits': tf.cast([[0.55, -0.08,  0.51, -0.10,  0.66, 0.47, -0.58, -0.60]], dtype=tf.float32),
@@ -253,7 +257,8 @@ class BinaryTest(tf.test.TestCase):
                     'topp': 0.0,
                     'topk': 0,
                     'depth': -1,
-                    'seed': 42,},
+                    'seed': 42,
+                    'bigendian': False,},
                 'outputs': {
                     'shape': (1,),
                     'values': tf.cast([53], dtype=tf.int32),},},
@@ -264,10 +269,11 @@ class BinaryTest(tf.test.TestCase):
                     'topp': 0.0,
                     'topk': 4,
                     'depth': -1,
-                    'seed': 42,},
+                    'seed': 42,
+                    'bigendian': True,},
                 'outputs': {
                     'shape': (4,),
-                    'values': tf.cast(4 * [64], dtype=tf.int32),},},]
+                    'values': tf.cast(4 * [2], dtype=tf.int32),},},]
 
     def test_shape_and_dtype(self):
         for __case in self._random_cases:

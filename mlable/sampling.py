@@ -82,7 +82,7 @@ def categorical(logits: tf.Tensor, temp: float=1.0, topp: float=0.0, topk: int=0
 
 # BINARY #######################################################################
 
-def _combine(logits: tf.Tensor) -> tf.Tensor:
+def _combine(logits: tf.Tensor, bigendian: bool=True) -> tf.Tensor:
     # parse the shape
     __bin_shape = tuple(logits.shape)
     __bin_rank = len(__bin_shape)
@@ -93,7 +93,7 @@ def _combine(logits: tf.Tensor) -> tf.Tensor:
     # enumerate all possible binary combinations for the given depth
     __categories = tf.range(__cat_dim, dtype=tf.int32)
     # decompose each category in binary bits
-    __categories = mlable.maths.ops.expand_binary(__categories, depth=__bin_dim, bigendian=True)
+    __categories = mlable.maths.ops.expand_binary(__categories, depth=__bin_dim, bigendian=bigendian)
     # match the shape of the logits (..., 1, C, B)
     __categories = tf.reshape(__categories, shape=(__bin_rank - 1) * (1,) + (__cat_dim, __bin_dim))
     # select the logits depending on the bit decomposition
@@ -101,26 +101,26 @@ def _combine(logits: tf.Tensor) -> tf.Tensor:
     # compute the joint log probabilities for each category (probability that the decomposition match on each bit)
     return tf.reduce_sum(__joint, axis=-1, keepdims=False)
 
-def _binary_bit_by_bit(logits: tf.Tensor, threshold: float=0.0, dtype: tf.DType=tf.int32) -> tf.Tensor:
+def _binary_bit_by_bit(logits: tf.Tensor, threshold: float=0.0, bigendian: bool=True, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # convert the probabilities to bits
     __bits = tf.cast(logits > tf.cast(threshold, dtype=logits.dtype), dtype=dtype)
     # combine the bits into numbers
-    return mlable.maths.ops.reduce_base(__bits, base=2, axis=-1, group=-1, keepdims=False, bigendian=True)
+    return mlable.maths.ops.reduce_base(__bits, base=2, axis=-1, group=-1, keepdims=False, bigendian=bigendian)
 
-def _binary_group_by_group(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, seed: int=None, dtype: tf.DType=tf.int32) -> tf.Tensor:
+def _binary_group_by_group(logits: tf.Tensor, temp: float=1.0, topp: float=-1.0, topk: int=-1, seed: int=None, bigendian: bool=True, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # combine the bits by logical unit (typically 8 bit to sample from bytes)
-    __logits = _combine(logits=logits)
+    __logits = _combine(logits=logits, bigendian=bigendian)
     # no need to split the tensor further, it already has a depth of 2 ** depth
     return categorical(logits=__logits, temp=temp, topp=topp, topk=topk, depth=-1, seed=seed, dtype=dtype)
 
-def binary(logits: tf.Tensor, threshold: float=0.0, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=-1, seed: int=None, dtype: tf.DType=tf.int32) -> tf.Tensor:
+def binary(logits: tf.Tensor, threshold: float=0.0, temp: float=1.0, topp: float=-1.0, topk: int=-1, depth: int=-1, seed: int=None, bigendian: bool=True, dtype: tf.DType=tf.int32) -> tf.Tensor:
     # group the bits together if necessary
     __logits = _group(logits=logits, depth=depth)
     # greedy sampling bit by bit by default
-    __samples = _binary_bit_by_bit(logits=__logits, threshold=threshold, dtype=dtype)
+    __samples = _binary_bit_by_bit(logits=__logits, threshold=threshold, bigendian=bigendian, dtype=dtype)
     # group the bit predictions by categories
     if (topp > 0.0) or (topk > 0):
-        __samples = _binary_group_by_group(__logits, temp=temp, topp=topp, topk=topk, seed=seed, dtype=dtype)
+        __samples = _binary_group_by_group(__logits, temp=temp, topp=topp, topk=topk, seed=seed, bigendian=bigendian, dtype=dtype)
     # index predictions
     return __samples
 
