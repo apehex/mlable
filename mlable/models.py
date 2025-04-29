@@ -37,7 +37,7 @@ class VaeModel(tf.keras.Model):
         # track the training step
         self._step = tf.Variable(-1, trainable=False, dtype=tf.int32)
         # set the KL loss factor accordingly
-        self._rate = functools.partial(mlable.schedules.linear_schedule, step_min=step_min, step_max=step_max, rate_min=beta_min, rate_max=beta_max)
+        self._rate = functools.partial(mlable.schedules.linear_rate, step_min=step_min, step_max=step_max, rate_min=beta_min, rate_max=beta_max)
 
     def sample(self, mean: tf.Tensor, logvar: tf.Tensor, dtype: tf.DType=None) -> tf.Tensor:
         __dtype = self.compute_dtype if (dtype is None) else dtype
