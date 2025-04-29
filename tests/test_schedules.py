@@ -4,11 +4,11 @@ import tensorflow as tf
 
 import mlable.schedules
 
-# FN COMPOSITION ##############################################################
+# LINEAR #######################################################################
 
-class LinearScheduleTest(tf.test.TestCase):
+class LinearRateTest(tf.test.TestCase):
     def setUp(self):
-        super(LinearScheduleTest, self).setUp()
+        super(LinearRateTest, self).setUp()
         self._cases = [
             {
                 'step': 0,
@@ -44,7 +44,7 @@ class LinearScheduleTest(tf.test.TestCase):
     def test_shape_and_dtype(self):
         for __case in self._cases:
             __inputs = tf.cast(__case['step'], dtype=tf.float32)
-            __outputs = mlable.schedules.linear_schedule(**__case)
+            __outputs = mlable.schedules.linear_rate(**__case)
             self.assertEqual(tuple(__outputs.shape), tuple(__inputs.shape))
             self.assertEqual(__outputs.dtype, tf.float32)
 
@@ -52,6 +52,6 @@ class LinearScheduleTest(tf.test.TestCase):
         for __case in self._cases:
             __min = tf.cast(__case['rate_min'], dtype=tf.float32)
             __max = tf.cast(__case['rate_max'], dtype=tf.float32)
-            __outputs = mlable.schedules.linear_schedule(**__case)
+            __outputs = mlable.schedules.linear_rate(**__case)
             self.assertAllGreaterEqual(__outputs, __min)
             self.assertAllLessEqual(__outputs, __max)
