@@ -73,7 +73,7 @@ class NormalizedDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastM
         self._std = __cast(self._std)
 
     def build(self, input_shape: tuple) -> None:
-        self._shape = tuple(input_shape[0]) # the model operate on a couple (inputs, variances)
+        self._shape = tuple(input_shape) # the model operate on a couple (inputs, variances)
 
     def postprocess(self, data: tf.Tensor) -> tf.Tensor:
         # scale the pixel values back to the signal space
