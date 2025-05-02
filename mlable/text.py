@@ -71,7 +71,7 @@ def codepoint(data: tf.Tensor, bigendian: bool=True) -> tf.Tensor:
     # compute the UTF-32-BE codepoints
     return mlable.maths.ops.reduce_base(data=__bytes, base=256, axis=-1, keepdims=False, bigendian=bigendian)
 
-def decode(data: tf.Tensor, encoding: str='UTF-32-BE') -> tf.Tensor:
+def decode(data: tf.Tensor, encoding: str='UTF-32-BE', errors: str='replace') -> tf.Tensor:
     __shape = mlable.shapes.normalize(data.shape)
     # clarify the dtype to avoid interpreting the values as codepoints
     __data = tf.cast(data, dtype=tf.uint8)
@@ -79,7 +79,7 @@ def decode(data: tf.Tensor, encoding: str='UTF-32-BE') -> tf.Tensor:
     __shape = tuple(__shape[:1]) + (math.prod(__shape[1:]),)
     __data = tf.reshape(__data, shape=__shape)
     # tensorflow has no utility to cast raw bytes into strings
-    __text = [bytes(__r).decode(encoding.lower(), errors='replace') for __r in __data]
+    __text = [bytes(__r).decode(encoding.lower(), errors=errors) for __r in __data]
     # enforce dtype
     return tf.cast(__text, tf.string)
 
