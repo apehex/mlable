@@ -31,8 +31,8 @@ class EncodingTest(tf.test.TestCase):
         __y3 = mlable.text.encode(__x0, sample_dim=64, output_dtype=tf.int32, output_encoding='UTF-32-BE')
         # decode
         __r0 = mlable.text.decode(__y0, encoding='UTF-8')
-        __r2 = mlable.text.decode(mlable.text.codepoint(__y2, bigendian=True), encoding='UTF-32-BE')
-        __r3 = mlable.text.decode(__y3, encoding='UTF-32-BE')
+        __r2 = mlable.text.decode(__y2, encoding='UTF-32-BE')
+        __r3 = mlable.text.decode(mlable.maths.ops.expand_base(__y3, base=256, depth=4, bigendian=True), encoding='UTF-32-BE')
         # unpack
         __o0 = mlable.text.unpack(mlable.text.unpad(__r0))
         __o2 = mlable.text.unpack(mlable.text.unpad(__r2))
@@ -81,7 +81,7 @@ class PostprocessTest(tf.test.TestCase):
         __y2 = mlable.text.preprocess(__s0, sample_dim=64, output_dtype=tf.int32, output_encoding='UTF-32-BE')
         __o0 = mlable.text.unpack(mlable.text.postprocess(__y0, encoding='UTF-8'))
         __o1 = mlable.text.unpack(mlable.text.postprocess(__y1, encoding='UTF-32-BE'))
-        __o2 = mlable.text.unpack(mlable.text.postprocess(__y2, encoding='UTF-32-BE'))
+        __o2 = mlable.text.unpack(mlable.text.postprocess(mlable.maths.ops.expand_base(__y2, base=256, depth=4, bigendian=True), encoding='UTF-32-BE'))
         assert __o0 == [__s0]
         assert __o1 == [__s0]
         assert __o2 == [__s0]

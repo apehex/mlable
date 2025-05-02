@@ -6,6 +6,7 @@ import tensorflow as tf
 
 import mlable.maths.ops
 import mlable.sampling
+import mlable.shapes
 import mlable.shaping.axes
 
 # UNICODE ######################################################################
@@ -71,11 +72,16 @@ def codepoint(data: tf.Tensor, bigendian: bool=True) -> tf.Tensor:
     return mlable.maths.ops.reduce_base(data=__bytes, base=256, axis=-1, keepdims=False, bigendian=bigendian)
 
 def decode(data: tf.Tensor, encoding: str='UTF-32-BE') -> tf.Tensor:
-    __data = tf.cast(data, dtype=tf.int32)
-    # input = array of unicode codepoints
-    __data = tf.strings.unicode_encode(__data, output_encoding=encoding)
-    # convert to standard UTF-8
-    return tf.strings.unicode_transcode(input=__data, input_encoding=encoding, output_encoding='UTF-8')
+    __shape = mlable.shapes.normalize(data.shape)
+    # clarify the dtype to avoid interpreting the values as codepoints
+    __data = tf.cast(data, dtype=tf.uint8)
+    # flatten all the dimensions but the batch axis
+    __shape = tuple(__shape[:1]) + (math.prod(__shape[1:]),)
+    __data = tf.reshape(__data, shape=__shape)
+    # tensorflow has no utility to cast raw bytes into strings
+    __text = [bytes(__r).decode(encoding.lower(), errors='replace') for __r in __data]
+    # enforce dtype
+    return tf.cast(__text, tf.string)
 
 # CLEAN ########################################################################
 
@@ -98,9 +104,7 @@ def preprocess(text: str, sample_dim: int, output_dtype: tf.DType=tf.uint8, outp
 # < ############################################################################
 
 def postprocess(data: tf.Tensor, encoding: str='UTF-32-BE') -> tf.Tensor:
-    # merge the bytes into codepoints
-    __outputs = codepoint(data=data, bigendian=True) if ('32' in encoding) and (data.dtype == tf.uint8) else data
     # decode the UTF-32-BE codepoints
-    __outputs = decode(data=__outputs, encoding=encoding)
+    __outputs = decode(data=data, encoding=encoding)
     # remove the null padding
     return unpad(__outputs)
