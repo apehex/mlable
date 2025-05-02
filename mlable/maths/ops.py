@@ -64,12 +64,13 @@ def expand_base(data: tf.Tensor, base: int, depth: int, bigendian: bool=False) -
     __idx = range(depth)[::-1] if bigendian else range(depth)
     # base divisor and modulus
     __div = tf.convert_to_tensor([base ** __e for __e in __idx], dtype=data.dtype)
-    __mod = tf.convert_to_tensor([base ** (__e + 1) for __e in __idx], dtype=data.dtype)
+    __mod = tf.convert_to_tensor(depth * [base], dtype=data.dtype)
     # match the input shape
     __div = tf.reshape(__div, shape=__shape)
     __mod = tf.reshape(__mod, shape=__shape)
     # Euclidean algorithm
-    __digits = tf.math.floordiv(x=tf.math.floormod(x=tf.expand_dims(data, axis=-1), y=__mod), y=__div)
+    __digits = tf.math.floordiv(x=tf.expand_dims(data, axis=-1), y=__div)
+    __digits = tf.math.floormod(x=__digits, y=__mod)
     # format
     return tf.cast(__digits, dtype=data.dtype)
 
