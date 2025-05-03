@@ -2,6 +2,7 @@ import functools
 import itertools
 import math
 
+import numpy as np
 import tensorflow as tf
 
 import mlable.maths.ops
@@ -41,6 +42,14 @@ def encode(data: tf.Tensor, sample_dim: int, output_dtype: tf.DType=tf.uint8, ou
     # decode byte strings to arrays of byte integers
     return tf.io.decode_raw(__bytes, out_type=output_dtype, fixed_length=sample_dim, little_endian=False) # (B, 4 * S) or (B, S) depending on the dtype (1 or 4 bytes)
 
+def codepoint(data: tf.Tensor, bigendian: bool=True) -> tf.Tensor:
+    # make sure the dtype is large enough for UTF-32 codepoints
+    __data = tf.cast(data, dtype=tf.int32)
+    # group the bytes 4 by 4
+    __bytes = mlable.shaping.axes.divide(data=__data, axis=-1, factor=4, insert=True, right=True)
+    # compute the UTF-32-BE codepoints
+    return mlable.maths.ops.reduce_base(data=__bytes, base=256, axis=-1, keepdims=False, bigendian=bigendian)
+
 # TRIM #########################################################################
 
 def trim(data: tf.Tensor, count: int=1, outof: int=4) -> tf.Tensor:
@@ -63,23 +72,16 @@ def untrim(data: tf.Tensor, count: int=1, outof: int=4) -> tf.Tensor:
 
 # DECODE #######################################################################
 
-def codepoint(data: tf.Tensor, bigendian: bool=True) -> tf.Tensor:
-    # make sure the dtype is large enough for UTF-32 codepoints
-    __data = tf.cast(data, dtype=tf.int32)
-    # group the bytes 4 by 4
-    __bytes = mlable.shaping.axes.divide(data=__data, axis=-1, factor=4, insert=True, right=True)
-    # compute the UTF-32-BE codepoints
-    return mlable.maths.ops.reduce_base(data=__bytes, base=256, axis=-1, keepdims=False, bigendian=bigendian)
+def _decode(data: tf.Tensor, encoding: str='UTF-32-BE', errors: str='replace') -> tf.Tensor:
+    return bytes(data).decode(encoding.lower(), errors=errors)
 
 def decode(data: tf.Tensor, encoding: str='UTF-32-BE', errors: str='replace') -> tf.Tensor:
-    __shape = mlable.shapes.normalize(data.shape)
     # clarify the dtype to avoid interpreting the values as codepoints
-    __data = tf.cast(data, dtype=tf.uint8)
-    # flatten all the dimensions but the batch axis
-    __shape = tuple(__shape[:1]) + (math.prod(__shape[1:]),)
-    __data = tf.reshape(__data, shape=__shape)
-    # tensorflow has no utility to cast raw bytes into strings
-    __text = [bytes(__r).decode(encoding.lower(), errors=errors) for __r in __data]
+    __data = tf.cast(data, dtype=tf.uint8).numpy()
+    # function operating on a whole axis at once
+    __string = functools.partial(_decode, encoding=encoding, errors=errors)
+    # keep the spatial dimension, as the text data might be 2D or even 3D
+    __text = np.apply_along_axis(__string, axis=-1, arr=__data)
     # enforce dtype
     return tf.cast(__text, tf.string)
 
