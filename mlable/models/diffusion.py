@@ -73,7 +73,7 @@ class NormalizedDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastM
         self._std = __cast(self._std)
 
     def build(self, input_shape: tuple) -> None:
-        self._shape = tuple(input_shape) # the model operate on a couple (inputs, variances)
+        self._shape = tuple(input_shape)
 
     def postprocess(self, data: tf.Tensor) -> tf.Tensor:
         # scale the pixel values back to the signal space
@@ -188,21 +188,18 @@ class LatentDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         self._vae = None
 
     def build(self, input_shape: tuple) -> None:
-        self._shape = tuple(input_shape) # the model operate on a couple (inputs, variances)
+        self._shape = tuple(input_shape)
 
     # SHAPES ###################################################################
 
-    def compute_latent_shape(self, input_shape: tuple=(), batch_dim: int=0) -> tuple:
+    def compute_output_shape(self, input_shape: tuple=(), batch_dim: int=0) -> tuple:
         __shape = tuple(input_shape) or tuple(self._shape)
         __batch_dim = int(batch_dim or __shape[0])
-        return self._vae.compute_latent_shape((__batch_dim,) + __shape[1:])
+        return (__batch_dim,) + __shape[1:]
 
     def compute_variance_shape(self, input_shape: tuple=(), batch_dim: int=0) -> tuple:
-        __shape = self.compute_latent_shape(input_shape=input_shape, batch_dim=batch_dim)
+        __shape = self.compute_output_shape(input_shape=input_shape, batch_dim=batch_dim)
         return tuple(mlable.shapes.filter(__shape, axes=[0]))
-
-    def compute_output_shape(self, input_shape: tuple) -> tuple:
-        return self._vae.compute_output_shape(input_shape)
 
     # LATENT <=> SIGNAL SPACES #################################################
 
@@ -297,7 +294,7 @@ class LatentDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
         # adapt the batch dimension
-        __shape = self.compute_latent_shape(batch_dim=sample_num)
+        __shape = self.compute_output_shape(batch_dim=sample_num)
         # sample the initial noise
         __noises = tf.random.normal(shape=__shape, dtype=__dtype)
         # remove the noise
@@ -310,7 +307,7 @@ class LatentDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
     def train_step(self, data: tf.Tensor) -> dict:
         __dtype = self.compute_dtype
         # compute the shapes in the latent space
-        __shape_n = self.compute_latent_shape(input_shape=data.shape)
+        __shape_n = self.compute_output_shape(input_shape=data.shape)
         __shape_a = self.compute_variance_shape(input_shape=data.shape)
         # normalize data to have standard deviation of 1, like the noises
         __data = self.preprocess(data, dtype=__dtype)
@@ -328,7 +325,7 @@ class LatentDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
     def test_step(self, data: tf.Tensor) -> dict:
         __dtype = self.compute_dtype
         # compute the shapes in the latent space
-        __shape_n = self.compute_latent_shape(input_shape=data.shape)
+        __shape_n = self.compute_output_shape(input_shape=data.shape)
         __shape_a = self.compute_variance_shape(input_shape=data.shape)
         # normalize data to have standard deviation of 1, like the noises
         __data = self.preprocess(data, dtype=__dtype)
