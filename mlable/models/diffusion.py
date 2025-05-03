@@ -306,11 +306,11 @@ class LatentDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     def train_step(self, data: tf.Tensor) -> dict:
         __dtype = self.compute_dtype
-        # compute the shapes in the latent space
-        __shape_n = self.compute_output_shape(input_shape=data.shape)
-        __shape_a = self.compute_variance_shape(input_shape=data.shape)
         # normalize data to have standard deviation of 1, like the noises
         __data = self.preprocess(data, dtype=__dtype)
+        # compute the shapes in the latent space
+        __shape_n = self.compute_output_shape(input_shape=__data.shape)
+        __shape_a = self.compute_variance_shape(input_shape=__data.shape)
         # sample the noises = targets
         __noises = tf.random.normal(shape=__shape_n, dtype=__dtype)
         # sample the diffusion angles
@@ -324,11 +324,11 @@ class LatentDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     def test_step(self, data: tf.Tensor) -> dict:
         __dtype = self.compute_dtype
-        # compute the shapes in the latent space
-        __shape_n = self.compute_output_shape(input_shape=data.shape)
-        __shape_a = self.compute_variance_shape(input_shape=data.shape)
         # normalize data to have standard deviation of 1, like the noises
         __data = self.preprocess(data, dtype=__dtype)
+        # compute the shapes in the latent space
+        __shape_n = self.compute_output_shape(input_shape=__data.shape)
+        __shape_a = self.compute_variance_shape(input_shape=__data.shape)
         # sample the noises = targets
         __noises = tf.random.normal(shape=__shape_n, dtype=__dtype)
         # sample the diffusion angles
