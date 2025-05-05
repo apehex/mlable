@@ -219,7 +219,7 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         __dim_s = __shape[__axis_s]
         __dim_f = __shape[__axis_f]
         # actually init & build
-        self._layer = GenericEmbedding(input_dim=__dim_s, output_dim=__dim_f)
+        self._layer = tf.keras.layers.Embedding(input_dim=__dim_s, output_dim=__dim_f)
         self._layer.build((__dim_s,))
         # register
         self.built = True
