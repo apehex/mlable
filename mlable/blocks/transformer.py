@@ -135,13 +135,12 @@ class AttentionBlock(tf.keras.layers.Layer):
         __k = self._key_norm(key, training=training)
         __v = self._value_norm(value, training=training)
         # position embedding, along each axis
-        __qp, __kp = __q, __k
         if self._config['use_position']:
             for __position in self._position.values():
-                __qp = __position(inputs=__qp, offset=0)
-                __kp = __position(inputs=__kp, offset=0)
+                __q = __position(inputs=__q, offset=0)
+                __k = __position(inputs=__k, offset=0)
         # attention
-        return self._attention(query=__qp, key=__kp, value=__v, training=training, **kwargs)
+        return self._attention(query=__q, key=__k, value=__v, training=training, **kwargs)
 
     def get_config(self) -> dict:
         __config = super(AttentionBlock, self).get_config()
