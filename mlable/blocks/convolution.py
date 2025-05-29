@@ -174,3 +174,146 @@ class ResnetBlock(tf.keras.layers.Layer):
     @classmethod
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
+
+# ENCODER ######################################################################
+
+@tf.keras.utils.register_keras_serializable(package='blocks')
+class EncoderBlock(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        channel_dim: int,
+        group_dim: int=32,
+        layer_num: int=1,
+        dropout_rate: float=0.0,
+        epsilon_rate: float=1e-6,
+        downsample_on: bool=True,
+        **kwargs
+    ) -> None:
+        super(EncoderBlock, self).__init__(**kwargs)
+        # save config
+        self._config = {
+            'channel_dim': channel_dim,
+            'group_dim': group_dim,
+            'layer_num': layer_num,
+            'dropout_rate': dropout_rate,
+            'epsilon_rate': epsilon_rate,
+            'downsample_on': downsample_on,
+        }
+        # layers
+        self._blocks = []
+
+    def build(self, input_shape: tuple) -> None:
+        __shape = tuple(input_shape)
+        # init
+        self._blocks = [
+            ResnetBlock(
+                channel_dim=self._config['channel_dim'],
+                group_dim=self._config['group_dim'],
+                dropout_rate=self._config['dropout_rate'],
+                epsilon_rate=self._config['epsilon_rate'],)
+            for _ in range(self._config['layer_num'])]
+        if self._config['downsample_on']:
+            self._blocks.append(tf.keras.layers.Conv2D(
+                filters=self._config['channel_dim'],
+                kernel_size=3,
+                strides=2,
+                use_bias=True,
+                activation=None,
+                padding='same',
+                data_format='channels_last'))
+        # build
+        for __block in self._blocks:
+            __block.build(__shape)
+            __shape = __block.compute_output_shape(__shape)
+        # register
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
+        return functools.reduce(lambda __x, __b: __b(__x, training=training), self._blocks, inputs)
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return functools.reduce(lambda __s, __b: __b.compute_output_shape(__s), self._blocks, input_shape)
+
+    def get_config(self) -> dict:
+        __config = super(EncoderBlock, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+# TRANSFORMER ##################################################################
+
+# DECODER ######################################################################
+
+@tf.keras.utils.register_keras_serializable(package='blocks')
+class DecoderBlock(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        channel_dim: int,
+        group_dim: int=32,
+        layer_num: int=1,
+        dropout_rate: float=0.0,
+        epsilon_rate: float=1e-6,
+        upsample_on: bool=True,
+        **kwargs
+    ) -> None:
+        super(DecoderBlock, self).__init__(**kwargs)
+        # save config
+        self._config = {
+            'channel_dim': channel_dim,
+            'group_dim': group_dim,
+            'layer_num': layer_num,
+            'dropout_rate': dropout_rate,
+            'epsilon_rate': epsilon_rate,
+            'upsample_on': upsample_on,
+        }
+        # layers
+        self._blocks = []
+
+    def build(self, input_shape: tuple) -> None:
+        __shape = tuple(input_shape)
+        # init
+        self._blocks = [
+            ResnetBlock(
+                channel_dim=self._config['channel_dim'],
+                group_dim=self._config['group_dim'],
+                dropout_rate=self._config['dropout_rate'],
+                epsilon_rate=self._config['epsilon_rate'],)
+            for _ in range(self._config['layer_num'])]
+        if self._config['upsample_on']:
+            self._blocks.extend([
+                tf.keras.layers.UpSampling2D(
+                    size=(2, 2),
+                    interpolation='nearest',
+                    data_format='channels_last'),
+                tf.keras.layers.Conv2D(
+                    filters=self._config['channel_dim'],
+                    kernel_size=3,
+                    strides=1,
+                    use_bias=True,
+                    activation=None,
+                    padding='same',
+                    data_format='channels_last'),])
+        # build
+        for __block in self._blocks:
+            __block.build(__shape)
+            __shape = __block.compute_output_shape(__shape)
+        # register
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
+        return functools.reduce(lambda __x, __b: __b(__x, training=training), self._blocks, inputs)
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return functools.reduce(lambda __s, __b: __b.compute_output_shape(__s), self._blocks, input_shape)
+
+    def get_config(self) -> dict:
+        __config = super(DecoderBlock, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
