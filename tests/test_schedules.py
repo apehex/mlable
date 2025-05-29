@@ -12,34 +12,40 @@ class LinearRateTest(tf.test.TestCase):
         self._cases = [
             {
                 'step': 0,
-                'step_min': 8,
-                'step_max': 32,
-                'rate_min': 0.2,
-                'rate_max': 1.3,},
+                'start_step': 8,
+                'end_step': 32,
+                'start_rate': 0.2,
+                'end_rate': 1.3,},
             {
                 'step': 16,
-                'step_min': 8,
-                'step_max': 32,
-                'rate_min': 0.2,
-                'rate_max': 1.3,},
+                'start_step': 8,
+                'end_step': 32,
+                'start_rate': 0.2,
+                'end_rate': 1.3,},
             {
                 'step': 64,
-                'step_min': 8,
-                'step_max': 32,
-                'rate_min': 0.2,
-                'rate_max': 1.3,},
+                'start_step': 8,
+                'end_step': 32,
+                'start_rate': 0.2,
+                'end_rate': 1.3,},
             {
                 'step': -5,
-                'step_min': 8,
-                'step_max': 32,
-                'rate_min': 0.2,
-                'rate_max': 1.3,},
+                'start_step': 8,
+                'end_step': 32,
+                'start_rate': 0.2,
+                'end_rate': 1.3,},
+            {
+                'step': 10,
+                'start_step': 8,
+                'end_step': 32,
+                'start_rate': 2.1,
+                'end_rate': 1.3,},
             {
                 'step': tf.random.uniform((4, 32, 1), minval=0, maxval=64, dtype=tf.int32),
-                'step_min': 8,
-                'step_max': 32,
-                'rate_min': 0.2,
-                'rate_max': 1.3,},]
+                'start_step': 8,
+                'end_step': 32,
+                'start_rate': 0.2,
+                'end_rate': 1.3,},]
 
     def test_shape_and_dtype(self):
         for __case in self._cases:
@@ -50,8 +56,8 @@ class LinearRateTest(tf.test.TestCase):
 
     def test_bounds(self):
         for __case in self._cases:
-            __min = tf.cast(__case['rate_min'], dtype=tf.float32)
-            __max = tf.cast(__case['rate_max'], dtype=tf.float32)
+            __min = tf.cast(min(__case['start_rate'], __case['end_rate']) - 0.01, dtype=tf.float32)
+            __max = tf.cast(max(__case['start_rate'], __case['end_rate']) + 0.01, dtype=tf.float32)
             __outputs = mlable.schedules.linear_rate(**__case)
             self.assertAllGreaterEqual(__outputs, __min)
             self.assertAllLessEqual(__outputs, __max)
