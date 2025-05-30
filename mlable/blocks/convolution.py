@@ -3,6 +3,9 @@ import math
 
 import tensorflow as tf
 
+import mlable.layers.shaping
+import mlable.blocks.transformer
+
 # CONSTANTS ####################################################################
 
 DROPOUT = 0.0
@@ -244,6 +247,91 @@ class EncoderBlock(tf.keras.layers.Layer):
         return cls(**config)
 
 # TRANSFORMER ##################################################################
+
+@tf.keras.utils.register_keras_serializable(package='blocks')
+class TransformerBlock(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        channel_dim: int,
+        head_dim: int=1,
+        group_dim: int=32,
+        layer_num: int=1,
+        dropout_rate: float=0.0,
+        epsilon_rate: float=1e-6,
+        **kwargs
+    ) -> None:
+        super(TransformerBlock, self).__init__(**kwargs)
+        # save the config to allow serialization
+        self._config = {
+            'channel_dim': channel_dim,
+            'head_dim': head_dim,
+            'group_dim': group_dim,
+            'layer_num': layer_num,
+            'dropout_rate': dropout_rate,
+            'epsilon_rate': epsilon_rate,
+        }
+        # layers
+        self._merge_space = None
+        self._split_space = None
+        self._resnet_blocks = []
+        self._attention_blocks = []
+
+    def build(self, input_shape):
+        __shape = tuple(input_shape)
+        # even the shapes to add the residuals with the intermediate outputs
+        self._resnet_blocks.append(ResnetBlock(
+            channel_dim=self._config['channel_dim'],
+            group_dim=self._config['group_dim'],
+            dropout_rate=self._config['dropout_rate'],
+            epsilon_rate=self._config['epsilon_rate']))
+        # interleave attention and resnet blocks
+        for _ in range(self._config['layer_num']):
+            self._attention_blocks.append(mlable.blocks.transformer.AttentionBlock(
+                head_num=max(1, self._config['channel_dim'] // self._config['head_dim']),
+                key_dim=self._config['head_dim'],
+                value_dim=self._config['head_dim'],
+                attention_axes=[1],
+                use_position=False,
+                use_bias=True,
+                center=False,
+                scale=False,
+                epsilon=epsilon_rate,
+                dropout_rate=dropout_rate))
+            self._resnet_blocks.append(ResnetBlock(
+                channel_dim=self._config['channel_dim'],
+                group_dim=self._config['group_dim'],
+                dropout_rate=self._config['dropout_rate'],
+                epsilon_rate=self._config['epsilon_rate']))
+
+        self.built = True
+
+    def call(self, inputs, training=False, **kwargs):
+        hidden_states = self._resnet_blocks[0](inputs, training=training)
+
+        for attn, resnet in zip(self._attention_blocks, self._resnet_blocks[1:]):
+            # Attention expects [batch, height*width, channels]
+            batch_size, h, w, c = tf.shape(hidden_states)[0], hidden_states.shape[1], hidden_states.shape[2], hidden_states.shape[3]
+            x_flat = tf.reshape(hidden_states, (batch_size, h * w, c))
+
+            attn_out = attn(x_flat, x_flat, training=training)
+            attn_out = tf.reshape(attn_out, (batch_size, h, w, c))
+
+            hidden_states = hidden_states + attn_out
+            hidden_states = resnet(hidden_states, training=training)
+
+        return hidden_states
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return input_shape[:-1] + (self._config['channel_dim'],)
+
+    def get_config(self) -> dict:
+        __config = super(TransformerBlock, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
 
 # DECODER ######################################################################
 
