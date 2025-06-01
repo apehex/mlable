@@ -4,7 +4,7 @@ import math
 import tensorflow as tf
 
 import mlable.layers.shaping
-import mlable.blocks.transformer
+import mlable.blocks.attention.generic
 
 # CONSTANTS ####################################################################
 
@@ -203,7 +203,7 @@ class TransformerBlock(tf.keras.layers.Layer):
             epsilon_rate=self._config['epsilon_rate']))
         # interleave attention and resnet blocks
         for _ in range(self._config['layer_num']):
-            self._attention_blocks.append(mlable.blocks.transformer.AttentionBlock(
+            self._attention_blocks.append(mlable.blocks.attention.generic.AttentionBlock(
                 head_num=max(1, self._config['channel_dim'] // self._config['head_dim']),
                 key_dim=self._config['head_dim'],
                 value_dim=self._config['head_dim'],
