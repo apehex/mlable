@@ -181,12 +181,12 @@ class TransformerBlock(tf.keras.layers.Layer):
         super(TransformerBlock, self).__init__(**kwargs)
         # save the config to allow serialization
         self._config = {
-            'channel_dim': channel_dim,
-            'head_dim': head_dim,
-            'group_dim': group_dim,
-            'layer_num': layer_num,
-            'dropout_rate': dropout_rate,
-            'epsilon_rate': epsilon_rate,}
+            'channel_dim': max(1, channel_dim),
+            'head_dim': max(1, head_dim),
+            'group_dim': max(1, group_dim),
+            'layer_num': max(1, layer_num),
+            'dropout_rate': max(0.0, dropout_rate),
+            'epsilon_rate': max(1e-8, epsilon_rate),}
         # layers
         self._merge_space = None
         self._split_space = None
@@ -198,15 +198,17 @@ class TransformerBlock(tf.keras.layers.Layer):
         # merge the space axes for the attention blocks
         self._merge_space = mlable.layers.shaping.Merge(axis=1, right=True)
         self._split_space = mlable.layers.shaping.Divide(axis=1, factor=__shape[2], right=True, insert=True)
-        # even the shapes to add the residuals with the intermediate outputs
-        self._resnet_blocks.append(ResnetBlock(
-            channel_dim=self._config['channel_dim'],
-            group_dim=self._config['group_dim'],
-            dropout_rate=self._config['dropout_rate'],
-            epsilon_rate=self._config['epsilon_rate']))
+        # prepend one additional resnet block before the first attention to even the shapes and smooth
+        self._resnet_blocks = [
+            ResnetBlock(
+                channel_dim=self._config['channel_dim'],
+                group_dim=self._config['group_dim'],
+                dropout_rate=self._config['dropout_rate'],
+                epsilon_rate=self._config['epsilon_rate'])
+            for _ in range(self._config['layer_num'] + 1)]
         # interleave attention and resnet blocks
-        for _ in range(self._config['layer_num']):
-            self._attention_blocks.append(mlable.blocks.attention.generic.AttentionBlock(
+        self._attention_blocks = [
+            mlable.blocks.attention.generic.AttentionBlock(
                 head_num=max(1, self._config['channel_dim'] // self._config['head_dim']),
                 key_dim=self._config['head_dim'],
                 value_dim=self._config['head_dim'],
@@ -214,31 +216,38 @@ class TransformerBlock(tf.keras.layers.Layer):
                 use_bias=True,
                 center=False,
                 scale=False,
-                epsilon=epsilon_rate,
-                dropout_rate=dropout_rate))
-            self._resnet_blocks.append(ResnetBlock(
-                channel_dim=self._config['channel_dim'],
-                group_dim=self._config['group_dim'],
-                dropout_rate=self._config['dropout_rate'],
-                epsilon_rate=self._config['epsilon_rate']))
-
+                epsilon=self._config['epsilon_rate'],
+                dropout_rate=self._config['dropout_rate'])
+            for _ in range(self._config['layer_num'])]
+        # build
+        self._resnet_blocks[0].build(__shape)
+        __shape = self._resnet_blocks[0].compute_output_shape(__shape)
+        for __b_att, __b_res in zip(self._attention_blocks, self._resnet_blocks[1:]):
+            self._merge_space.build(__shape)
+            __shape = self._merge_space.compute_output_shape(__shape)
+            __b_att.build(query_shape=__shape, key_shape=__shape, value_shape=__shape)
+            __shape = __b_att.compute_output_shape(query_shape=__shape, key_shape=__shape, value_shape=__shape)
+            self._split_space.build(__shape)
+            __shape = self._split_space.compute_output_shape(__shape)
+            __b_res.build(__shape)
+            __shape = __b_res.compute_output_shape(__shape)
+        # register
         self.built = True
 
-    def call(self, inputs, training=False, **kwargs):
-        hidden_states = self._resnet_blocks[0](inputs, training=training)
-
-        for attn, resnet in zip(self._attention_blocks, self._resnet_blocks[1:]):
-            # Attention expects [batch, height*width, channels]
-            batch_size, h, w, c = tf.shape(hidden_states)[0], hidden_states.shape[1], hidden_states.shape[2], hidden_states.shape[3]
-            x_flat = tf.reshape(hidden_states, (batch_size, h * w, c))
-
-            attn_out = attn(x_flat, x_flat, training=training)
-            attn_out = tf.reshape(attn_out, (batch_size, h, w, c))
-
-            hidden_states = hidden_states + attn_out
-            hidden_states = resnet(hidden_states, training=training)
-
-        return hidden_states
+    def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
+        # smooth (B, H, W, E) => (B, H, W, C)
+        __outputs = self._resnet_blocks[0](inputs, training=training)
+        for __b_att, __b_res in zip(self._attention_blocks, self._resnet_blocks[1:]):
+            # merge the space axes (B, H, W, C) => (B, HW, C)
+            __outputs = self._merge_space(__outputs)
+            # apply attention (B, HW, C) => (B, HW, C)
+            __outputs = __b_att(query=__outputs, key=__outputs, value=__outputs, training=training, **kwargs)
+            # split the space axes back (B, HW, C) => (B, H, W, C)
+            __outputs = self._split_space(__outputs)
+            # improve the features (B, H, W, C) => (B, H, W, C)
+            __outputs = __b_res(__outputs, training=training)
+        # (B, H, W, C)
+        return __outputs
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         return input_shape[:-1] + (self._config['channel_dim'],)
