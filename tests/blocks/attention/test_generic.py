@@ -16,8 +16,7 @@ class AttentionBlockTest(tf.test.TestCase):
                 'args': {
                     'head_num': 2,
                     'key_dim': 4,
-                    'attention_axes': [1],
-                    'use_position': True,},
+                    'attention_axes': [1],},
                 'outputs': {
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},
@@ -28,8 +27,7 @@ class AttentionBlockTest(tf.test.TestCase):
                 'args': {
                     'head_num': 2,
                     'key_dim': 4,
-                    'attention_axes': [1],
-                    'use_position': False,},
+                    'attention_axes': [1],},
                 'outputs': {
                     'values': tf.zeros((2, 8, 16), dtype=tf.float32),
                 },},]
