@@ -4,7 +4,6 @@ import math
 import tensorflow as tf
 
 import mlable.layers.shaping
-import mlable.blocks.transformer
 
 # CONSTANTS ####################################################################
 
