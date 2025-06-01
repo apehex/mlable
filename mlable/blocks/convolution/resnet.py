@@ -195,6 +195,9 @@ class TransformerBlock(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         __shape = tuple(input_shape)
+        # merge the space axes for the attention blocks
+        self._merge_space = mlable.layers.shaping.Merge(axis=1, right=True)
+        self._split_space = mlable.layers.shaping.Divide(axis=1, factor=__shape[2], right=True, insert=True)
         # even the shapes to add the residuals with the intermediate outputs
         self._resnet_blocks.append(ResnetBlock(
             channel_dim=self._config['channel_dim'],
@@ -208,7 +211,6 @@ class TransformerBlock(tf.keras.layers.Layer):
                 key_dim=self._config['head_dim'],
                 value_dim=self._config['head_dim'],
                 attention_axes=[1],
-                use_position=False,
                 use_bias=True,
                 center=False,
                 scale=False,

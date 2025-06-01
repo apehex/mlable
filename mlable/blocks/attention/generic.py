@@ -17,7 +17,6 @@ class AttentionBlock(tf.keras.layers.Layer):
         key_dim: int,
         value_dim: int=None,
         attention_axes: list=[1],
-        use_position: bool=False,
         use_bias: bool=True,
         center: bool=False,
         scale: bool=False,
@@ -35,7 +34,6 @@ class AttentionBlock(tf.keras.layers.Layer):
             'key_dim': key_dim,
             'value_dim': value_dim,
             'attention_axes': __axes,
-            'use_position': use_position,
             'use_bias': use_bias,
             'center': center,
             'scale': scale,
@@ -45,8 +43,6 @@ class AttentionBlock(tf.keras.layers.Layer):
         self._query_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._key_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._value_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
-        # position layers
-        self._position = {__a: mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=__a, feature_axis=-1) for __a in __axes}
         # attention layer
         self._attention = tf.keras.layers.MultiHeadAttention(num_heads=head_num, key_dim=key_dim, value_dim=value_dim, attention_axes=__axes, use_bias=use_bias, dropout=dropout_rate, kernel_initializer='glorot_uniform')
 
@@ -56,7 +52,6 @@ class AttentionBlock(tf.keras.layers.Layer):
             self._query_norm.build(query_shape)
             self._key_norm.build(key_shape)
             self._value_norm.build(value_shape)
-            for __p in self._position.values(): __p.build()
             # attention API depends on the version
             if hasattr(self._attention, '_build_from_signature'):
                 self._attention._build_from_signature(query=query_shape, key=key_shape, value=value_shape)
@@ -79,11 +74,6 @@ class AttentionBlock(tf.keras.layers.Layer):
         __q = self._query_norm(query, training=training)
         __k = self._key_norm(key, training=training)
         __v = self._value_norm(value, training=training)
-        # position embedding, along each axis
-        if self._config['use_position']:
-            for __position in self._position.values():
-                __q = __position(inputs=__q, offset=0)
-                __k = __position(inputs=__k, offset=0)
         # attention
         return self._attention(query=__q, key=__k, value=__v, training=training, **kwargs)
 
@@ -106,7 +96,6 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
         key_dim: int,
         value_dim: int=None,
         attention_axes: list=[1],
-        use_position: bool=False,
         use_bias: bool=True,
         center: bool=False,
         scale: bool=False,
@@ -124,7 +113,6 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
             'key_dim': key_dim,
             'value_dim': value_dim,
             'attention_axes': __axes,
-            'use_position': use_position,
             'use_bias': use_bias,
             'center': center,
             'scale': scale,
@@ -134,8 +122,6 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
         self._query_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._key_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
         self._value_norm = tf.keras.layers.LayerNormalization(axis=-1, epsilon=epsilon, center=center, scale=scale) # rms_scaling=True
-        # position layers
-        self._position = {__a: mlable.layers.embedding.RotaryPositionalEmbedding(sequence_axis=__a, feature_axis=-1) for __a in __axes}
         # attention layer
         self._attention = mlable.layers.transformer.CachedMultiHeadAttention(num_heads=head_num, key_dim=key_dim, value_dim=value_dim, attention_axes=__axes, use_bias=use_bias, dropout=dropout_rate, kernel_initializer='glorot_uniform')
 
@@ -145,7 +131,6 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
             self._query_norm.build(query_shape)
             self._key_norm.build(key_shape)
             self._value_norm.build(value_shape)
-            for __p in self._position.values(): __p.build(query_shape)
             # attention API depends on the version
             if hasattr(self._attention, '_build_from_signature'):
                 self._attention._build_from_signature(query=query_shape, key=key_shape, value=value_shape)
@@ -168,14 +153,8 @@ class CachedAttentionBlock(tf.keras.layers.Layer):
         __q = self._query_norm(query, training=training)
         __k = self._key_norm(key, training=training)
         __v = self._value_norm(value, training=training)
-        # position embedding, along each axis
-        __qp, __kp = __q, __k
-        if self._config['use_position']:
-            for __position in self._position.values():
-                __qp = __position(inputs=__qp, offset=0)
-                __kp = __position(inputs=__kp, offset=0)
         # attention
-        return self._attention(query=__qp, key=__kp, value=__v, cache=cache, step=position, training=training, **kwargs)
+        return self._attention(query=__q, key=__k, value=__v, cache=cache, step=position, training=training, **kwargs)
 
     def get_config(self) -> dict:
         __config = super(CachedAttentionBlock, self).get_config()

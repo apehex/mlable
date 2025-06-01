@@ -75,7 +75,6 @@ class DecoderBlock(tf.keras.layers.Layer):
         attention_axes: list=[1],
         epsilon: float=EPSILON,
         dropout_rate: float=0.0,
-        use_position: bool=False,
         use_bias: bool=True,
         center: bool=True,
         scale: bool=True,
@@ -92,12 +91,11 @@ class DecoderBlock(tf.keras.layers.Layer):
             'attention_axes': attention_axes,
             'epsilon': epsilon,
             'dropout_rate': dropout_rate,
-            'use_position': use_position,
             'use_bias': use_bias,
             'center': center,
             'scale': scale,}
         # layers
-        self._attention = mlable.blocks.attention.generic.AttentionBlock(head_num=head_num, key_dim=key_dim, value_dim=value_dim, attention_axes=attention_axes, dropout_rate=dropout_rate, epsilon=epsilon, use_position=use_position, use_bias=use_bias, center=center, scale=scale)
+        self._attention = mlable.blocks.attention.generic.AttentionBlock(head_num=head_num, key_dim=key_dim, value_dim=value_dim, attention_axes=attention_axes, dropout_rate=dropout_rate, epsilon=epsilon, use_bias=use_bias, center=center, scale=scale)
         self._ffn = FeedForwardBlock(hidden_dim=hidden_dim, dropout_rate=dropout_rate, epsilon=epsilon, center=center, scale=scale)
 
     def _build(self, query_shape: tuple, key_shape: tuple, value_shape: tuple) -> None:
