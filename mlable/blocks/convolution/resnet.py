@@ -176,6 +176,7 @@ class TransformerBlock(tf.keras.layers.Layer):
         layer_num: int=1,
         dropout_rate: float=DROPOUT,
         epsilon_rate: float=EPSILON,
+        use_causal_mask: bool=False,
         **kwargs
     ) -> None:
         super(TransformerBlock, self).__init__(**kwargs)
@@ -186,7 +187,8 @@ class TransformerBlock(tf.keras.layers.Layer):
             'group_dim': max(1, group_dim),
             'layer_num': max(1, layer_num),
             'dropout_rate': max(0.0, dropout_rate),
-            'epsilon_rate': max(1e-8, epsilon_rate),}
+            'epsilon_rate': max(1e-8, epsilon_rate),
+            'use_causal_mask': use_causal_mask,}
         # layers
         self._merge_space = None
         self._split_space = None
@@ -241,7 +243,7 @@ class TransformerBlock(tf.keras.layers.Layer):
             # merge the space axes (B, H, W, C) => (B, HW, C)
             __outputs = self._merge_space(__outputs)
             # apply attention (B, HW, C) => (B, HW, C)
-            __outputs = __b_att(query=__outputs, key=__outputs, value=__outputs, training=training, **kwargs)
+            __outputs = __b_att(query=__outputs, key=__outputs, value=__outputs, training=training, use_causal_mask=self._config['use_causal_mask'], **kwargs)
             # split the space axes back (B, HW, C) => (B, H, W, C)
             __outputs = self._split_space(__outputs)
             # improve the features (B, H, W, C) => (B, H, W, C)
