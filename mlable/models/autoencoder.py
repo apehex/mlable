@@ -1,3 +1,5 @@
+import functools
+
 import tensorflow as tf
 
 import mlable.schedules
