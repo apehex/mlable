@@ -30,19 +30,22 @@ class VaeModel(tf.keras.Model):
         __z = self.sample(__m, __v)
         # KL divergence between the current latent distribution and the normal
         if training:
+            __cast = functools.partial(tf.cast, dtype=tf.float32)
             # track the training step
             self._step.assign_add(1)
             # compute the KL divergence estimate
             __kl = tf.reduce_mean(self.compute_kl(mean=__m, logvar=__v))
             # compute the matching schedule rate
-            __rate = tf.cast(self._rate(self._step), dtype=__kl.dtype)
+            __rate = __cast(self._rate(self._step))
             # register the extra loss term
-            self.add_loss(tf.cast(__rate * __kl, dtype=tf.float32))
+            self.add_loss(__cast(__rate * __kl))
         # reconstruct the input from the latent encoding
         return self.decode(__z, training=training, **kwargs)
 
     def compute_kl(self, mean: tf.Tensor, logvar: tf.Tensor) -> tf.Tensor:
-        return -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
+        __cast = functools.partial(tf.cast, dtype=tf.float32)
+        __mean, __logvar = __cast(mean), __cast(logvar)
+        return __cast(0.5) * tf.reduce_sum(tf.square(__mean) + tf.exp(__logvar) - __cast(1.0) - __logvar, axis=-1)
 
     # def train_step(self, data: tf.Tensor) -> dict:
     #     return super(VaeModel, self).train_step((data, data))
