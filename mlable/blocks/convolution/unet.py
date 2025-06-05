@@ -3,6 +3,7 @@ import math
 
 import tensorflow as tf
 
+import mlable.blocks.convolution.resnet
 import mlable.layers.shaping
 
 # CONSTANTS ####################################################################
@@ -94,6 +95,117 @@ class AttentionBlock(tf.keras.layers.Layer):
         self._config['group_dim'] = self._config['group_dim'] or (2 ** int(0.5 * math.log2(__dim)))
         self._config['head_dim'] = self._config['head_dim'] or __dim
         self._config['head_num'] = self._config['head_num'] or max(1, __dim // self._config['head_dim'])
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
+
+# UNET #########################################################################
+
+@tf.keras.utils.register_keras_serializable(package='blocks')
+class UnetBlock(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        channel_dim: int=None,
+        group_dim: int=None,
+        head_dim: int=None,
+        head_num: int=None,
+        layer_num: int=None,
+        add_attention: bool=False,
+        add_downsampling: bool=False,
+        add_upsampling: bool=False,
+        dropout_rate: float=DROPOUT,
+        epsilon_rate: float=EPSILON,
+        **kwargs
+    ) -> None:
+        super(UnetBlock, self).__init__(**kwargs)
+        # save the config to allow serialization
+        self._config = {
+            'channel_dim': channel_dim,
+            'group_dim': group_dim,
+            'head_dim': head_dim,
+            'head_num': head_num,
+            'layer_num': layer_num,
+            'add_attention': add_attention,
+            'add_downsampling': add_downsampling,
+            'add_upsampling': add_upsampling,
+            'dropout_rate': max(0.0, dropout_rate),
+            'epsilon_rate': max(1e-8, epsilon_rate),}
+        # layers
+        self._blocks = []
+
+    def build(self, input_shape):
+        __shape = tuple(input_shape)
+        # fill the config with default values
+        self._update_config(__shape)
+        # init the layers
+        for _ in range(self._config['layer_num']):
+            # always start with a resnet
+            self._blocks.append(mlable.blocks.convolution.resnet.ResnetBlock(
+                channel_dim=self._config['channel_dim'],
+                group_dim=self._config['group_dim'],
+                dropout_rate=self._config['dropout_rate'],
+                epsilon_rate=self._config['epsilon_rate']))
+            # interleave resnet and attention blocks
+            if self._config['add_attention']:
+                self._blocks.append(AttentionBlock(
+                    group_dim=self._config['group_dim'],
+                    head_dim=self._config['head_dim'],
+                    head_num=self._config['head_num'],
+                    epsilon_rate=self._config['epsilon_rate'],
+                    dropout_rate=self._config['dropout_rate']))
+        # add an optional downsampling block
+        if self._config['add_downsampling']:
+            self._blocks.append(tf.keras.layers.Conv2D(
+                filters=self._config['channel_dim'],
+                kernel_size=3,
+                strides=2,
+                use_bias=True,
+                activation=None,
+                padding='same',
+                data_format='channels_last'))
+        # add an optional upsampling block
+        if self._config['add_upsampling']:
+            self._blocks.append(tf.keras.layers.UpSampling2D(
+                size=(2, 2),
+                interpolation='nearest',
+                data_format='channels_last'))
+            self._blocks.append(tf.keras.layers.Conv2D(
+                filters=self._config['channel_dim'],
+                kernel_size=3,
+                strides=1,
+                use_bias=True,
+                activation=None,
+                padding='same',
+                data_format='channels_last'))
+        # build
+        for __block in self._blocks:
+            __block.build(__shape)
+            __shape = __block.compute_output_shape(__shape)
+        # register
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
+        return functools.reduce(lambda __x, __b: __b(__x, training=training, **kwargs), self._blocks, inputs)
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return functools.reduce(lambda __s, __b: __b.compute_output_shape(__s), self._blocks, input_shape)
+
+    def get_config(self) -> dict:
+        __config = super(UnetBlock, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    def _update_config(self, input_shape: tuple) -> None:
+        # parse the input shape
+        __shape = tuple(input_shape)
+        __dim = int(__shape[-1])
+        # fill with default values
+        self._config['channel_dim'] = self._config['channel_dim'] or __dim
+        self._config['group_dim'] = self._config['group_dim'] or max(1, (2 ** int(0.5 * math.log2(__dim))))
+        self._config['head_dim'] = self._config['head_dim'] or self._config['channel_dim']
+        self._config['head_num'] = self._config['head_num'] or max(1, self._config['channel_dim'] // self._config['head_dim'])
+        self._config['layer_num'] = self._config['layer_num'] or 2
 
     @classmethod
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
