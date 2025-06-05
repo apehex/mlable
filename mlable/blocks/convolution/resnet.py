@@ -4,13 +4,95 @@ import math
 import tensorflow as tf
 
 import mlable.layers.shaping
-import mlable.blocks.attention.generic
 
 # CONSTANTS ####################################################################
 
 DROPOUT = 0.0
 EPSILON = 1e-6
 PADDING = 'same'
+
+# 2D ATTENTION #################################################################
+
+@tf.keras.utils.register_keras_serializable(package='blocks')
+class AttentionBlock(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        key_dim: int,
+        value_dim: int=None,
+        group_dim: int=None,
+        head_num: int=None,
+        epsilon_rate: float=EPSILON,
+        dropout_rate: float=DROPOUT,
+        **kwargs
+    ) -> None:
+        # init
+        super(AttentionBlock, self).__init__(**kwargs)
+        # config
+        self._config = {
+            'key_dim': key_dim,
+            'value_dim': value_dim,
+            'group_dim': group_dim,
+            'head_num': head_num,
+            'epsilon_rate': epsilon_rate,
+            'dropout_rate': dropout_rate,}
+        # layers
+        self._norm_channel = None
+        self._merge_space = None
+        self._split_space = None
+        self._attend_space = None
+
+    def build(self, input_shape: tuple) -> None:
+        __shape = tuple(input_shape)
+        # update config
+        self._config['group_dim'] = self._config['group_dim'] or (2 ** int(0.5 * math.log2(int(__shape[-1]))))
+        self._config['head_num'] = self._config['head_num'] or max(1, int(__shape[-1]) // self._config['key_dim'])
+        # factor args
+        __norm_args = {'groups': self._config['group_dim'], 'epsilon': self._config['epsilon_rate'], 'axis': -1, 'center': True, 'scale': True,}
+        # init layers
+        self._norm_channel = tf.keras.layers.GroupNormalization(**__norm_args)
+        self._merge_space = mlable.layers.shaping.Merge(axis=1, right=True)
+        self._split_space = mlable.layers.shaping.Divide(axis=1, factor=__shape[2], right=True, insert=True)
+        self._attend_space = tf.keras.layers.MultiHeadAttention(
+            num_heads=self._config['head_num'],
+            key_dim=self._config['key_dim'],
+            value_dim=self._config['value_dim'],
+            attention_axes=[1],
+            use_bias=True,
+            dropout=self._config['dropout_rate'],
+            kernel_initializer='glorot_uniform')
+        # build layers
+        self._norm_channel.build(__shape)
+        __shape = self._norm_channel.compute_output_shape(__shape)
+        self._merge_space.build(__shape)
+        __shape = self._merge_space.compute_output_shape(__shape)
+        self._attend_space.build(query_shape=__shape, key_shape=__shape, value_shape=__shape)
+        __shape = self._attend_space.compute_output_shape(query_shape=__shape, key_shape=__shape, value_shape=__shape)
+        self._split_space.build(__shape)
+        __shape = self._split_space.compute_output_shape(__shape)
+        # register
+        self.built = True
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape)
+
+    def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
+        # normalize the channels
+        __outputs = self._norm_channel(inputs, training=training)
+        # merge the space axes
+        __outputs = self._merge_space(__outputs)
+        # attend to the space sequence
+        __outputs = self._attend_space(query=__outputs, key=__outputs, value=__outputs, training=training, use_causal_mask=False, **kwargs)
+        # split the space axes back
+        return self._split_space(__outputs)
+
+    def get_config(self) -> dict:
+        __config = super(AttentionBlock, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
 
 # RESNET #######################################################################
 
@@ -171,35 +253,28 @@ class TransformerBlock(tf.keras.layers.Layer):
     def __init__(
         self,
         channel_dim: int,
-        head_dim: int=1,
         group_dim: int=32,
+        head_dim: int=1,
         layer_num: int=1,
         dropout_rate: float=DROPOUT,
         epsilon_rate: float=EPSILON,
-        use_causal_mask: bool=False,
         **kwargs
     ) -> None:
         super(TransformerBlock, self).__init__(**kwargs)
         # save the config to allow serialization
         self._config = {
             'channel_dim': max(1, channel_dim),
-            'head_dim': max(1, head_dim),
             'group_dim': max(1, group_dim),
+            'head_dim': max(1, head_dim),
             'layer_num': max(1, layer_num),
             'dropout_rate': max(0.0, dropout_rate),
-            'epsilon_rate': max(1e-8, epsilon_rate),
-            'use_causal_mask': use_causal_mask,}
+            'epsilon_rate': max(1e-8, epsilon_rate),}
         # layers
-        self._merge_space = None
-        self._split_space = None
         self._resnet_blocks = []
         self._attention_blocks = []
 
     def build(self, input_shape):
         __shape = tuple(input_shape)
-        # merge the space axes for the attention blocks
-        self._merge_space = mlable.layers.shaping.Merge(axis=1, right=True)
-        self._split_space = mlable.layers.shaping.Divide(axis=1, factor=__shape[2], right=True, insert=True)
         # prepend one additional resnet block before the first attention to even the shapes and smooth
         self._resnet_blocks = [
             ResnetBlock(
@@ -210,27 +285,20 @@ class TransformerBlock(tf.keras.layers.Layer):
             for _ in range(self._config['layer_num'] + 1)]
         # interleave attention and resnet blocks
         self._attention_blocks = [
-            mlable.blocks.attention.generic.AttentionBlock(
-                head_num=max(1, self._config['channel_dim'] // self._config['head_dim']),
+            AttentionBlock(
+                head_num=None,
                 key_dim=self._config['head_dim'],
                 value_dim=self._config['head_dim'],
-                attention_axes=[1],
-                use_bias=True,
-                center=False,
-                scale=False,
-                epsilon=self._config['epsilon_rate'],
+                group_dim=self._config['group_dim'],
+                epsilon_rate=self._config['epsilon_rate'],
                 dropout_rate=self._config['dropout_rate'])
             for _ in range(self._config['layer_num'])]
         # build
         self._resnet_blocks[0].build(__shape)
         __shape = self._resnet_blocks[0].compute_output_shape(__shape)
         for __b_att, __b_res in zip(self._attention_blocks, self._resnet_blocks[1:]):
-            self._merge_space.build(__shape)
-            __shape = self._merge_space.compute_output_shape(__shape)
-            __b_att.build(query_shape=__shape, key_shape=__shape, value_shape=__shape)
-            __shape = __b_att.compute_output_shape(query_shape=__shape, key_shape=__shape, value_shape=__shape)
-            self._split_space.build(__shape)
-            __shape = self._split_space.compute_output_shape(__shape)
+            __b_att.build(__shape)
+            __shape = __b_att.compute_output_shape(__shape)
             __b_res.build(__shape)
             __shape = __b_res.compute_output_shape(__shape)
         # register
@@ -240,12 +308,8 @@ class TransformerBlock(tf.keras.layers.Layer):
         # smooth (B, H, W, E) => (B, H, W, C)
         __outputs = self._resnet_blocks[0](inputs, training=training)
         for __b_att, __b_res in zip(self._attention_blocks, self._resnet_blocks[1:]):
-            # merge the space axes (B, H, W, C) => (B, HW, C)
-            __outputs = self._merge_space(__outputs)
-            # apply attention (B, HW, C) => (B, HW, C)
-            __outputs = __b_att(query=__outputs, key=__outputs, value=__outputs, training=training, use_causal_mask=self._config['use_causal_mask'], **kwargs)
-            # split the space axes back (B, HW, C) => (B, H, W, C)
-            __outputs = self._split_space(__outputs)
+            # apply attention (B, H, W, C) => (B, H, W, C)
+            __outputs = __b_att(__outputs, training=training, **kwargs)
             # improve the features (B, H, W, C) => (B, H, W, C)
             __outputs = __b_res(__outputs, training=training)
         # (B, H, W, C)
