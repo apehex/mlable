@@ -154,6 +154,13 @@ class UnetBlock(tf.keras.layers.Layer):
                     head_num=self._config['head_num'],
                     epsilon_rate=self._config['epsilon_rate'],
                     dropout_rate=self._config['dropout_rate']))
+        # postprocess the attention outputs with an extra resnet block
+        if self._config['add_attention']:
+            self._blocks.append(mlable.blocks.convolution.resnet.ResnetBlock(
+                channel_dim=self._config['channel_dim'],
+                group_dim=self._config['group_dim'],
+                dropout_rate=self._config['dropout_rate'],
+                epsilon_rate=self._config['epsilon_rate']))
         # add an optional downsampling block
         if self._config['add_downsampling']:
             self._blocks.append(tf.keras.layers.Conv2D(
