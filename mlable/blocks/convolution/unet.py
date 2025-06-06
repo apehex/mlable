@@ -80,7 +80,7 @@ class AttentionBlock(tf.keras.layers.Layer):
         # attend to the space sequence
         __outputs = self._attend_space(query=__outputs, key=__outputs, value=__outputs, training=training, use_causal_mask=False, **kwargs)
         # split the space axes back
-        return self._split_space(__outputs)
+        return self._split_space(__outputs) + inputs
 
     def get_config(self) -> dict:
         __config = super(AttentionBlock, self).get_config()
