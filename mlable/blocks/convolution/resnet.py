@@ -40,21 +40,17 @@ class ResnetBlock(tf.keras.layers.Layer):
 
     def build(self, inputs_shape: tuple, contexts_shape: tuple=None) -> None:
         __shape = tuple(inputs_shape)
-        # parse
-        self._config['channel_dim'] = self._config['channel_dim'] or int(inputs_shape[-1])
-        self._config['group_dim'] = self._config['group_dim'] or (2 ** int(0.5 * math.log2(int(inputs_shape[-1]))))
-        # factor
-        __norm_args = {'groups': self._config['group_dim'], 'epsilon': self._config['epsilon_rate'], 'center': True, 'scale': True,}
-        __conv_args = {'filters': self._config['channel_dim'], 'use_bias': True, 'activation': None, 'padding': 'same', 'data_format': 'channels_last'}
-        # init
-        self._norm1 = mlable.blocks.normalization.AdaptiveGroupNormalization(**__norm_args)
-        self._norm2 = mlable.blocks.normalization.AdaptiveGroupNormalization(**__norm_args)
-        self._conv0 = tf.keras.layers.Conv2D(kernel_size=1, **__conv_args)
-        self._conv1 = tf.keras.layers.Conv2D(kernel_size=3, **__conv_args)
-        self._conv2 = tf.keras.layers.Conv2D(kernel_size=3, **__conv_args)
+        # fill the config with default values
+        self._update_config(inputs_shape)
+        # init the layers
+        self._norm1 = mlable.blocks.normalization.AdaptiveGroupNormalization(**self.get_normalization_config())
+        self._norm2 = mlable.blocks.normalization.AdaptiveGroupNormalization(**self.get_normalization_config())
+        self._conv0 = tf.keras.layers.Conv2D(**self.get_convolution_config(kernel_size=1))
+        self._conv1 = tf.keras.layers.Conv2D(**self.get_convolution_config(kernel_size=3))
+        self._conv2 = tf.keras.layers.Conv2D(**self.get_convolution_config(kernel_size=3))
         self._drop = tf.keras.layers.Dropout(self._config['dropout_rate'])
         self._silu = tf.keras.activations.silu
-        # build
+        # build the layers
         self._norm1.build(__shape, contexts_shape=contexts_shape)
         __shape = self._norm1.compute_output_shape(__shape, contexts_shape=contexts_shape)
         self._conv1.build(__shape)
@@ -90,6 +86,27 @@ class ResnetBlock(tf.keras.layers.Layer):
         __config = super(ResnetBlock, self).get_config()
         __config.update(self._config)
         return __config
+
+    def get_convolution_config(self, kernel_size: int=3) -> dict:
+        return {
+            'filters': self._config['channel_dim'],
+            'kernel_size': kernel_size,
+            'use_bias': True,
+            'activation': None,
+            'padding': 'same',
+            'data_format': 'channels_last'}
+
+    def get_normalization_config(self) -> dict:
+        return {
+            'groups': self._config['group_dim'],
+            'epsilon': self._config['epsilon_rate'],
+            'axis': -1,
+            'center': True,
+            'scale': True,}
+
+    def _update_config(self, inputs_shape: tuple) -> None:
+        self._config['channel_dim'] = self._config['channel_dim'] or int(inputs_shape[-1])
+        self._config['group_dim'] = self._config['group_dim'] or (2 ** int(0.5 * math.log2(int(inputs_shape[-1]))))
 
     @classmethod
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
