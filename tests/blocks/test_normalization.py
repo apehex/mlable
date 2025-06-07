@@ -80,7 +80,7 @@ class AdaptiveGroupNormalizationTest(tf.test.TestCase):
             __outputs_ada = __layer(__case['inputs'], contexts=__contexts, training=False)
             __outputs_reg = __norm(__case['inputs'], training=False)
             # null scale and shift => no variation
-            self.assertAllEqual(__outputs_ada, 3.0 * __outputs_reg)
+            self.assertAllClose(__outputs_ada, (1.0 + 2.0 * tf.keras.activations.silu(1.0)) * __outputs_reg)
 
     def test_norm_shifting(self):
         for __case in self._cases:
@@ -100,4 +100,4 @@ class AdaptiveGroupNormalizationTest(tf.test.TestCase):
             __outputs_ada = __layer(__case['inputs'], contexts=__contexts, training=False)
             __outputs_reg = __norm(__case['inputs'], training=False)
             # null scale and shift => no variation
-            self.assertAllEqual(__outputs_ada, __outputs_reg - 1.0)
+            self.assertAllClose(__outputs_ada, __outputs_reg - tf.keras.activations.silu(1.0))
