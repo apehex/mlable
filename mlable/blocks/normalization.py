@@ -15,7 +15,7 @@ class AdaptiveGroupNormalization(tf.keras.layers.Layer):
 
     def build(self, inputs_shape: tuple, contexts_shape: tuple=None) -> None:
         __inputs_shape = tuple(inputs_shape)
-        __contexts_shape = tuple(contexts_shape) if contexts_shape else __inputs_shape
+        __contexts_shape = tuple(contexts_shape) if (contexts_shape is not None) else __inputs_shape
         # init
         self._norm = tf.keras.layers.GroupNormalization(**self._config)
         self._proj = tf.keras.layers.Dense(
