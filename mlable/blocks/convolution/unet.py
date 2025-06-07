@@ -15,7 +15,7 @@ EPSILON = 1e-6
 # 2D SELF ATTENTION ############################################################
 
 @tf.keras.utils.register_keras_serializable(package='blocks')
-class AttentionBlock(tf.keras.layers.Layer):
+class SelfAttentionBlock(tf.keras.layers.Layer):
     def __init__(
         self,
         group_dim: int=None,
@@ -26,7 +26,7 @@ class AttentionBlock(tf.keras.layers.Layer):
         **kwargs
     ) -> None:
         # init
-        super(AttentionBlock, self).__init__(**kwargs)
+        super(SelfAttentionBlock, self).__init__(**kwargs)
         # config
         self._config = {
             'group_dim': group_dim,
@@ -44,20 +44,11 @@ class AttentionBlock(tf.keras.layers.Layer):
         __shape = tuple(inputs_shape)
         # fill the config with default values
         self._update_config(__shape)
-        # factor args
-        __norm_args = {'groups': self._config['group_dim'], 'epsilon': self._config['epsilon_rate'], 'axis': -1, 'center': True, 'scale': True,}
         # init layers
-        self._norm_channel = mlable.blocks.normalization.AdaptiveGroupNormalization(**__norm_args)
-        self._merge_space = mlable.layers.shaping.Merge(axis=1, right=True)
-        self._split_space = mlable.layers.shaping.Divide(axis=1, factor=__shape[2], right=True, insert=True)
-        self._attend_space = tf.keras.layers.MultiHeadAttention(
-            num_heads=self._config['head_num'],
-            key_dim=self._config['head_dim'],
-            value_dim=self._config['head_dim'],
-            attention_axes=[1],
-            use_bias=True,
-            dropout=self._config['dropout_rate'],
-            kernel_initializer='glorot_uniform')
+        self._norm_channel = mlable.blocks.normalization.AdaptiveGroupNormalization(**self.get_normalization_config())
+        self._merge_space = mlable.layers.shaping.Merge(**self.get_merge_config())
+        self._split_space = mlable.layers.shaping.Divide(**self.get_divide_config(__shape))
+        self._attend_space = tf.keras.layers.MultiHeadAttention(**self.get_attention_config())
         # build layers
         self._norm_channel.build(__shape, contexts_shape=contexts_shape)
         __shape = self._norm_channel.compute_output_shape(__shape, contexts_shape=contexts_shape)
@@ -70,9 +61,6 @@ class AttentionBlock(tf.keras.layers.Layer):
         # register
         self.built = True
 
-    def compute_output_shape(self, inputs_shape: tuple, contexts_shape: tuple=None) -> tuple:
-        return tuple(inputs_shape)
-
     def call(self, inputs: tf.Tensor, contexts: tf.Tensor=None, training: bool=False, **kwargs) -> tf.Tensor:
         # normalize the channels
         __outputs = self._norm_channel(inputs, contexts=contexts, training=training)
@@ -83,10 +71,38 @@ class AttentionBlock(tf.keras.layers.Layer):
         # split the space axes back
         return self._split_space(__outputs) + inputs
 
+    def compute_output_shape(self, inputs_shape: tuple, contexts_shape: tuple=None) -> tuple:
+        return tuple(inputs_shape)
+
     def get_config(self) -> dict:
-        __config = super(AttentionBlock, self).get_config()
+        __config = super(SelfAttentionBlock, self).get_config()
         __config.update(self._config)
         return __config
+
+    def get_merge_config(self) -> dict:
+        return {'axis': 1, 'right': True,}
+
+    def get_divide_config(self, inputs_shape: tuple) -> dict:
+        return {'axis': 1, 'factor': inputs_shape[2], 'right': True, 'insert': True,}
+
+    def get_attention_config(self) -> dict:
+        return {
+            'num_heads': self._config['head_num'],
+            'key_dim': self._config['head_dim'],
+            'value_dim': self._config['head_dim'],
+            'dropout': self._config['dropout_rate'],
+            'kernel_initializer': 'glorot_uniform',
+            'bias_initializer': 'zeros',
+            'attention_axes': [1],
+            'use_bias': True,}
+
+    def get_normalization_config(self) -> dict:
+        return {
+            'groups': self._config['group_dim'],
+            'epsilon': self._config['epsilon_rate'],
+            'axis': -1,
+            'center': True,
+            'scale': True,}
 
     def _update_config(self, inputs_shape: tuple) -> None:
         # parse the input shape
@@ -146,7 +162,7 @@ class UnetBlock(tf.keras.layers.Layer):
             self._resnet_blocks.append(mlable.blocks.convolution.resnet.ResnetBlock(**self.get_resnet_config()))
             # interleave resnet and attention blocks
             if self._config['add_attention']:
-                self._resnet_blocks.append(AttentionBlock(**self.get_attention_config()))
+                self._resnet_blocks.append(SelfAttentionBlock(**self.get_attention_config()))
         # postprocess the attention outputs with an extra resnet block
         if self._config['add_attention']:
             self._resnet_blocks.append(mlable.blocks.convolution.resnet.ResnetBlock(**self.get_resnet_config()))

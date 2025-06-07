@@ -4,9 +4,9 @@ import mlable.blocks.convolution.unet
 
 # ATTENTION ####################################################################
 
-class AttentionBlockTest(tf.test.TestCase):
+class SelfAttentionBlockTest(tf.test.TestCase):
     def setUp(self):
-        super(AttentionBlockTest, self).setUp()
+        super(SelfAttentionBlockTest, self).setUp()
         self._cases = [
             {
                 'inputs': tf.ones((2, 16, 16, 8), dtype=tf.float16),
@@ -44,7 +44,7 @@ class AttentionBlockTest(tf.test.TestCase):
 
     def test_shape(self):
         for __case in self._cases:
-            __layer = mlable.blocks.convolution.unet.AttentionBlock(**__case['args'])
+            __layer = mlable.blocks.convolution.unet.SelfAttentionBlock(**__case['args'])
             __outputs = __layer(__case['inputs'], contexts=__case['contexts'], training=False)
             self.assertEqual(tuple(__outputs.shape), tuple(__case['inputs'].shape))
 
