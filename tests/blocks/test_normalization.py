@@ -62,7 +62,7 @@ class AdaptiveGroupNormalizationTest(tf.test.TestCase):
             # null scale and shift => no variation
             self.assertAllEqual(__outputs_ada, __outputs_reg)
 
-    def test_specific_cases(self):
+    def test_norm_scaling(self):
         for __case in self._cases:
             __dtype = __case['inputs'].dtype
             __shape = tuple(__case['inputs'].shape)
@@ -81,3 +81,23 @@ class AdaptiveGroupNormalizationTest(tf.test.TestCase):
             __outputs_reg = __norm(__case['inputs'], training=False)
             # null scale and shift => no variation
             self.assertAllEqual(__outputs_ada, 3.0 * __outputs_reg)
+
+    def test_norm_shifting(self):
+        for __case in self._cases:
+            __dtype = __case['inputs'].dtype
+            __shape = tuple(__case['inputs'].shape)
+            __dim = int(__shape[-1])
+            # init with null projection weights
+            __layer = mlable.blocks.normalization.AdaptiveGroupNormalization(**__case['args'])
+            __layer.build(__case['inputs'].shape, mlable.shapes.filter(__shape, axes=[0, -1]))
+            __norm = tf.keras.layers.GroupNormalization(**__case['args'])
+            # overwrite the projection weights: scale = 2, shift = 0
+            __weights = tf.concat([tf.linalg.diag(__dim * [0.0]), tf.linalg.diag(__dim * [-1.0])], axis=-1)
+            __layer._proj.set_weights([__weights, tf.zeros((2 * __dim,), dtype=__dtype)])
+            # replace the contexts with ones
+            __contexts = tf.ones(mlable.shapes.filter(__shape, axes=[0, -1]), dtype=__dtype)
+            # now the scale and shift should be non null on most contexts but None
+            __outputs_ada = __layer(__case['inputs'], contexts=__contexts, training=False)
+            __outputs_reg = __norm(__case['inputs'], training=False)
+            # null scale and shift => no variation
+            self.assertAllEqual(__outputs_ada, __outputs_reg - 1.0)
