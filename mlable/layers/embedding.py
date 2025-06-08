@@ -26,7 +26,7 @@ def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.DTyp
     __factor = tf.cast(1. / factor, dtype=dtype)
     return __factor * (__range + __offset)
 
-def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, offset: int=1, dtype: tf.DType=tf.float32) -> tf.Tensor:
+def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, offset: int=0, dtype: tf.DType=tf.float32) -> tf.Tensor:
     __cast = functools.partial(tf.cast, dtype=dtype)
     __max = __cast(max(1, dim - offset))
     __exp = tf.divide(tf.range(dim, dtype=dtype), __max)
