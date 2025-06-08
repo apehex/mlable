@@ -11,19 +11,19 @@ WAVELENGTH = 10_000
 
 # TRIGONOMETRY ##################################################################
 
-def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
-    __range = tf.cast(tf.range(dim, dtype=tf.dtypes.float32), dtype=dtype)
+def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.DType=tf.float32) -> tf.Tensor:
+    __range = tf.cast(tf.range(dim, dtype=tf.float32), dtype=dtype)
     __offset = tf.cast(offset, dtype=dtype)
     __factor = tf.cast(1. / factor, dtype=dtype)
     return __factor * (__range + __offset)
 
-def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tf.Tensor:
+def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, dtype: tf.DType=tf.float32) -> tf.Tensor:
     __exp = tf.divide(tf.range(dim, dtype=tf.float32), tf.cast(dim, dtype=tf.float32))
     return 1.0 / (wavelength ** tf.cast(__exp, dtype=dtype))
 
 # ROPE ##########################################################################
 
-def compute_cos_sin_embedding(sequence_dim: int, feature_dim: int, offset: int=0, factor: float=1.0, wavelength: float=WAVELENGTH, dtype: tf.dtypes.DType=tf.dtypes.float32) -> tuple:
+def compute_cos_sin_embedding(sequence_dim: int, feature_dim: int, offset: int=0, factor: float=1.0, wavelength: float=WAVELENGTH, dtype: tf.DType=tf.float32) -> tuple:
     # inverse frequencies
     __freq = compute_inverse_freq(dim=feature_dim // 2, wavelength=wavelength, dtype=dtype)
     # positions
