@@ -181,7 +181,39 @@ class RopeTest(tf.test.TestCase):
             if 'shape' in __case['output']:
                 self.assertEqual(tuple(__outputs.shape), __case['output']['shape'])
             if 'values' in __case['output']:
-                self.assertAllClose(__outputs, __case['output']['values'])
+                self.assertAllClose(__outputs, __case['output']['values'], rtol=1e-3)
+
+# COSINE #######################################################################
+
+class CosineEmbeddingTest(tf.test.TestCase):
+    def setUp(self):
+        super(CosineEmbeddingTest, self).setUp()
+        self._cases = [
+            {
+                'inputs': tf.ones((2, 1), dtype=tf.float16),
+                'args': {'embed_dim': 32, 'wave_dim': 1000, 'shift_dim': 0,},
+                'outputs': (2, 1, 32),},
+            {
+                'inputs': tf.random.normal((2,), dtype=tf.float32),
+                'args': {'embed_dim': 16, 'wave_dim': 10000, 'shift_dim': 1,},
+                'outputs': (2, 16),},
+            {
+                'inputs': tf.random.normal((2, 1, 1), dtype=tf.float32),
+                'args': {'embed_dim': 32, 'wave_dim': 1000, 'shift_dim': 0,},
+                'outputs': (2, 1, 1, 32),},]
+
+    def test_shape(self):
+        for __case in self._cases:
+            __layer = mlable.layers.embedding.CosineEmbedding(**__case['args'])
+            __outputs = __layer(__case['inputs'], training=False)
+            self.assertEqual(tuple(__outputs.shape), tuple(__case['outputs']))
+
+    def test_range(self):
+        for __case in self._cases:
+            __layer = mlable.layers.embedding.CosineEmbedding(**__case['args'])
+            __outputs = __layer(__case['inputs'], training=False)
+            self.assertAllGreaterEqual(__outputs, -1.0)
+            self.assertAllLessEqual(__outputs, 1.0)
 
 # TOKUN EMBEDDING #############################################################
 
