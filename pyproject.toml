@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mlable"
-version = "0.21.8"
+version = "0.21.9"
 description = "Tensorflow libs: layers, metrics, ops, etc."
 license = ".github/LICENSE.md"
 readme = ".github/README.md"

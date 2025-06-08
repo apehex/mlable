@@ -231,7 +231,7 @@ class UnetBlock(tf.keras.layers.Layer):
         # fill with default values
         self._config['channel_dim'] = self._config['channel_dim'] or __dim
         self._config['group_dim'] = self._config['group_dim'] or max(1, (2 ** int(0.5 * math.log2(__dim))))
-        self._config['head_dim'] = self._config['head_dim'] or self._config['channel_dim']
+        self._config['head_dim'] = self._config['head_dim'] or max(1, (2 ** int(0.5 * math.log2(self._config['channel_dim']))))
         self._config['head_num'] = self._config['head_num'] or max(1, self._config['channel_dim'] // self._config['head_dim'])
         self._config['layer_num'] = self._config['layer_num'] or 2
 
