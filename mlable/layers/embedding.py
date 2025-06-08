@@ -9,6 +9,14 @@ import mlable.shaping.axes
 
 WAVELENGTH = 10_000
 
+# MASK ##########################################################################
+
+def mask_even(dim: int, dtype: tf.DType=tf.float32) -> tf.Tensor:
+    return tf.cast(tf.range(dim, dtype=tf.int32) % 2, dtype)
+
+def mask_half(dim: int, dtype: tf.DType=tf.float32) -> tf.Tensor:
+    return tf.cast(tf.range(dim, dtype=tf.int32) < (dim // 2), dtype)
+
 # TRIGONOMETRY ##################################################################
 
 def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.DType=tf.float32) -> tf.Tensor:
@@ -158,7 +166,7 @@ class SinePositionalEmbedding(tf.keras.layers.Layer):
         # the angles have shape (S, F)
         __angles = tf.einsum("i,j->ij", __pos, __freq)
         # even indices are sine, odd are cosine
-        __mask_c = tf.cast(tf.range(__dim_f, dtype=tf.int32) % 2, __dtype)
+        __mask_c = mask_even(dim=__dim_f, dtype=__dtype)
         __mask_s = 1.0 - __mask_c
         # embedding shape is [__dim_s, __dim_f]
         __embed = tf.math.sin(__angles) * __mask_s + tf.math.cos(__angles) * __mask_c
