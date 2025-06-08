@@ -279,14 +279,17 @@ class CosineEmbedding(tf.keras.layers.Layer):
             'wave_dim': wave_dim,
             'shift_dim': shift_dim,}
 
-    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+    def build(self) -> None:
+        self.built = True
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         # cosine embeddings (E,)
         __angles = compute_inverse_freq(
             dim=self._config['embed_dim'],
             wavelength=self._config['wave_dim'],
             offset=self._config['shift_dim'],
             dtype=inputs.dtype)
-        # mask to locate the positions where either cos or sin is applied
+        # mask to locate the positions where either cos or sin is applied (E,)
         __mask = mask_even(
             dim=self._config['embed_dim'],
             dtype=inputs.dtype)
