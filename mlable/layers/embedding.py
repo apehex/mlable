@@ -1,3 +1,4 @@
+import functools
 import math
 
 import tensorflow as tf
@@ -25,9 +26,12 @@ def compute_positions(dim: int, offset: int=0, factor: float=1.0, dtype: tf.DTyp
     __factor = tf.cast(1. / factor, dtype=dtype)
     return __factor * (__range + __offset)
 
-def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, dtype: tf.DType=tf.float32) -> tf.Tensor:
-    __exp = tf.divide(tf.range(dim, dtype=tf.float32), tf.cast(dim, dtype=tf.float32))
-    return 1.0 / (wavelength ** tf.cast(__exp, dtype=dtype))
+def compute_inverse_freq(dim: int, wavelength: int=WAVELENGTH, offset: int=1, dtype: tf.DType=tf.float32) -> tf.Tensor:
+    __cast = functools.partial(tf.cast, dtype=dtype)
+    __max = __cast(max(1, dim - offset))
+    __exp = tf.divide(tf.range(dim, dtype=dtype), __max)
+    __log = tf.math.log(__cast(wavelength))
+    return tf.math.exp(- __log * __exp)
 
 # ROPE ##########################################################################
 
@@ -162,7 +166,7 @@ class SinePositionalEmbedding(tf.keras.layers.Layer):
         # flat range up to sequence dim
         __pos = compute_positions(dim=__dim_s, offset=offset, factor=1.0, dtype=__dtype)
         # inverse frequencies
-        __freq = compute_inverse_freq(dim=__dim_f, wavelength=self._config['wavelength_dim'], dtype=__dtype)
+        __freq = compute_inverse_freq(dim=__dim_f, wavelength=self._config['wavelength_dim'], offset=1, dtype=__dtype)
         # the angles have shape (S, F)
         __angles = tf.einsum("i,j->ij", __pos, __freq)
         # even indices are sine, odd are cosine
