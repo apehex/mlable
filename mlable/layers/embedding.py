@@ -261,6 +261,60 @@ class PositionalEmbedding(tf.keras.layers.Layer):
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
         return cls(**config)
 
+# NOISE ########################################################################
+
+@tf.keras.utils.register_keras_serializable(package='layers')
+class CosineEmbedding(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        embed_dim: int,
+        wave_dim: int=10000,
+        shift_dim: int=1,
+        **kwargs
+    ) -> None:
+        super(CosineEmbedding, self).__init__(**kwargs)
+        # save for IO serialization
+        self._config = {
+            'embed_dim': embed_dim,
+            'wave_dim': wave_dim,
+            'shift_dim': shift_dim,}
+
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+        # cosine embeddings (E,)
+        __angles = compute_inverse_freq(
+            dim=self._config['embed_dim'],
+            wavelength=self._config['wave_dim'],
+            offset=self._config['shift_dim'],
+            dtype=inputs.dtype)
+        # mask to locate the positions where either cos or sin is applied
+        __mask = mask_even(
+            dim=self._config['embed_dim'],
+            dtype=inputs.dtype)
+        # broadcast all the shapes
+        __inputs = tf.reshape(inputs, shape=self.expand_input_shape(inputs.shape))
+        __angles = tf.reshape(__angles, shape=self.expand_embed_shape(inputs.shape, __angles.shape))
+        __mask = tf.reshape(__mask, shape=self.expand_embed_shape(inputs.shape, __mask.shape))
+        # interleave cos and sin embeddings
+        return __mask * tf.cos(__inputs * __angles) + (1.0 - __mask) * tf.sin(__inputs * __angles)
+
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape) + (self._config['embed_dim'],)
+
+    def expand_input_shape(self, input_shape: tuple) -> tuple:
+        return tuple(input_shape) + (1,)
+
+    def expand_embed_shape(self, input_shape: tuple, embed_shape: tuple) -> tuple:
+        return len(input_shape) * (1,) + tuple(embed_shape)
+
+    def get_config(self) -> dict:
+        __config = super(CosineEmbedding, self).get_config()
+        __config.update(self._config)
+        return __config
+
+    @classmethod
+    def from_config(cls, config: dict) -> tf.keras.layers.Layer:
+        return cls(**config)
+
 # TOKUN ########################################################################
 
 @tf.keras.utils.register_keras_serializable(package='layers')
