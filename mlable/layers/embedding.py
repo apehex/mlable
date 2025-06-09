@@ -279,7 +279,7 @@ class CosineEmbedding(tf.keras.layers.Layer):
             'shift_dim': shift_dim,
             'wave_dim': wave_dim,}
 
-    def build(self) -> None:
+    def build(self, inputs_shape: tuple=None) -> None:
         self.built = True
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
