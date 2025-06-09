@@ -268,16 +268,16 @@ class CosineEmbedding(tf.keras.layers.Layer):
     def __init__(
         self,
         embed_dim: int,
-        wave_dim: int=10000,
         shift_dim: int=1,
+        wave_dim: int=10000,
         **kwargs
     ) -> None:
         super(CosineEmbedding, self).__init__(**kwargs)
         # save for IO serialization
         self._config = {
             'embed_dim': embed_dim,
-            'wave_dim': wave_dim,
-            'shift_dim': shift_dim,}
+            'shift_dim': shift_dim,
+            'wave_dim': wave_dim,}
 
     def build(self) -> None:
         self.built = True
