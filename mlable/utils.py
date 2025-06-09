@@ -21,3 +21,12 @@ def merge(chunks: list) -> list:
 def rotate(sequence: list, ticks: int) -> list:
     __n = ticks % len(sequence)
     return sequence[__n:] + sequence[:__n] # shift left if ticks > 0 right otherwise
+
+# CHECKS #######################################################################
+
+def iterable(data: any) -> bool:
+    try:
+        iter(data)
+    except:
+        return False
+    return True
