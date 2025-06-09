@@ -23,6 +23,14 @@ class AdaptiveGroupNormalizationTest(tf.test.TestCase):
                 'args': {'groups': 8, 'axis':-1},},
             {
                 'inputs': tf.random.normal((2, 16, 16, 8), dtype=tf.float32),
+                'contexts': tf.random.normal((1, 8), dtype=tf.float32),
+                'args': {'groups': 8, 'axis':-1},},
+            {
+                'inputs': tf.random.normal((2, 16, 16, 8), dtype=tf.float32),
+                'contexts': tf.random.normal((1, 1), dtype=tf.float32),
+                'args': {'groups': 8, 'axis':-1},},
+            {
+                'inputs': tf.random.normal((2, 16, 16, 8), dtype=tf.float32),
                 'contexts': None,
                 'args': {'groups': 4, 'axis':-1},},]
 
