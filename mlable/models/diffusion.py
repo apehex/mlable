@@ -15,17 +15,19 @@ END_RATE = 0.02 # signal rate at the start of the forward diffusion process
 
 # UTILITIES ####################################################################
 
-def reduce_mean(data: tf.Tensor) -> tf.Tensor:
-    return tf.math.reduce_mean(
-        data,
-        axis=tf.range(tf.rank(data) - 1),
-        keepdims=True)
+def reduce_mean(current: tf.Tensor, sample: tf.Tensor) -> tf.Tensor:
+    return current + tf.cast(tf.math.reduce_mean(
+            sample,
+            axis=tf.range(tf.rank(sample) - 1),
+            keepdims=True),
+        dtype=current.dtype)
 
-def reduce_std(data: tf.Tensor) -> tf.Tensor:
-    return tf.math.reduce_std(
-        data,
-        axis=tf.range(tf.rank(data) - 1),
-        keepdims=True)
+def reduce_std(current: tf.Tensor, sample: tf.Tensor) -> tf.Tensor:
+    return current + tf.cast(tf.math.reduce_std(
+            sample,
+            axis=tf.range(tf.rank(sample) - 1),
+            keepdims=True),
+        dtype=current.dtype)
 
 # NORMALIZED DIFFUSION #########################################################
 
@@ -59,18 +61,18 @@ class NormalizedDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastM
         __cast = functools.partial(tf.cast, dtype=__dtype)
         return __cast(self._mean) + __cast(self._std) * __cast(data)
 
-    def adapt(self, dataset: tf.data.Dataset, dtype: tf.DType=None) -> None:
+    def adapt(self, dataset: tf.data.Dataset, mean_fn: callable=reduce_mean, std_fn: callable=reduce_std, batch_num: int=2 ** 10, dtype: tf.DType=None) -> None:
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
+        # process only a subset for speed
+        __dataset = dataset.take(batch_num)
         # compute the dataset cardinality
-        __scale = dataset.reduce(0, lambda __c, _: __c + 1)
+        __scale = __dataset.reduce(0, lambda __c, _: __c + 1)
         __scale = __cast(1.0) / __cast(tf.maximum(1, __scale))
         # compute the mean
-        self._mean = __scale * dataset.reduce(__cast(0.0), lambda __m, __x: __m + __cast(reduce_mean(__x)))
-        self._mean = __cast(self._mean)
+        self._mean = __scale * __dataset.reduce(__cast(0.0), mean_fn)
         # compute the standard deviation
-        self._std = __scale * dataset.reduce(__cast(0.0), lambda __m, __x: __m + __cast(reduce_std(__x)))
-        self._std = __cast(self._std)
+        self._std = __scale * __dataset.reduce(__cast(0.0), std_fn)
 
     def build(self, input_shape: tuple) -> None:
         self._shape = tuple(input_shape)
