@@ -53,18 +53,18 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     # WEIGHTS ##################################################################
 
-    def build(self, input_shape: tuple) -> None:
-        self._shape = tuple(input_shape)
+    def build(self, inputs_shape: tuple) -> None:
+        self._shape = tuple(inputs_shape)
 
     # SHAPES ###################################################################
 
-    def compute_output_shape(self, input_shape: tuple=(), batch_dim: int=0) -> tuple:
-        __shape = tuple(input_shape) or tuple(self._shape)
+    def compute_data_shape(self, inputs_shape: tuple=(), batch_dim: int=0) -> tuple:
+        __shape = tuple(inputs_shape) or tuple(self._shape)
         __batch_dim = int(batch_dim or __shape[0])
         return (__batch_dim,) + __shape[1:]
 
-    def compute_rate_shape(self, input_shape: tuple=(), batch_dim: int=0) -> tuple:
-        __shape = BaseDiffusionModel.compute_output_shape(self, input_shape=input_shape, batch_dim=batch_dim)
+    def compute_rate_shape(self, inputs_shape: tuple=(), batch_dim: int=0) -> tuple:
+        __shape = BaseDiffusionModel.compute_data_shape(self, inputs_shape=inputs_shape, batch_dim=batch_dim)
         return tuple(mlable.shapes.filter(__shape, axes=[0]))
 
     # NORMALIZE ################################################################
@@ -96,11 +96,11 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     def preprocess(self, data: tf.Tensor, dtype: tf.DType=None) -> tf.Tensor:
         # scale to N(0, I)
-        return self._norm(data, dtype=dtype)
+        return BaseDiffusionModel._norm(self, data, dtype=dtype)
 
     def postprocess(self, data: tf.Tensor) -> tf.Tensor:
         # scale back to the signal space
-        __data = self._denorm(data)
+        __data = BaseDiffusionModel._denorm(self, data)
         # enforce types
         return tf.cast(__data, dtype=tf.int32)
 
@@ -120,7 +120,7 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
         # reverse diffusion = sampling
-        __shape = BaseDiffusionModel.compute_rate_shape(self, input_shape=initial_noises.shape)
+        __shape = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=initial_noises.shape)
         __delta = __cast(1.0 / step_num)
         # the current predictions for the noise and the signal
         __noises = __cast(initial_noises)
@@ -140,7 +140,7 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
     def generate(self, sample_num: int, step_num: int, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         # adapt the batch dimension
-        __shape = BaseDiffusionModel.compute_output_shape(self, batch_dim=sample_num)
+        __shape = BaseDiffusionModel.compute_data_shape(self, batch_dim=sample_num)
         # sample the initial noise
         __noises = tf.random.normal(shape=__shape, dtype=__dtype)
         # remove the noise
@@ -155,8 +155,8 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         # normalize data to have standard deviation of 1, like the noises
         __data = self.preprocess(data, dtype=__dtype)
         # compute the shapes in the latent space
-        __shape_n = BaseDiffusionModel.compute_output_shape(self, input_shape=__data.shape)
-        __shape_a = BaseDiffusionModel.compute_rate_shape(self, input_shape=__data.shape)
+        __shape_n = BaseDiffusionModel.compute_data_shape(self, inputs_shape=__data.shape)
+        __shape_a = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=__data.shape)
         # sample the noises = targets
         __noises = tf.random.normal(shape=__shape_n, dtype=__dtype)
         # sample the diffusion angles
@@ -173,8 +173,8 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         # normalize data to have standard deviation of 1, like the noises
         __data = self.preprocess(data, dtype=__dtype)
         # compute the shapes in the latent space
-        __shape_n = BaseDiffusionModel.compute_output_shape(self, input_shape=__data.shape)
-        __shape_a = BaseDiffusionModel.compute_rate_shape(self, input_shape=__data.shape)
+        __shape_n = BaseDiffusionModel.compute_data_shape(self, inputs_shape=__data.shape)
+        __shape_a = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=__data.shape)
         # sample the noises = targets
         __noises = tf.random.normal(shape=__shape_n, dtype=__dtype)
         # sample the diffusion angles
@@ -234,15 +234,15 @@ class LatentDiffusionModel(BaseDiffusionModel): # mlable.models.ContrastModel
 
     def preprocess(self, data: tf.Tensor, dtype: tf.DType=None) -> tf.Tensor:
         # encode in the latent space
-        __data = self._encode(data, dtype=dtype)
+        __data = LatentDiffusionModel._encode(self, data, dtype=dtype)
         # scale to N(0, I)
-        return self._norm(__data, dtype=dtype)
+        return BaseDiffusionModel._norm(self, __data, dtype=dtype)
 
     def postprocess(self, data: tf.Tensor, logits: bool=True, dtype: tf.DType=None) -> tf.Tensor:
         # scale the pixel values back to the latent space
-        __data = self._denorm(data, dtype=dtype)
+        __data = BaseDiffusionModel._denorm(self, data, dtype=dtype)
         # decode back to the signal space
-        return self._decode(__data, logits=logits, dtype=dtype)
+        return LatentDiffusionModel._decode(self, __data, logits=logits, dtype=dtype)
 
     # CONFIG ###################################################################
 
