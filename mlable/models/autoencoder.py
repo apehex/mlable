@@ -29,7 +29,7 @@ class VaeModel(tf.keras.Model):
         # sample from the latent space, according to the prior distribution
         __z = self.sample(__m, __v)
         # KL divergence between the current latent distribution and the normal
-        if training:
+        if training and self.trainable:
             __cast = functools.partial(tf.cast, dtype=tf.float32)
             # track the training step
             self._step.assign_add(1)
@@ -46,12 +46,6 @@ class VaeModel(tf.keras.Model):
         __cast = functools.partial(tf.cast, dtype=tf.float32)
         __mean, __logvar = __cast(mean), __cast(logvar)
         return __cast(0.5) * tf.reduce_sum(tf.square(__mean) + tf.exp(__logvar) - __cast(1.0) - __logvar, axis=-1)
-
-    # def train_step(self, data: tf.Tensor) -> dict:
-    #     return super(VaeModel, self).train_step((data, data))
-
-    # def test_step(self, data: tf.Tensor) -> dict:
-    #     return super(VaeModel, self).test_step((data, data))
 
     def get_config(self) -> dict:
         __config = super(VaeModel, self).get_config()
