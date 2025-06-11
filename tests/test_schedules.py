@@ -11,37 +11,37 @@ class LinearRateTest(tf.test.TestCase):
         super(LinearRateTest, self).setUp()
         self._cases = [
             {
-                'step': 0,
+                'current_step': 0,
                 'start_step': 8,
                 'end_step': 32,
                 'start_rate': 0.2,
                 'end_rate': 1.3,},
             {
-                'step': 16,
+                'current_step': 16,
                 'start_step': 8,
                 'end_step': 32,
                 'start_rate': 0.2,
                 'end_rate': 1.3,},
             {
-                'step': 64,
+                'current_step': 64,
                 'start_step': 8,
                 'end_step': 32,
                 'start_rate': 0.2,
                 'end_rate': 1.3,},
             {
-                'step': -5,
+                'current_step': -5,
                 'start_step': 8,
                 'end_step': 32,
                 'start_rate': 0.2,
                 'end_rate': 1.3,},
             {
-                'step': 10,
+                'current_step': 10,
                 'start_step': 8,
                 'end_step': 32,
                 'start_rate': 2.1,
                 'end_rate': 1.3,},
             {
-                'step': tf.random.uniform((4, 32, 1), minval=0, maxval=64, dtype=tf.int32),
+                'current_step': tf.random.uniform((4, 32, 1), minval=0, maxval=64, dtype=tf.int32),
                 'start_step': 8,
                 'end_step': 32,
                 'start_rate': 0.2,
@@ -49,7 +49,7 @@ class LinearRateTest(tf.test.TestCase):
 
     def test_shape_and_dtype(self):
         for __case in self._cases:
-            __inputs = tf.cast(__case['step'], dtype=tf.float32)
+            __inputs = tf.cast(__case['current_step'], dtype=tf.float32)
             __outputs = mlable.schedules.linear_rate(**__case)
             self.assertEqual(tuple(__outputs.shape), tuple(__inputs.shape))
             self.assertEqual(__outputs.dtype, tf.float32)
