@@ -43,7 +43,9 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         super(BaseDiffusionModel, self).__init__(**kwargs)
         # save config for IO
         self._config = {'start_rate': start_rate, 'end_rate': end_rate,}
-        # diffusion schedule
+        # linear time schedule
+        self._time_schedule = functools.partial(mlable.schedules.linear_rate, start_step=0, start_rate=0.0, end_rate=1.0)
+        # cosine diffusion schedule
         self._rate_schedule = functools.partial(mlable.schedules.cosine_rates, start_rate=start_rate, end_rate=end_rate)
         # scale the data to a normal distribution and back
         self._latent_mean = tf.cast(0.0, dtype=self.compute_dtype)
@@ -121,14 +123,14 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         __cast = functools.partial(tf.cast, dtype=__dtype)
         # reverse diffusion = sampling
         __shape = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=initial_noises.shape)
-        __delta = __cast(1.0 / step_num)
         # the current predictions for the noise and the signal
         __noises = __cast(initial_noises)
         __data = __cast(initial_noises)
-        for __i in range(step_num + 1):
-            # even pure noise (step 0) is considered to contain some signal
-            __angles = tf.ones(__shape, dtype=__dtype) - __cast(__i) * __delta
-            __alpha, __beta = self._rate_schedule(__angles, dtype=__dtype)
+        for __i in reversed(range(step_num + 1)):
+            # match the noise rank and batch dimension
+            __times = tf.ones(__shape, dtype=__dtype) * self._time_schedule(current_step=__i, end_step=step_num, dtype=__dtype)
+            # noise rate, signal rate for the current timestep
+            __alpha, __beta = self._rate_schedule(__times, dtype=__dtype)
             # remix the components, with a noise level corresponding to the current iteration
             __data = (__beta * __data + __alpha * __noises)
             # predict the cumulated noise in the sample, and remove it from the sample
@@ -160,9 +162,9 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         # sample the noises = targets
         __noises = tf.random.normal(shape=__shape_n, dtype=__dtype)
         # sample the diffusion angles
-        __angles = tf.random.uniform(shape=__shape_a, minval=0.0, maxval=1.0, dtype=__dtype)
+        __times = tf.random.uniform(shape=__shape_a, minval=0.0, maxval=1.0, dtype=__dtype)
         # compute the signal to noise ratio
-        __noise_rates, __data_rates = self._rate_schedule(__angles, dtype=__dtype)
+        __noise_rates, __data_rates = self._rate_schedule(__times, dtype=__dtype)
         # mix the data with noises
         __data = __data_rates * __data + __noise_rates * __noises
         # train to predict the noise from scrambled data
@@ -178,9 +180,9 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         # sample the noises = targets
         __noises = tf.random.normal(shape=__shape_n, dtype=__dtype)
         # sample the diffusion angles
-        __angles = tf.random.uniform(shape=__shape_a, minval=0.0, maxval=1.0, dtype=__dtype)
+        __times = tf.random.uniform(shape=__shape_a, minval=0.0, maxval=1.0, dtype=__dtype)
         # compute the signal to noise ratio
-        __noise_rates, __data_rates = self._rate_schedule(__angles, dtype=__dtype)
+        __noise_rates, __data_rates = self._rate_schedule(__times, dtype=__dtype)
         # mix the data with noises
         __data = __data_rates * __data + __noise_rates * __noises
         # train to predict the noise from scrambled data
