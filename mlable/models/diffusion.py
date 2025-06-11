@@ -216,7 +216,9 @@ class LatentDiffusionModel(BaseDiffusionModel): # mlable.models.ContrastModel
     def _encode(self, data: tf.Tensor, dtype: tf.DType=None) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
-        return __cast(self._vae.encode(data, training=False))
+        __latents = self._vae.encode(data, training=False)
+        __latents = __latents if isinstance(__latents, tf.Tensor) else self._vae.sample(*__latents)
+        return __cast(__latents)
 
     def _decode(self, data: tf.Tensor, logits: bool=True, dtype: tf.DType=None) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
