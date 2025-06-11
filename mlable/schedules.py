@@ -4,7 +4,7 @@ import tensorflow as tf
 
 # SCHEDULING ###################################################################
 
-def linear_rate(step: int, start_step: int, end_step: int, start_rate: float=0.0, end_rate: float=1.0) -> float:
+def linear_rate(current_step: int, start_step: int, end_step: int, start_rate: float=0.0, end_rate: float=1.0) -> float:
     __cast = functools.partial(tf.cast, dtype=tf.float32)
     # signed delta (could go either up or down)
     __delta_rate = __cast(end_rate - start_rate)
@@ -12,7 +12,7 @@ def linear_rate(step: int, start_step: int, end_step: int, start_rate: float=0.0
     __start_step = min(start_step, end_step)
     __end_step = max(start_step, end_step)
     __delta_step = tf.maximum(__cast(1.0), __cast(__end_step - __start_step))
-    __delta_step_cur = tf.maximum(__cast(0.0), __cast(step - __start_step))
+    __delta_step_cur = tf.maximum(__cast(0.0), __cast(current_step - __start_step))
     return __cast(start_rate) + tf.minimum(__cast(1.0), __delta_step_cur / __delta_step) * __delta_rate
 
 # COSINE #######################################################################
