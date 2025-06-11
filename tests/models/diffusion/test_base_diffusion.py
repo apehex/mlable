@@ -89,9 +89,9 @@ class BaseDiffusionModelTest(tf.test.TestCase):
     def test_normalization_doesnt_change_shapes(self):
         for __case in self._cases:
             __model = DummyDiffusionModel(latent_dim=32)
-            __outputs = __model._norm(__case['inputs'])
+            __outputs = __model._norm_latent(__case['inputs'])
             self.assertEqual(tuple(__outputs.shape), tuple(__case['inputs'].shape))
-            __outputs = __model._denorm(__outputs)
+            __outputs = __model._denorm_latent(__outputs)
             self.assertEqual(tuple(__outputs.shape), tuple(__case['inputs'].shape))
 
     # NORMALIZATION ############################################################
@@ -99,36 +99,36 @@ class BaseDiffusionModelTest(tf.test.TestCase):
     def test_normalization_has_no_effect_on_model_init(self):
         for __case in self._cases:
             __model = DummyDiffusionModel(latent_dim=32)
-            __outputs = __model._norm(__case['inputs'])
+            __outputs = __model._norm_latent(__case['inputs'])
             self.assertAllEqual(__outputs, __case['inputs'])
-            __outputs = __model._denorm(__outputs)
+            __outputs = __model._denorm_latent(__outputs)
             self.assertAllEqual(__outputs, __case['inputs'])
 
     def test_normalization_can_be_reversed(self):
         for __case in self._cases:
             __model = DummyDiffusionModel(latent_dim=32)
             # change the defaults
-            __model._mean = tf.cast(-1.0, tf.float32)
-            __model._std = tf.cast(4.0, tf.float32)
+            __model._latent_mean = tf.cast(-1.0, tf.float32)
+            __model._latent_std = tf.cast(4.0, tf.float32)
             # back and forth
-            __outputs = __model._norm(__case['inputs'])
-            __outputs = __model._denorm(__outputs)
+            __outputs = __model._norm_latent(__case['inputs'])
+            __outputs = __model._denorm_latent(__outputs)
             # check
             self.assertAllClose(__outputs, __case['inputs'])
 
     def test_dataset_adaptation_on_random_data(self):
         __model = DummyDiffusionModel(latent_dim=32)
-        __model.adapt(dataset=self._dataset, batch_num=256)
-        __dataset = self._dataset.map(__model._norm)
+        __model.adapt_latent(dataset=self._dataset, batch_num=256)
+        __dataset = self._dataset.map(__model._norm_latent)
         __dim = int(__dataset.element_spec.shape[-1])
         __mean = __dataset.reduce(tf.cast(0.0, tf.float32), mlable.models.diffusion.reduce_mean)
         __std = __dataset.reduce(tf.cast(0.0, tf.float32), mlable.models.diffusion.reduce_std)
         # tests moments of the original dataset
-        self.assertEqual(tf.reduce_prod(__model._mean.shape), __dim)
-        self.assertEqual(tf.reduce_prod(__model._std.shape), __dim)
+        self.assertEqual(tf.reduce_prod(__model._latent_mean.shape), __dim)
+        self.assertEqual(tf.reduce_prod(__model._latent_std.shape), __dim)
         # the dataset is made of random bytes => mean = 255 / 2
-        self.assertAllClose(__model._mean, 0.5 * 255.0 * tf.ones(__model._mean.shape), rtol=1e-1)
-        self.assertAllClose(__model._std, 73.9 * tf.ones(__model._mean.shape), rtol=1e-1) #  std = tf.sqrt((255.0 * 256.0 * 511.0 / (256.0 * 6.0)) - (127.5 ** 2))
+        self.assertAllClose(__model._latent_mean, 0.5 * 255.0 * tf.ones(__model._latent_mean.shape), rtol=1e-1)
+        self.assertAllClose(__model._latent_std, 73.9 * tf.ones(__model._latent_mean.shape), rtol=1e-1) #  std = tf.sqrt((255.0 * 256.0 * 511.0 / (256.0 * 6.0)) - (127.5 ** 2))
         # test moments of the normalized dataset
         self.assertAllClose(__mean / 256.0, 0.0 * tf.ones(__mean.shape), atol=1e-1)
         self.assertAllClose(__std / 256.0, 1.0 * tf.ones(__std.shape), rtol=1e-1)
