@@ -4,8 +4,8 @@ import tensorflow as tf
 
 # SCHEDULING ###################################################################
 
-def linear_rate(current_step: int, start_step: int, end_step: int, start_rate: float=0.0, end_rate: float=1.0) -> float:
-    __cast = functools.partial(tf.cast, dtype=tf.float32)
+def linear_rate(current_step: int, start_step: int, end_step: int, start_rate: float=0.0, end_rate: float=1.0, dtype: tf.DType=None) -> float:
+    __cast = functools.partial(tf.cast, dtype=dtype or tf.float32)
     # signed delta (could go either up or down)
     __delta_rate = __cast(end_rate - start_rate)
     # enforce ascending step order
