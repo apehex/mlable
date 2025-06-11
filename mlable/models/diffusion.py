@@ -94,11 +94,11 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     # END-TO-END PRE / POST PROCESSING #########################################
 
-    def preprocess(self, data: tf.Tensor, dtype: tf.DType=None) -> tf.Tensor:
+    def preprocess(self, data: tf.Tensor, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         # scale to N(0, I)
         return BaseDiffusionModel._norm(self, data, dtype=dtype)
 
-    def postprocess(self, data: tf.Tensor) -> tf.Tensor:
+    def postprocess(self, data: tf.Tensor, **kwargs) -> tf.Tensor:
         # scale back to the signal space
         __data = BaseDiffusionModel._denorm(self, data)
         # enforce types
@@ -146,14 +146,14 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         # remove the noise
         __data = self.reverse_diffusion(__noises, step_num=step_num, **kwargs)
         # denormalize
-        return self.postprocess(__data)
+        return self.postprocess(__data, training=False)
 
     # TRAINING #################################################################
 
     def train_step(self, data: tf.Tensor) -> dict:
         __dtype = self.compute_dtype
         # normalize data to have standard deviation of 1, like the noises
-        __data = self.preprocess(data, dtype=__dtype)
+        __data = self.preprocess(data, training=True, dtype=__dtype)
         # compute the shapes in the latent space
         __shape_n = BaseDiffusionModel.compute_data_shape(self, inputs_shape=__data.shape)
         __shape_a = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=__data.shape)
@@ -171,7 +171,7 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
     def test_step(self, data: tf.Tensor) -> dict:
         __dtype = self.compute_dtype
         # normalize data to have standard deviation of 1, like the noises
-        __data = self.preprocess(data, dtype=__dtype)
+        __data = self.preprocess(data, training=False, dtype=__dtype)
         # compute the shapes in the latent space
         __shape_n = BaseDiffusionModel.compute_data_shape(self, inputs_shape=__data.shape)
         __shape_a = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=__data.shape)
@@ -213,17 +213,17 @@ class LatentDiffusionModel(BaseDiffusionModel): # mlable.models.ContrastModel
 
     # LATENT <=> SIGNAL SPACES #################################################
 
-    def _encode(self, data: tf.Tensor, dtype: tf.DType=None) -> tf.Tensor:
+    def _encode(self, data: tf.Tensor, training: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
-        __latents = self._vae.encode(data, training=False)
+        __latents = self._vae.encode(data, training=training, **kwargs)
         __latents = __latents if isinstance(__latents, tf.Tensor) else self._vae.sample(*__latents)
         return __cast(__latents)
 
-    def _decode(self, data: tf.Tensor, logits: bool=True, dtype: tf.DType=None) -> tf.Tensor:
+    def _decode(self, data: tf.Tensor, training: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
-        return __cast(self._vae.decode(data, logits=logits, training=False))
+        return __cast(self._vae.decode(data, training=training, **kwargs))
 
     def get_vae(self) -> tf.keras.Model:
         return self._vae
@@ -234,17 +234,17 @@ class LatentDiffusionModel(BaseDiffusionModel): # mlable.models.ContrastModel
 
     # PRE / POST PROCESSING ####################################################
 
-    def preprocess(self, data: tf.Tensor, dtype: tf.DType=None) -> tf.Tensor:
+    def preprocess(self, data: tf.Tensor, training: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         # encode in the latent space
-        __data = LatentDiffusionModel._encode(self, data, dtype=dtype)
+        __data = LatentDiffusionModel._encode(self, data, training=training, dtype=dtype, **kwargs)
         # scale to N(0, I)
         return BaseDiffusionModel._norm(self, __data, dtype=dtype)
 
-    def postprocess(self, data: tf.Tensor, logits: bool=True, dtype: tf.DType=None) -> tf.Tensor:
+    def postprocess(self, data: tf.Tensor, training: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         # scale the pixel values back to the latent space
         __data = BaseDiffusionModel._denorm(self, data, dtype=dtype)
         # decode back to the signal space
-        return LatentDiffusionModel._decode(self, __data, logits=logits, dtype=dtype)
+        return LatentDiffusionModel._decode(self, __data, training=training, dtype=dtype, **kwargs)
 
     # CONFIG ###################################################################
 
