@@ -108,45 +108,55 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     # NOISE ####################################################################
 
-    def denoise_latent(self, noisy_data: tf.Tensor, noise_rates: tf.Tensor, data_rates: tf.Tensor, training: bool=False, **kwargs) -> tuple:
+    def denoise_latent(self, noisy_data: tf.Tensor, data_rates: tf.Tensor, noise_rates: tf.Tensor, training: bool=False, **kwargs) -> tuple:
         # predict noise component
         __noises = self.call((noisy_data, noise_rates), training=training, **kwargs)
         # remove noise component from data
         __data = (noisy_data - noise_rates * __noises) / data_rates
         # return both
-        return __noises, __data
+        return __data, __noises
 
     # DIFFUSION ################################################################
 
-    def reverse_diffusion(self, initial_noises: tf.Tensor, step_num: int, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
+    def diffusion_schedule(self, current_step: int=None, total_step: int=None, data_shape: tuple=None, dtype: tf.DType=None) -> tuple:
+        __dtype = dtype or self.compute_dtype
+        # reverse diffusion = sampling
+        __shape = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=data_shape)
+        # factor by 1 to expand the batch dimension
+        __match = tf.ones(__shape, dtype=__dtype)
+        # random values for the training process
+        __times = tf.random.uniform(shape=__shape, minval=0.0, maxval=1.0, dtype=__dtype)
+        # timesteps as a ratio of the diffusion process
+        if current_step and total_step:
+            __times = __match * self._time_schedule(current_step=current_step, end_step=total_step, dtype=__dtype)
+        # signal rate, noise rate (never null because of the init bounds)
+        return self._rate_schedule(__times, dtype=__dtype)
+
+    def reverse_diffusion(self, initial_noises: tf.Tensor, total_step: int=256, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
-        # reverse diffusion = sampling
-        __shape = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=initial_noises.shape)
         # the current predictions for the noise and the signal
         __noises = __cast(initial_noises)
         __data = __cast(initial_noises)
-        for __i in reversed(range(step_num + 1)):
-            # match the noise rank and batch dimension
-            __times = tf.ones(__shape, dtype=__dtype) * self._time_schedule(current_step=__i, end_step=step_num, dtype=__dtype)
+        for __i in reversed(range(total_step + 1)):
             # noise rate, signal rate for the current timestep
-            __alpha, __beta = self._rate_schedule(__times, dtype=__dtype)
+            __alpha, __beta = self.diffusion_schedule(current_step=__i, total_step=total_step, data_shape=__data.shape, dtype=__dtype)
             # remix the components, with a noise level corresponding to the current iteration
-            __data = (__beta * __data + __alpha * __noises)
+            __data = (__alpha * __data + __beta * __noises)
             # predict the cumulated noise in the sample, and remove it from the sample
-            __noises, __data = BaseDiffusionModel.denoise_latent(self, noisy_data=__data, noise_rates=__alpha, data_rates=__beta, training=False, **kwargs)
+            __data, __noises = BaseDiffusionModel.denoise_latent(self, noisy_data=__data, data_rates=__alpha, noise_rates=__beta, training=False, **kwargs)
         return __data
 
     # SAMPLING #################################################################
 
-    def generate_sample(self, sample_num: int, step_num: int, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
+    def generate_sample(self, sample_num: int, total_step: int=256, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         # adapt the batch dimension
         __shape = BaseDiffusionModel.compute_data_shape(self, batch_dim=sample_num)
         # sample the initial noise
         __noises = tf.random.normal(shape=__shape, dtype=__dtype)
         # remove the noise
-        __data = self.reverse_diffusion(__noises, step_num=step_num, **kwargs)
+        __data = self.reverse_diffusion(__noises, total_step=total_step, **kwargs)
         # denormalize
         return self.from_latent(__data, training=False)
 
@@ -158,17 +168,14 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         __data = self.to_latent(data, training=True, dtype=__dtype)
         # compute the shapes in the latent space
         __shape_n = BaseDiffusionModel.compute_data_shape(self, inputs_shape=__data.shape)
-        __shape_a = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=__data.shape)
         # sample the noises = targets
         __noises = tf.random.normal(shape=__shape_n, dtype=__dtype)
-        # sample the diffusion angles
-        __times = tf.random.uniform(shape=__shape_a, minval=0.0, maxval=1.0, dtype=__dtype)
-        # compute the signal to noise ratio
-        __noise_rates, __data_rates = self._rate_schedule(__times, dtype=__dtype)
+        # random rates in the range [end_rate, start_rate] defined on init
+        __alpha, __beta = self.diffusion_schedule(current_step=None, total_step=None, data_shape=__data.shape, dtype=__dtype)
         # mix the data with noises
-        __data = __data_rates * __data + __noise_rates * __noises
+        __data = __alpha * __data + __beta * __noises
         # train to predict the noise from scrambled data
-        return super(BaseDiffusionModel, self).train_step(((__data, __noise_rates), __noises))
+        return super(BaseDiffusionModel, self).train_step(((__data, __beta), __noises))
 
     def test_step(self, data: tf.Tensor) -> dict:
         __dtype = self.compute_dtype
@@ -182,11 +189,11 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         # sample the diffusion angles
         __times = tf.random.uniform(shape=__shape_a, minval=0.0, maxval=1.0, dtype=__dtype)
         # compute the signal to noise ratio
-        __noise_rates, __data_rates = self._rate_schedule(__times, dtype=__dtype)
+        __beta, __alpha = self._rate_schedule(__times, dtype=__dtype)
         # mix the data with noises
-        __data = __data_rates * __data + __noise_rates * __noises
+        __data = __alpha * __data + __beta * __noises
         # train to predict the noise from scrambled data
-        return super(BaseDiffusionModel, self).test_step(((__data, __noise_rates), __noises))
+        return super(BaseDiffusionModel, self).test_step(((__data, __beta), __noises))
 
     # CONFIG ###################################################################
 
