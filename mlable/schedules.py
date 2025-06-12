@@ -18,12 +18,12 @@ def linear_rate(current_step: int, start_step: int, end_step: int, start_rate: f
 # COSINE #######################################################################
 
 def cosine_angles(angle_rates: float, start_rate: float=1.0, end_rate: float=0.0, dtype: tf.DType=None) -> tf.Tensor:
-    __dtype = dtype or getattr(angle_rates, 'dtype', tf.float32)
-    __angle_s = tf.cast(tf.math.acos(start_rate), dtype=__dtype)
-    __angle_e = tf.cast(tf.math.acos(end_rate), dtype=__dtype)
+    __cast = functools.partial(tf.cast, dtype=dtype or getattr(angle_rates, 'dtype', tf.float32))
+    __angle_s = tf.math.acos(__cast(start_rate))
+    __angle_e = tf.math.acos(__cast(end_rate))
     # linear progression in the angle space => cosine progression for the signal and noise
-    return __angle_s + tf.cast(angle_rates, dtype=__dtype) * (__angle_e - __angle_s)
+    return __angle_s + __cast(angle_rates) * (__angle_e - __angle_s)
 
 def cosine_rates(angle_rates: float, start_rate: float=1.0, end_rate: float=0.0, dtype: tf.DType=None) -> tuple:
     __angles = cosine_angles(start_rate=start_rate, end_rate=end_rate, angle_rates=angle_rates, dtype=dtype)
-    return tf.math.sin(__angles), tf.math.cos(__angles) # noise rate, signal rate
+    return tf.math.cos(__angles), tf.math.sin(__angles) # signal rate, noise rate
