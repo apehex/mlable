@@ -219,6 +219,14 @@ class LatentDiffusionModel(BaseDiffusionModel): # mlable.models.ContrastModel
         # encoding / decoding model
         self._vae = None
 
+    # VAE ######################################################################
+
+    def get_vae(self) -> tf.keras.Model:
+        return self._vae
+
+    def set_vae(self, model: tf.keras.Model) -> None:
+        self._vae = model
+
     # LATENT <=> SIGNAL SPACES #################################################
 
     def _encode(self, data: tf.Tensor, training: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
@@ -232,13 +240,6 @@ class LatentDiffusionModel(BaseDiffusionModel): # mlable.models.ContrastModel
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
         return __cast(self._vae.decode(data, training=training, **kwargs))
-
-    def get_vae(self) -> tf.keras.Model:
-        return self._vae
-
-    def set_vae(self, model: tf.keras.Model, trainable: bool=False) -> None:
-        self._vae = model
-        self._vae.trainable = trainable
 
     # PRE / POST PROCESSING ####################################################
 
