@@ -108,6 +108,14 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     # NOISE ####################################################################
 
+    def ennoise_latent(self, data: tf.Tensor, data_rates: tf.Tensor, noise_rates: tf.Tensor, noises: tf.Tensor=None) -> tuple:
+        # random values by default
+        __noises = tf.random.normal(data.shape, dtype=data.dtype)
+        # use the provided values if given
+        __noises = __noises if (noises is None) else tf.cast(noises, dtype=data.dtype)
+        # mix the components
+        return (data_rates * data + noise_rates * __noises), __noises
+
     def denoise_latent(self, data: tf.Tensor, data_rates: tf.Tensor, noise_rates: tf.Tensor, training: bool=False, **kwargs) -> tuple:
         # predict noise component
         __noises = self.call((data, noise_rates), training=training, **kwargs)
@@ -143,7 +151,7 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
             # noise rate, signal rate for the current timestep
             __alpha, __beta = self.diffusion_schedule(current_step=__i, total_step=total_step, data_shape=__data.shape, dtype=__dtype)
             # remix the components, with a noise level corresponding to the current iteration
-            __data = (__alpha * __data + __beta * __noises)
+            __data, __noises = self.ennoise_latent(data=__data, noises=__noises, data_rates=__alpha, noise_rates=__beta)
             # predict the cumulated noise in the sample, and remove it from the sample
             __data, __noises = BaseDiffusionModel.denoise_latent(self, data=__data, data_rates=__alpha, noise_rates=__beta, training=False, **kwargs)
         return __data
@@ -167,32 +175,21 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         __dtype = self.compute_dtype
         # normalize data to have standard deviation of 1, like the noises
         __data = self.to_latent(data, training=True, dtype=__dtype)
-        # compute the shapes in the latent space
-        __shape_n = BaseDiffusionModel.compute_data_shape(self, inputs_shape=__data.shape)
-        # sample the noises = targets
-        __noises = tf.random.normal(shape=__shape_n, dtype=__dtype)
         # random rates in the range [end_rate, start_rate] defined on init
         __alpha, __beta = self.diffusion_schedule(current_step=None, total_step=None, data_shape=__data.shape, dtype=__dtype)
         # mix the data with noises
-        __data = __alpha * __data + __beta * __noises
+        __data, __noises = self.ennoise_latent(data=__data, noises=None, data_rates=__alpha, noise_rates=__beta)
         # train to predict the noise from scrambled data
         return super(BaseDiffusionModel, self).train_step(((__data, __beta), __noises))
 
     def test_step(self, data: tf.Tensor) -> dict:
         __dtype = self.compute_dtype
         # normalize data to have standard deviation of 1, like the noises
-        __data = self.to_latent(data, training=False, dtype=__dtype)
-        # compute the shapes in the latent space
-        __shape_n = BaseDiffusionModel.compute_data_shape(self, inputs_shape=__data.shape)
-        __shape_a = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=__data.shape)
-        # sample the noises = targets
-        __noises = tf.random.normal(shape=__shape_n, dtype=__dtype)
-        # sample the diffusion angles
-        __times = tf.random.uniform(shape=__shape_a, minval=0.0, maxval=1.0, dtype=__dtype)
-        # compute the signal to noise ratio
-        __beta, __alpha = self._rate_schedule(__times, dtype=__dtype)
+        __data = self.to_latent(data, training=True, dtype=__dtype)
+        # random rates in the range [end_rate, start_rate] defined on init
+        __alpha, __beta = self.diffusion_schedule(current_step=None, total_step=None, data_shape=__data.shape, dtype=__dtype)
         # mix the data with noises
-        __data = __alpha * __data + __beta * __noises
+        __data, __noises = self.ennoise_latent(data=__data, noises=None, data_rates=__alpha, noise_rates=__beta)
         # train to predict the noise from scrambled data
         return super(BaseDiffusionModel, self).test_step(((__data, __beta), __noises))
 
