@@ -108,26 +108,27 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     # NOISE ####################################################################
 
-    def denoise_latent(self, noisy_data: tf.Tensor, data_rates: tf.Tensor, noise_rates: tf.Tensor, training: bool=False, **kwargs) -> tuple:
+    def denoise_latent(self, data: tf.Tensor, data_rates: tf.Tensor, noise_rates: tf.Tensor, training: bool=False, **kwargs) -> tuple:
         # predict noise component
-        __noises = self.call((noisy_data, noise_rates), training=training, **kwargs)
+        __noises = self.call((data, noise_rates), training=training, **kwargs)
         # remove noise component from data
-        __data = (noisy_data - noise_rates * __noises) / data_rates
+        __data = (data - noise_rates * __noises) / data_rates
         # return both
         return __data, __noises
 
     # DIFFUSION ################################################################
 
-    def diffusion_schedule(self, current_step: int=None, total_step: int=None, data_shape: tuple=None, dtype: tf.DType=None) -> tuple:
+    def diffusion_schedule(self, data_shape: tuple, current_step: int=None, total_step: int=None, dtype: tf.DType=None) -> tuple:
         __dtype = dtype or self.compute_dtype
         # reverse diffusion = sampling
         __shape = BaseDiffusionModel.compute_rate_shape(self, inputs_shape=data_shape)
-        # factor by 1 to expand the batch dimension
-        __match = tf.ones(__shape, dtype=__dtype)
         # random values for the training process
         __times = tf.random.uniform(shape=__shape, minval=0.0, maxval=1.0, dtype=__dtype)
         # timesteps as a ratio of the diffusion process
         if current_step and total_step:
+            # factor by 1 to expand the batch dimension
+            __match = tf.ones(__shape, dtype=__dtype)
+            # always between 0 and 1
             __times = __match * self._time_schedule(current_step=current_step, end_step=total_step, dtype=__dtype)
         # signal rate, noise rate (never null because of the init bounds)
         return self._rate_schedule(__times, dtype=__dtype)
@@ -144,7 +145,7 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
             # remix the components, with a noise level corresponding to the current iteration
             __data = (__alpha * __data + __beta * __noises)
             # predict the cumulated noise in the sample, and remove it from the sample
-            __data, __noises = BaseDiffusionModel.denoise_latent(self, noisy_data=__data, data_rates=__alpha, noise_rates=__beta, training=False, **kwargs)
+            __data, __noises = BaseDiffusionModel.denoise_latent(self, data=__data, data_rates=__alpha, noise_rates=__beta, training=False, **kwargs)
         return __data
 
     # SAMPLING #################################################################
