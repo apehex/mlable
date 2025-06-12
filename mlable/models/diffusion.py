@@ -131,7 +131,7 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         # random values for the training process
         __times = tf.random.uniform(shape=__shape, minval=0.0, maxval=1.0, dtype=__dtype)
         # timesteps as a ratio of the diffusion process
-        if current_step and total_step:
+        if (current_step is not None) and (total_step is not None):
             # factor by 1 to expand the batch dimension
             __match = tf.ones(__shape, dtype=__dtype)
             # always between 0 and 1
