@@ -105,8 +105,9 @@ class ResnetBlock(tf.keras.layers.Layer):
             'scale': True,}
 
     def _update_config(self, inputs_shape: tuple) -> None:
-        self._config['channel_dim'] = self._config['channel_dim'] or int(inputs_shape[-1])
-        self._config['group_dim'] = self._config['group_dim'] or (2 ** int(0.5 * math.log2(int(inputs_shape[-1]))))
+        __input_dim = int(inputs_shape[-1])
+        self._config['channel_dim'] = self._config['channel_dim'] or __input_dim
+        self._config['group_dim'] = self._config['group_dim'] or (2 ** int(0.5 * math.log2(min(__input_dim, self._config['channel_dim']))))
 
     @classmethod
     def from_config(cls, config: dict) -> tf.keras.layers.Layer:
