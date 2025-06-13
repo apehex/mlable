@@ -139,6 +139,32 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         # signal rate, noise rate (never null because of the init bounds)
         return self._rate_schedule(__times, dtype=__dtype)
 
+    # FORWARD DIFFUSION ########################################################
+
+    def forward_step(self, current_data: tf.Tensor, current_step: int, total_step: int) -> tuple:
+        # signal rate, noise rate for the current timestep
+        __alpha_t, __beta_t = self.diffusion_schedule(current_step=current_step, total_step=total_step, data_shape=current_data.shape, dtype=current_data.dtype)
+        __alpha_t1, __beta_t1 = self.diffusion_schedule(current_step=current_step - 1, total_step=total_step, data_shape=current_data.shape, dtype=current_data.dtype)
+        # iterative rates
+        __alpha = __alpha_t / __alpha_t1
+        __beta = tf.sqrt(1.0 - __alpha ** 2)
+        # fresh iterative noise e_t
+        __noises = tf.random.normal(current_data.shape, dtype=current_data.dtype)
+        # mix the components to sample x_t = a_t * x_t-1 + b_t * e_t
+        __data = __alpha * current_data + __beta * __noises
+        # x_t, e_t
+        return __data, __noises
+
+    def forward_diffusion(self, initial_data: tf.Tensor, total_step: int=256, dtype: tf.DType=None) -> tf.Tensor:
+        __dtype = dtype or getattr(initial_data, 'dtype', self.compute_dtype)
+        __cast = functools.partial(tf.cast, dtype=__dtype)
+        # the original data x_0
+        __data = __cast(initial_data)
+        for __i in range(1, total_step + 1):
+            # compute x_t by adding iterative noise
+            __data, _ = BaseDiffusionModel.forward_step(self, current_data=__data, current_step=__i, total_step=total_step)
+        return __data
+
     # REVERSE DIFFUSION ########################################################
 
     def current_rate(self, current_step: int, total_step: int, data_shape: tuple, eta_rate: float=1.0, dtype: tf.DType=None) -> tf.Tensor:
@@ -164,7 +190,7 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         return __mean_t + __noises_t, __noises_t
 
     def reverse_step(self, current_data: tf.Tensor, current_noises: tf.Tensor, current_step: int, total_step: int, eta_rate: float=1.0, **kwargs) -> tuple:
-        # noise rate, signal rate for the current timestep
+        # signal rate, noise rate for the current timestep
         __alpha, __beta = self.diffusion_schedule(current_step=current_step, total_step=total_step, data_shape=current_data.shape, dtype=current_data.dtype)
         # estimate x_t from the predicted (cumulated) noise and x_0 estimation
         __data, __noises = BaseDiffusionModel.current_estimation(self, initial_data=current_data, cumulated_noises=current_noises, current_step=current_step, total_step=total_step, eta_rate=eta_rate)
