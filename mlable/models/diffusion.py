@@ -210,7 +210,7 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     # SAMPLING #################################################################
 
-    def generate_sample(self, sample_num: int, total_step: int=256, eta_rate: float=1.0, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
+    def generate_samples(self, sample_num: int, total_step: int=256, eta_rate: float=1.0, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         # adapt the batch dimension
         __shape = BaseDiffusionModel.compute_data_shape(self, batch_dim=sample_num)
