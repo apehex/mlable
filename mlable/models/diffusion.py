@@ -141,8 +141,30 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
 
     # REVERSE DIFFUSION ########################################################
 
-    def reverse_diffusion(self, initial_noises: tf.Tensor, total_step: int=256, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
-        __dtype = dtype or self.compute_dtype
+    def current_rate(self, current_step: int, total_step: int, data_shape: tuple, eta_rate: float=1.0, dtype: tf.DType=None) -> tf.Tensor:
+        # signal and noise rates from the previous iteration: a_t+1, b_t+1
+        __alpha_t1, __beta_t1 = self.diffusion_schedule(current_step=current_step + 1, total_step=total_step, data_shape=data_shape, dtype=dtype)
+        # current signal and noise rates: a_t, b_t
+        __alpha_t, __beta_t = self.diffusion_schedule(current_step=current_step, total_step=total_step, data_shape=data_shape, dtype=dtype)
+        # the rates (deviations) are the square roots of the variances
+        return eta_rate * (__beta_t / __beta_t1) * tf.sqrt(1.0 - (__alpha_t1 / __alpha_t) ** 2)
+
+    def current_estimation(self, initial_data: tf.Tensor, cumulated_noises: tf.Tensor, current_step: int, total_step: int, eta_rate: float=1.0) -> tuple:
+        __dtype = initial_data.dtype
+        __shape = tuple(initial_data.shape)
+        # current signal and noise rates: a_t, b_t
+        __alpha_t, __beta_t = self.diffusion_schedule(current_step=current_step, total_step=total_step, data_shape=__shape, dtype=__dtype)
+        # standard deviation of x_t
+        __std_t = self.current_rate(current_step=current_step, total_step=total_step, eta_rate=eta_rate, data_shape=__shape, dtype=__dtype)
+        # mean of x_t, computed from the predictions of x_0 and e_t, the cumulative noise
+        __mean_t = (__alpha_t * initial_data) + (tf.sqrt((__beta_t ** 2) - (__std_t ** 2)) * cumulated_noises)
+        # fresh noise
+        __noises_t = __std_t * tf.random.normal(__shape, dtype=__dtype)
+        # remix the components
+        return __mean_t + __noises_t, __noises_t
+
+    def reverse_diffusion(self, initial_noises: tf.Tensor, total_step: int=256, eta_rate: float=1.0, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
+        __dtype = dtype or getattr(initial_noises, 'dtype', self.compute_dtype)
         __cast = functools.partial(tf.cast, dtype=__dtype)
         # the current predictions for the noise and the signal
         __noises = __cast(initial_noises)
@@ -150,23 +172,22 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         for __i in reversed(range(total_step + 1)):
             # noise rate, signal rate for the current timestep
             __alpha, __beta = self.diffusion_schedule(current_step=__i, total_step=total_step, data_shape=__data.shape, dtype=__dtype)
-            # remix the components, with a noise level corresponding to the current iteration
-            __data, __noises = self.ennoise_latent(data=__data, data_rates=__alpha, noise_rates=__beta)
+            # estimate x_t from the predicted (cumulated) noise and x_0 estimation
+            __data, __noises = BaseDiffusionModel.current_estimation(self, initial_data=__data, cumulated_noises=__noises, current_step=__i, total_step=total_step, eta_rate=eta_rate)
             # predict the cumulated noise and estimate x_0
             __data, __noises = BaseDiffusionModel.denoise_latent(self, data=__data, data_rates=__alpha, noise_rates=__beta, training=False, **kwargs)
-            # estimate x_t-1
         return __data
 
     # SAMPLING #################################################################
 
-    def generate_sample(self, sample_num: int, total_step: int=256, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
+    def generate_sample(self, sample_num: int, total_step: int=256, eta_rate: float=1.0, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         # adapt the batch dimension
         __shape = BaseDiffusionModel.compute_data_shape(self, batch_dim=sample_num)
         # sample the initial noise
         __noises = tf.random.normal(shape=__shape, dtype=__dtype)
         # remove the noise
-        __data = self.reverse_diffusion(__noises, total_step=total_step, **kwargs)
+        __data = self.reverse_diffusion(__noises, total_step=total_step, eta_rate=eta_rate, **kwargs)
         # denormalize
         return self.from_latent(__data, training=False)
 
