@@ -160,8 +160,16 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         __mean_t = (__alpha_t * initial_data) + (tf.sqrt((__beta_t ** 2) - (__std_t ** 2)) * cumulated_noises)
         # fresh noise
         __noises_t = __std_t * tf.random.normal(__shape, dtype=__dtype)
-        # remix the components
+        # estimation of x_t, with fresh noise e_t
         return __mean_t + __noises_t, __noises_t
+
+    def reverse_step(self, current_data: tf.Tensor, current_noises: tf.Tensor, current_step: int, total_step: int, eta_rate: float=1.0, **kwargs) -> tuple:
+        # noise rate, signal rate for the current timestep
+        __alpha, __beta = self.diffusion_schedule(current_step=current_step, total_step=total_step, data_shape=current_data.shape, dtype=current_data.dtype)
+        # estimate x_t from the predicted (cumulated) noise and x_0 estimation
+        __data, __noises = BaseDiffusionModel.current_estimation(self, initial_data=current_data, cumulated_noises=current_noises, current_step=current_step, total_step=total_step, eta_rate=eta_rate)
+        # predict the cumulated noise and estimate x_0
+        return BaseDiffusionModel.denoise_latent(self, data=__data, data_rates=__alpha, noise_rates=__beta, training=False, **kwargs)
 
     def reverse_diffusion(self, initial_noises: tf.Tensor, total_step: int=256, eta_rate: float=1.0, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or getattr(initial_noises, 'dtype', self.compute_dtype)
@@ -170,12 +178,8 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
         __noises = __cast(initial_noises)
         __data = __cast(initial_noises)
         for __i in reversed(range(total_step + 1)):
-            # noise rate, signal rate for the current timestep
-            __alpha, __beta = self.diffusion_schedule(current_step=__i, total_step=total_step, data_shape=__data.shape, dtype=__dtype)
-            # estimate x_t from the predicted (cumulated) noise and x_0 estimation
-            __data, __noises = BaseDiffusionModel.current_estimation(self, initial_data=__data, cumulated_noises=__noises, current_step=__i, total_step=total_step, eta_rate=eta_rate)
             # predict the cumulated noise and estimate x_0
-            __data, __noises = BaseDiffusionModel.denoise_latent(self, data=__data, data_rates=__alpha, noise_rates=__beta, training=False, **kwargs)
+            __data, __noises = BaseDiffusionModel.reverse_step(self, current_data=__data, current_noises=__noises, current_step=__i, total_step=total_step, eta_rate=eta_rate, **kwargs)
         return __data
 
     # SAMPLING #################################################################
