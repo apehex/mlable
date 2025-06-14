@@ -17,10 +17,10 @@ class VaeModel(tf.keras.Model):
         # set the KL loss factor accordingly
         self._rate = functools.partial(mlable.schedules.linear_rate, start_step=step_min, end_step=step_max, start_rate=beta_min, end_rate=beta_max)
 
-    def sample(self, mean: tf.Tensor, logvar: tf.Tensor, dtype: tf.DType=None) -> tf.Tensor:
+    def sample(self, mean: tf.Tensor, logvar: tf.Tensor, random: bool=True, dtype: tf.DType=None) -> tf.Tensor:
         __dtype = self.compute_dtype if (dtype is None) else dtype
         __mean = tf.cast(mean, dtype=__dtype)
-        __std = tf.cast(tf.exp(logvar * 0.5), dtype=__dtype)
+        __std = tf.cast(float(random) * tf.exp(logvar * 0.5), dtype=__dtype)
         return tf.random.normal(shape=tf.shape(__mean), mean=__mean, stddev=__std, dtype=__dtype)
 
     def call(self, inputs: tf.Tensor, training: bool=False, **kwargs) -> tf.Tensor:
