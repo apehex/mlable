@@ -280,11 +280,12 @@ class LatentDiffusionModel(BaseDiffusionModel): # mlable.models.ContrastModel
 
     # LATENT <=> SIGNAL SPACES #################################################
 
-    def _encode(self, data: tf.Tensor, training: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
+    def _encode(self, data: tf.Tensor, training: bool=False, sample: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
         __latents = self._vae.encode(data, training=training, **kwargs)
-        __latents = __latents if isinstance(__latents, tf.Tensor) else self._vae.sample(*__latents)
+        if not isinstance(__latents, tf.Tensor):
+            __latents = self._vae.sample(*__latents) if sample else __latents[0]
         return __cast(__latents)
 
     def _decode(self, data: tf.Tensor, training: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
