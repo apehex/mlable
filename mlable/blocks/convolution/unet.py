@@ -6,6 +6,7 @@ import tensorflow as tf
 import mlable.blocks.convolution.resnet
 import mlable.blocks.normalization
 import mlable.layers.shaping
+import mlable.utils
 
 # CONSTANTS ####################################################################
 
@@ -109,7 +110,7 @@ class SelfAttentionBlock(tf.keras.layers.Layer):
         __shape = tuple(inputs_shape)
         __dim = int(__shape[-1])
         # fill with default values
-        self._config['group_dim'] = self._config['group_dim'] or (2 ** int(0.5 * math.log2(__dim)))
+        self._config['group_dim'] = self._config['group_dim'] or mlable.utils.exproot2(__dim)
         self._config['head_dim'] = self._config['head_dim'] or __dim
         self._config['head_num'] = self._config['head_num'] or max(1, __dim // self._config['head_dim'])
 
@@ -230,8 +231,8 @@ class UnetBlock(tf.keras.layers.Layer):
         __dim = int(__shape[-1])
         # fill with default values
         self._config['channel_dim'] = self._config['channel_dim'] or __dim
-        self._config['group_dim'] = self._config['group_dim'] or max(1, (2 ** int(0.5 * math.log2(__dim))))
-        self._config['head_dim'] = self._config['head_dim'] or max(1, (2 ** int(0.5 * math.log2(self._config['channel_dim']))))
+        self._config['group_dim'] = self._config['group_dim'] or mlable.utils.exproot2(min(self._config['channel_dim'], __dim))
+        self._config['head_dim'] = self._config['head_dim'] or mlable.utils.exproot2(self._config['channel_dim'])
         self._config['head_num'] = self._config['head_num'] or max(1, self._config['channel_dim'] // self._config['head_dim'])
         self._config['layer_num'] = self._config['layer_num'] or 2
 
