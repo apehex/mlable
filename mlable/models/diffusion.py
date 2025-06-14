@@ -237,7 +237,7 @@ class BaseDiffusionModel(tf.keras.models.Model): # mlable.models.ContrastModel
     def test_step(self, data: tf.Tensor) -> dict:
         __dtype = self.compute_dtype
         # normalize data to have standard deviation of 1, like the noises
-        __data = self.to_latent(data, training=True, dtype=__dtype)
+        __data = self.to_latent(data, training=False, dtype=__dtype)
         # random rates in the range [end_rate, start_rate] defined on init
         __alpha, __beta = self.diffusion_schedule(current_step=None, total_step=None, data_shape=__data.shape, dtype=__dtype)
         # mix the data with noises
