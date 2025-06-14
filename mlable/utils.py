@@ -1,5 +1,6 @@
 import functools
 import itertools
+import math
 
 # FUNCTIONS ####################################################################
 
@@ -21,6 +22,14 @@ def merge(chunks: list) -> list:
 def rotate(sequence: list, ticks: int) -> list:
     __n = ticks % len(sequence)
     return sequence[__n:] + sequence[:__n] # shift left if ticks > 0 right otherwise
+
+# MATH #########################################################################
+
+def logroot2(n: int) -> int:
+    return int(0.5 * math.log2(n))
+
+def exproot2(n: int) -> int:
+    return 2 ** logroot2(n)
 
 # CHECKS #######################################################################
 
