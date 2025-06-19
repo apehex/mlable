@@ -280,7 +280,7 @@ class LatentDiffusionModel(BaseDiffusionModel): # mlable.models.ContrastModel
 
     # LATENT <=> SIGNAL SPACES #################################################
 
-    def _encode(self, data: tf.Tensor, training: bool=False, sample: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
+    def _encode(self, data: tf.Tensor, training: bool=False, sample: bool=True, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         __dtype = dtype or self.compute_dtype
         __cast = functools.partial(tf.cast, dtype=__dtype)
         __latents = self._vae.encode(data, training=training, **kwargs)
@@ -295,9 +295,9 @@ class LatentDiffusionModel(BaseDiffusionModel): # mlable.models.ContrastModel
 
     # PRE / POST PROCESSING ####################################################
 
-    def to_latent(self, data: tf.Tensor, training: bool=False, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
+    def to_latent(self, data: tf.Tensor, training: bool=False, sample: bool=True, dtype: tf.DType=None, **kwargs) -> tf.Tensor:
         # encode in the latent space
-        __data = LatentDiffusionModel._encode(self, data, training=training, dtype=dtype, **kwargs)
+        __data = LatentDiffusionModel._encode(self, data, training=training, sample=sample, dtype=dtype, **kwargs)
         # scale to N(0, I)
         return BaseDiffusionModel._norm_latent(self, __data, dtype=dtype)
 
