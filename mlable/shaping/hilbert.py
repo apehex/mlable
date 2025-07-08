@@ -14,7 +14,7 @@ def permutation(order: int, rank: int, group: int=0, flatten: bool=False) -> lis
     # 1D dimension of the curve: 2 ** (order * rank)
     __dim = 1 << (order + group) * rank
     # target shape: (2 ** order, 2 ** order, ...) rank times
-    __shape = rank * [1 << order]
+    __shape = rank * [1 << (order + group)]
     # the whole list of vertexes
     __curve = [densecurves.hilbert.point(__i, order=order, rank=rank, group=group) for __i in range(__dim)]
     # match the format of numpy: one row per dimension (!= one row per point)
