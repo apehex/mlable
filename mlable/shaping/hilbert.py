@@ -34,7 +34,7 @@ def fold(data: tf.Tensor, order: int, rank: int, axis: int, group: int=0) -> tf.
     # avoid negative indices => axis + 1 != 0
     __axis = axis % len(__shape)
     # insert the new axes
-    __shape = __shape[:__axis] + rank * [1 << order] + __shape[__axis + 1:]
+    __shape = __shape[:__axis] + rank * [1 << (order + group)] + __shape[__axis + 1:]
     # 1D reordering of the indexes according to the Hilbert curve
     __perm = permutation(order=order, rank=rank, group=group, flatten=False)
     # actually swap the elements along the target axis
