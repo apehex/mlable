@@ -10,13 +10,13 @@ import mlable.shapes
 
 # 1D PERMUTATION ###############################################################
 
-def permutation(order: int, rank: int, flatten: bool=False) -> list:
+def permutation(order: int, rank: int, group: int=0, flatten: bool=False) -> list:
     # 1D dimension of the curve: 2 ** (order * rank)
     __dim = 1 << (order * rank)
     # target shape: (2 ** order, 2 ** order, ...) rank times
     __shape = rank * [1 << order]
     # the whole list of vertexes
-    __curve = [densecurves.hilbert.point(__i, order=order, rank=rank) for __i in range(__dim)]
+    __curve = [densecurves.hilbert.point(__i, order=order, rank=rank, group=group) for __i in range(__dim)]
     # match the format of numpy: one row per dimension (!= one row per point)
     __indices = list(zip(*__curve))
     # permutation: __flat[i] contains the destination index of i
@@ -28,7 +28,7 @@ def permutation(order: int, rank: int, flatten: bool=False) -> list:
 
 # 1D => ND #####################################################################
 
-def fold(data: tf.Tensor, order: int, rank: int, axis: int) -> tf.Tensor:
+def fold(data: tf.Tensor, order: int, rank: int, axis: int, group: int=0) -> tf.Tensor:
     # only integer dimension (0 for None)
     __shape = mlable.shapes.normalize(data.shape)
     # avoid negative indices => axis + 1 != 0
@@ -36,7 +36,7 @@ def fold(data: tf.Tensor, order: int, rank: int, axis: int) -> tf.Tensor:
     # insert the new axes
     __shape = __shape[:__axis] + rank * [1 << order] + __shape[__axis + 1:]
     # 1D reordering of the indexes according to the Hilbert curve
-    __perm = permutation(order=order, rank=rank, flatten=False)
+    __perm = permutation(order=order, rank=rank, group=group, flatten=False)
     # actually swap the elements along the target axis
     __data = tf.gather(data, indices=__perm, axis=__axis)
     # split the sequence axis
@@ -44,7 +44,7 @@ def fold(data: tf.Tensor, order: int, rank: int, axis: int) -> tf.Tensor:
 
 # ND => 1D #####################################################################
 
-def unfold(data: tf.Tensor, order: int, rank: int, axes: iter) -> tf.Tensor:
+def unfold(data: tf.Tensor, order: int, rank: int, axes: iter, group: int=0) -> tf.Tensor:
     # only integer dimension (0 for None)
     __shape = mlable.shapes.normalize(data.shape)
     # only positive indexes
@@ -52,7 +52,7 @@ def unfold(data: tf.Tensor, order: int, rank: int, axes: iter) -> tf.Tensor:
     # merge all the axes on the first one
     __shape = __shape[:min(__axes)] + [math.prod(__shape[min(__axes):max(__axes) + 1])] + __shape[max(__axes) + 1:]
     # 1D permutation of the indexes along the merged axis
-    __perm = permutation(order=order, rank=rank, flatten=True)
+    __perm = permutation(order=order, rank=rank, group=group, flatten=True)
     # merge all the axes of the hypercube
     __data = tf.reshape(data, shape=__shape)
     # actually swap the elements along the target axis
