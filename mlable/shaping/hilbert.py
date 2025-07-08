@@ -12,7 +12,7 @@ import mlable.shapes
 
 def permutation(order: int, rank: int, group: int=0, flatten: bool=False) -> list:
     # 1D dimension of the curve: 2 ** (order * rank)
-    __dim = 1 << (order * rank)
+    __dim = 1 << (order + group) * rank
     # target shape: (2 ** order, 2 ** order, ...) rank times
     __shape = rank * [1 << order]
     # the whole list of vertexes
