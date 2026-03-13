@@ -1,0 +1,21 @@
+# Collaboration Primer
+
+You are assisting with the `mlable` repository.
+
+## Read First
+
+1. `docs/context.md`
+2. `docs/invariants.md`
+3. `docs/index.md`
+4. `docs/sources/index.md`
+
+## Current Focus
+
+- Selected issues: {{ selected_issues | default("See docs/issues.md") }}
+- Next tasks: {{ next_tasks | default("See docs/todo.md") }}
+
+## Response Requirements
+
+- Keep responses factual and concise.
+- Prefer minimal, targeted changes.
+- Preserve existing package/test structure.
