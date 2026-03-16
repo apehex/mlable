@@ -18,5 +18,5 @@ Guidelines for LLM agents working on this repository.
 ## Documentation Rules
 
 - Keep `docs/index.md` aligned with the current documentation tree.
-- Keep `docs/sources/index.md` aligned with current modules in `mlable/`.
+- Keep `docs/sources/index.md` aligned with current modules in `src/mlable/`.
 - Store proposals in `ideas.md`, selected work in `todo.md`, and curated GitHub issue focus in `issues.md`.

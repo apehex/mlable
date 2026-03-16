@@ -6,7 +6,7 @@ Overview of the repository structure.
 
 | Path                      | Purpose                               |
 | ------------------------- | ------------------------------------- |
-| `-- docs`                 | Collaboration-focused project docs    |
+| `-- docs/`                | Collaboration-focused project docs    |
 | `   -- agents.md`         | Guidelines for LLM agents             |
 | `   -- context.md`        | Overview of the project               |
 | `   -- decisions.md`      | Record of important design choices    |
@@ -24,11 +24,11 @@ Overview of the repository structure.
 
 | Path                      | Purpose                               |
 | ------------------------- | ------------------------------------- |
-| `-- mlable`               | Root of the Python package            |
+| `-- src/mlable`           | Root of the Python package            |
 | `   -- blocks`            | Reusable model blocks                 |
 | `   -- layers`            | Standalone Keras layers               |
 | `   -- maths`             | Math and probability helpers          |
-| `   -- models`            | Model classes                         |
+| `   -- models`            | Generic model wrappers                |
 | `   -- shaping`           | Axis and spatial transforms           |
 
 ## Tests
