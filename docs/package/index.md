@@ -1,6 +1,15 @@
-# Sources Index
+# Package Index
 
 Module-level overview for `mlable/`.
+
+## Usage Guides
+
+- Layers: [`./layers/index.md`](./layers/index.md)
+  - [`./layers/shaping.md`](./layers/shaping.md)
+  - [`./layers/embedding.md`](./layers/embedding.md)
+  - [`./layers/transformer.md`](./layers/transformer.md)
+- Metrics: [`./metrics/index.md`](./metrics/index.md)
+  - [`./metrics/group_accuracy.md`](./metrics/group_accuracy.md)
 
 ## Top-Level Modules
 
