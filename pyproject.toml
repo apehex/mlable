@@ -1,6 +1,6 @@
 [project]
 name = "mlable"
-version = "0.22.10"
+version = "0.23.0"
 description = "Tensorflow libs: layers, metrics, ops, etc."
 authors = [{ name = "apehex", email = "17317183+apehex@users.noreply.github.com" }]
 readme = ".github/README.md"
@@ -19,7 +19,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["mlable"]
+packages = ["src/mlable"]
 
 [tool.hatch.build.targets.sdist]
-include = ["mlable", "pyproject.toml", ".github/README.md", ".github/LICENSE.md"]
+include = ["src/mlable", "pyproject.toml", ".github/README.md", ".github/LICENSE.md"]
