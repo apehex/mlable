@@ -1,23 +1,25 @@
-[tool.poetry]
+[project]
 name = "mlable"
 version = "0.22.10"
 description = "Tensorflow libs: layers, metrics, ops, etc."
-license = ".github/LICENSE.md"
+authors = [{ name = "apehex", email = "17317183+apehex@users.noreply.github.com" }]
 readme = ".github/README.md"
-authors = ["apehex <17317183+apehex@users.noreply.github.com>"]
-packages = [{include="mlable"}]
+license = "AGPL-3.0"
+license-files = [".github/LICENSE.md"]
+requires-python = ">=3.10, <3.14"
+dependencies = [
+    "densecurves>=0.2",
+    "tensorflow>=2.16",]
 
-[tool.poetry.dependencies]
-densecurves = ">=0.1"
-python = ">=3.10,<4.0"
-tensorflow = ">=2.16, <2.20"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "*"
-
-[tool.pytest.ini_options]
-addopts = ["--import-mode=importlib"]
+[dependency-groups]
+dev = ["pytest"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mlable"]
+
+[tool.hatch.build.targets.sdist]
+include = ["mlable", "pyproject.toml", ".github/README.md", ".github/LICENSE.md"]
