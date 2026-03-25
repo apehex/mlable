@@ -1,4 +1,4 @@
-# Agents
+# Agent Guidelines
 
 Guidelines for LLM agents working on this repository.
 

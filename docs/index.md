@@ -7,6 +7,10 @@ Overview of the repository structure.
 | Path                      | Purpose                               |
 | ------------------------- | ------------------------------------- |
 | `-- docs/`                | Collaboration-focused project docs    |
+| `   -- sources/`          | Package/module documentation          |
+| `      -- index.md`       | Index of package modules              |
+| `      -- layers/`        | Layer usage guides                    |
+| `      -- metrics/`       | Metric usage guides                   |
 | `   -- agents.md`         | Guidelines for LLM agents             |
 | `   -- context.md`        | Overview of the project               |
 | `   -- decisions.md`      | Record of important design choices    |
@@ -14,10 +18,6 @@ Overview of the repository structure.
 | `   -- index.md`          | Structure of the repository           |
 | `   -- invariants.md`     | Hard constraints                      |
 | `   -- issues.md`         | Curated list of selected issues       |
-| `   -- package/`          | Package/module documentation          |
-| `      -- index.md`       | Index of package modules              |
-| `      -- layers/`        | Layer usage guides                    |
-| `      -- metrics/`       | Metric usage guides                   |
 | `   -- primer.jj`         | Conversation primer (Jinja template)  |
 | `   -- references.md`     | External references                   |
 | `   -- todo.md`           | Concrete next tasks                   |

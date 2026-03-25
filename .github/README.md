@@ -24,13 +24,13 @@ score = metric(y_true=tf.one_hot([[1, 2, 3, 4]], depth=8), y_pred=tf.one_hot([[1
 
 ## Documentation
 
-Detailed usage documentation is available under `docs/package/`:
+Detailed usage documentation is available under `docs/sources/`:
 
-- [`docs/package/layers/shaping.md`](../docs/package/layers/shaping.md)
-- [`docs/package/layers/embedding.md`](../docs/package/layers/embedding.md)
-- [`docs/package/layers/transformer.md`](../docs/package/layers/transformer.md)
-- [`docs/package/metrics/group_accuracy.md`](../docs/package/metrics/group_accuracy.md)
-- [`docs/package/index.md`](../docs/package/index.md)
+- [`docs/sources/layers/shaping.md`](../docs/sources/layers/shaping.md)
+- [`docs/sources/layers/embedding.md`](../docs/sources/layers/embedding.md)
+- [`docs/sources/layers/transformer.md`](../docs/sources/layers/transformer.md)
+- [`docs/sources/metrics/group_accuracy.md`](../docs/sources/metrics/group_accuracy.md)
+- [`docs/sources/index.md`](../docs/sources/index.md)
 
 ## Credits
 
