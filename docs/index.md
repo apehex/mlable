@@ -14,13 +14,10 @@ Overview of the repository structure.
 | `   -- agents.md`         | Guidelines for LLM agents             |
 | `   -- context.md`        | Overview of the project               |
 | `   -- decisions.md`      | Record of important design choices    |
-| `   -- ideas.md`          | Research directions and speculations  |
 | `   -- index.md`          | Structure of the repository           |
 | `   -- invariants.md`     | Hard constraints                      |
-| `   -- issues.md`         | Curated list of selected issues       |
-| `   -- primer.jj`         | Conversation primer (Jinja template)  |
 | `   -- references.md`     | External references                   |
-| `   -- todo.md`           | Concrete next tasks                   |
+| `   -- roadmap.md`        | Planning of the project               |
 
 ## Sources
 
