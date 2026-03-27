@@ -1,0 +1,3 @@
+[submodule ".lib/soullm"]
+	path = .lib/soullm
+	url = https://github.com/apehex/soullm.git
